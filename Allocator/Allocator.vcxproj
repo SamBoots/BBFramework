@@ -163,6 +163,7 @@
   <ItemGroup>
     <ClInclude Include="Framework\Allocators.h" />
     <ClInclude Include="Framework\MemoryArena.h" />
+    <ClInclude Include="Framework\pointerUtils.h" />
     <ClInclude Include="pch\pch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

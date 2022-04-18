@@ -20,19 +20,42 @@ namespace BB
 			LinearAllocator& operator =(const LinearAllocator&) = delete;
 			LinearAllocator& operator =(LinearAllocator&&) = delete;
 
-			void* Alloc(size_t a_Size, uint8_t a_Alignment);
+			void* Alloc(size_t a_Size, size_t a_Alignment);
+			void Free(void*);
 			void Clear();
 
 		private:
-			uint8_t* m_Buffer;
 			uint8_t* m_Start;
-
-			const size_t m_Size;
+			uint8_t* m_Buffer;
 		};
 
+		struct FreelistAllocator
+		{
+			FreelistAllocator(const size_t a_Size);
+			~FreelistAllocator();
 
+			//just delete these for safety, copies might cause errors.
+			FreelistAllocator(const LinearAllocator&) = delete;
+			FreelistAllocator(const LinearAllocator&&) = delete;
+			FreelistAllocator& operator =(const LinearAllocator&) = delete;
+			FreelistAllocator& operator =(LinearAllocator&&) = delete;
 
+			void* Alloc(size_t a_Size, size_t a_Alignment);
+			void Free(void* a_Ptr);
 
+			struct AllocHeader 
+			{
+				size_t size;
+				size_t adjustment;
+			};
+			struct FreeBlock
+			{
+				size_t size;
+				FreeBlock* next;
+			};
+			uint8_t* m_Start;
+			FreeBlock* m_FreeBlocks;
+		};
 	}
 
 	template <typename T>

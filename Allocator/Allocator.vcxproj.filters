@@ -35,5 +35,8 @@
     <ClInclude Include="Framework\MemoryArena.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Framework\pointerUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
