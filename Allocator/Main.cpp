@@ -17,12 +17,12 @@ typedef BB::MemoryArena<BB::allocators::LinearAllocator, BB::memorypolicies::Sin
 typedef BB::MemoryArena<BB::allocators::FreelistAllocator, BB::memorypolicies::Single_Thread, BB::memorypolicies::No_BoundsCheck, BB::memorypolicies::No_MemoryTagging> unsafeFreeListAllocator_t;
 
 
-constexpr const size_t testcases = 10000000;
+constexpr const size_t testcases = 1000000;
 int main()
 {
 	unsafeLinearAllocator_t linearAlloc(testcases * 8);
 	unsafeFreeListAllocator_t freelistAlloc((testcases * 8) * 2 + sizeof(BB::allocators::FreelistAllocator::AllocHeader));
-	unsafeFreeListAllocator_t freelistAllocArray((testcases * 8) * 10);
+	unsafeFreeListAllocator_t freelistAllocArray((testcases * 8) * 20);
 
 
 	std::cout << "\n \n" << "SINGLE ALLOCATION TESTS" << "\n";
@@ -120,6 +120,6 @@ int main()
 		std::cout << std::chrono::duration_cast<ms_t>(timerStop - timerStart).count() << " FREELIST ALLOCATOR: " << testcases << " SINGLE ARRAY ALLOCATION \n";
 	}
 
-
+	system("pause");
 }
 

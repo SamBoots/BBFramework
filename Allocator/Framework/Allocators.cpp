@@ -2,6 +2,8 @@
 #include "Allocators.h"
 #include "pointerUtils.h"
 
+#include "BackingAllocator.h"
+
 using namespace BB::allocators;
 
 
@@ -41,13 +43,14 @@ static size_t alignForwardAdjustmentHeader(const void* address, size_t alignment
 LinearAllocator::LinearAllocator(const size_t a_Size)
 {
 	BB_ASSERT(a_Size != 0, "linear allocator is created with a size of 0!");
-	m_Start = reinterpret_cast<uint8_t*>(malloc(a_Size));
+	//m_Start = reinterpret_cast<uint8_t*>(malloc(a_Size));
+	m_Start = reinterpret_cast<uint8_t*>(virtualAllocBackingAllocator.Alloc(a_Size));
 	m_Buffer = m_Start;
 }
 
 LinearAllocator::~LinearAllocator()
 {
-	free(m_Start);
+	//free(m_Start);
 }
 
 void* LinearAllocator::Alloc(size_t a_Size, size_t a_Alignment)
@@ -71,12 +74,12 @@ void LinearAllocator::Clear()
 }
 
 
-
 FreelistAllocator::FreelistAllocator(const size_t a_Size)
 {
 	BB_ASSERT(a_Size != 0, "Freelist allocator is created with a size of 0!");
 	BB_WARNING(a_Size < 10240, "Freelist allocator is smaller then 10 kb, might be too small.");
-	m_Start = reinterpret_cast<uint8_t*>(malloc(a_Size));
+	//m_Start = reinterpret_cast<uint8_t*>(malloc(a_Size));
+	m_Start = reinterpret_cast<uint8_t*>(virtualAllocBackingAllocator.Alloc(a_Size));
 	m_FreeBlocks = reinterpret_cast<FreeBlock*>(m_Start);
 	m_FreeBlocks->size = a_Size;
 	m_FreeBlocks->next = nullptr;
@@ -84,7 +87,7 @@ FreelistAllocator::FreelistAllocator(const size_t a_Size)
 
 FreelistAllocator::~FreelistAllocator()
 {
-	free(m_Start);
+	//free(m_Start);
 }
 
 void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
