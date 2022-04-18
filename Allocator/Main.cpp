@@ -6,17 +6,19 @@
 
 #include <chrono>
 
-#include "Framework/Allocators.h"
+#include "Framework/MemoryArena.h"
 
 std::chrono::high_resolution_clock timer;
 std::chrono::high_resolution_clock::time_point timerStart;
 
 using ms_t = std::chrono::duration<float, std::milli>;
 
-constexpr const size_t testcases = 1000000;
+typedef BB::MemoryArena<BB::allocators::LinearAllocator, BB::memorypolicies::Single_Thread, BB::memorypolicies::No_BoundsCheck, BB::memorypolicies::No_MemoryTagging> unsafeLinearAllocator_t;
+
+constexpr const size_t testcases = 10000000;
 int main()
 {
-	BB::memory::LinearAllocator linearAlloc(testcases * 8);
+	unsafeLinearAllocator_t linearAlloc(testcases * 8);
 
 	{
 		timerStart = timer.now();
@@ -38,7 +40,7 @@ int main()
 			int* index = BB::AllocNew<int>(linearAlloc);
 		}
 		auto timerStop = timer.now();
-		linearAlloc.clear();
+		linearAlloc.Clear();
 		std::cout << std::chrono::duration_cast<ms_t>(timerStop - timerStart).count() << " LINEAR ALLOCATOR: " << testcases << " INDIVIDUAL ALLOCATIONS \n";
 	}
 
@@ -58,7 +60,7 @@ int main()
 		
 		auto timerStop = timer.now();
 
-		linearAlloc.clear();
+		linearAlloc.Clear();
 		std::cout << std::chrono::duration_cast<ms_t>(timerStop - timerStart).count() << " LINEAR ALLOCATOR: " << testcases << " SINGLE ARRAY ALLOCATION \n";
 	}
 
