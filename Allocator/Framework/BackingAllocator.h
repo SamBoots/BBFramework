@@ -10,6 +10,13 @@ namespace BB
 		void ReserveAndCommitSpace(size_t a_Size);
 		void* Alloc(size_t a_Size);
 
+		struct PageHeader
+		{
+			size_t pageAmount;
+			size_t pageUsed;
+			PageHeader* pNext;
+		};
+
 		size_t backingSize;
 		size_t backingCommited;
 		size_t backingUsed;

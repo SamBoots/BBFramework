@@ -12,7 +12,7 @@ BackingAllocator::BackingAllocator()
 	SYSTEM_INFO t_SystemInfo;
 	GetSystemInfo(&t_SystemInfo);
 	PAGESIZE = t_SystemInfo.dwAllocationGranularity;
-
+	
 	//just reserve a lot lmao
 	ReserveAndCommitSpace(PAGESIZE * 8192);
 }

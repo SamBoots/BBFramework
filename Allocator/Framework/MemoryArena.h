@@ -86,10 +86,10 @@ namespace BB
 		MemoryTaggingPolicy m_MemoryTaggingPolicy;
 	};
 
-	template <class MemoryArea, class MemoryTrackPolicy>
-	struct MemoryAreaProxy
+	template <class MemoryArena, class MemoryTrackPolicy>
+	struct MemoryArenaProxy
 	{
-		MemoryArea m_MemoryArea;
+		MemoryArena m_MemoryArena;
 
 		MemoryTrackPolicy m_MemoryTrackPolicy;
 	};

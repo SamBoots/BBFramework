@@ -3,8 +3,6 @@
 
 #include <cstdint>
 
-#define BB_NEW 
-
 namespace BB
 {
 	namespace allocators
