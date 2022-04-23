@@ -21,9 +21,7 @@ constexpr const size_t testcases = 1000000;
 int main()
 {
 	unsafeLinearAllocator_t linearAlloc(testcases * 8);
-	unsafeFreeListAllocator_t freelistAlloc((testcases * 8) * 2 + sizeof(BB::allocators::FreelistAllocator::AllocHeader));
-	unsafeFreeListAllocator_t freelistAllocArray((testcases * 8) * 20);
-
+	unsafeFreeListAllocator_t freelistAlloc((testcases * 8) * sizeof(BB::allocators::FreelistAllocator::AllocHeader));
 
 	std::cout << "\n \n" << "SINGLE ALLOCATION TESTS" << "\n";
 
@@ -56,7 +54,8 @@ int main()
 
 		for (size_t i = 0; i < testcases; i++)
 		{
-			int* index = BB::AllocNew<int>(freelistAllocArray);
+			int* index = BB::AllocNew<int>(freelistAlloc);
+			BB::Free(freelistAlloc, index);
 		}
 		auto timerStop = timer.now();
 		linearAlloc.Clear();

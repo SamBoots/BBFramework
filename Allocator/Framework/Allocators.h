@@ -1,5 +1,4 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
 
 #include <cstdint>
 
@@ -56,38 +55,6 @@ namespace BB
 		};
 	}
 
-	template <typename T>
-	inline T* AllocNew(allocators::LinearAllocator& a_Allocator)
-	{
-		return new (reinterpret_cast<T*>(a_Allocator.Alloc(sizeof(T), __alignof(T)))) T();
-	}
-
-	template <typename T>
-	inline T* AllocNew(allocators::LinearAllocator& a_Allocator, const T& a_T)
-	{
-		return new (reinterpret_cast<T*>(a_Allocator.Alloc(sizeof(T), __alignof(T)))) T(a_T);
-	}
-
-	template <typename T>
-	inline T* AllocNewArray(allocators::LinearAllocator& a_Allocator, size_t a_Length)
-	{
-		uint8_t t_HeaderSize = sizeof(size_t) / sizeof(T);
-
-		if (sizeof(size_t) % sizeof(T) > 0) t_HeaderSize += 1;
-
-		//Allocate the array, but shift it 8 bytes forward to allow the size of the header to be put in as well.
-		T* ptr = (reinterpret_cast<T*>(a_Allocator.Alloc(sizeof(T) * (a_Length * t_HeaderSize), __alignof(T)))) + t_HeaderSize;
-
-		//Store the size of the array inside the first element of the pointer.
-		*(reinterpret_cast<size_t*>(ptr) - 1) = a_Length;
-
-		//Create the elements.
-		for (size_t i = 0; i < a_Length; i++)
-			new (&ptr) T;
-
-		return ptr;
-	}
-
 	template <typename T, typename MemoryArena>
 	inline T* AllocNew(MemoryArena& a_Arena)
 	{
@@ -120,7 +87,11 @@ namespace BB
 		return ptr;
 	}
 
-
+	template <typename MemoryArena>
+	inline void Free(MemoryArena& a_Arena, void* a_Ptr)
+	{
+		a_Arena.Free(a_Ptr);
+	}
 }
 
 //inline void* operator new(size_t a_Bytes, BB::memory::LinearAllocator* a_Allocator)

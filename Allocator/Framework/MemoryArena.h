@@ -61,9 +61,9 @@ namespace BB
 		{
 			m_ThreadPolicy.Enter();
 
-			uint8_t* originalMemory = static_cast<char*>(a_Ptr);
+			uint8_t* originalMemory = static_cast<uint8_t*>(a_Ptr);
 
-			m_MemoryTaggingPolicy.TagDeallocation(originalMemory);
+			m_MemoryTaggingPolicy.TagDealloc(originalMemory);
 
 			m_Allocator.Free(originalMemory);
 

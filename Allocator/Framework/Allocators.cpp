@@ -15,7 +15,7 @@ LinearAllocator::LinearAllocator(const size_t a_Size)
 
 LinearAllocator::~LinearAllocator()
 {
-	//free(m_Start);
+	virtualAllocBackingAllocator.Free(m_Start);
 }
 
 void* LinearAllocator::Alloc(size_t a_Size, size_t a_Alignment)
@@ -30,7 +30,7 @@ void* LinearAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 
 void LinearAllocator::Free(void*)
 {
-	BB_EXCEPTION(false, "Tried to free a linear allocator, which is not possible!");
+	BB_ASSERT(false, "Tried to free a pice of memory in a linear allocator, which is not possible!");
 }
 
 void LinearAllocator::Clear()
@@ -51,7 +51,7 @@ FreelistAllocator::FreelistAllocator(const size_t a_Size)
 
 FreelistAllocator::~FreelistAllocator()
 {
-	//free(m_Start);
+	virtualAllocBackingAllocator.Free(m_Start);
 }
 
 void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
@@ -71,8 +71,16 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 			continue;
 		}
 
-		//BB_STATIC_ASSERT(sizeof(AllocHeader) >= sizeof(FreeBlock), "sizeof(AllocationHeader) < sizeof(FreeBlock)");
+		if (t_FreeBlock->size - t_TotalSize <= sizeof(AllocHeader))
+		{
+			t_TotalSize = t_FreeBlock->size;
 
+			if (t_PreviousFreeBlock != nullptr)
+				t_PreviousFreeBlock->next = t_FreeBlock->next;
+			else
+				m_FreeBlocks = t_FreeBlock->next;
+		}
+		else
 		{
 			FreeBlock* t_NextBlock = reinterpret_cast<FreeBlock*>(pointerutils::Add(t_FreeBlock, t_TotalSize));
 
@@ -99,5 +107,47 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 
 void FreelistAllocator::Free(void* a_Ptr)
 {
+	BB_ASSERT(a_Ptr != nullptr, "Nullptr send to FreelistAllocator::Free!.");
+	AllocHeader* t_Header = reinterpret_cast<AllocHeader*>(pointerutils::Subtract(a_Ptr, sizeof(AllocHeader)));
+	size_t t_BlockSize = t_Header->size;
+	uintptr_t t_BlockStart = reinterpret_cast<uintptr_t>(a_Ptr) - t_Header->adjustment;
+	uintptr_t t_BlockEnd = t_BlockStart + t_BlockSize;
 
+	FreeBlock* t_PreviousBlock = nullptr;
+	FreeBlock* t_FreeBlock = m_FreeBlocks;
+
+	while (t_FreeBlock != nullptr)
+	{
+		BB_ASSERT(t_FreeBlock != t_FreeBlock->next, "Next points to it's self.");
+		uintptr_t t_FreeBlockPos = reinterpret_cast<uintptr_t>(t_FreeBlock);
+		if (t_FreeBlockPos >= t_BlockEnd) break;
+		t_PreviousBlock = t_FreeBlock;
+		t_FreeBlock = t_FreeBlock->next;
+	}
+
+	if (t_PreviousBlock == nullptr)
+	{
+		t_PreviousBlock = reinterpret_cast<FreeBlock*>(t_BlockStart);
+		t_PreviousBlock->size = t_Header->size;
+		t_PreviousBlock->next = m_FreeBlocks;
+		m_FreeBlocks = t_PreviousBlock;
+	}
+	else if (reinterpret_cast<uintptr_t>(t_PreviousBlock) + t_PreviousBlock->size == t_BlockStart)
+	{
+		t_PreviousBlock->size += t_BlockSize;
+	}
+	else
+	{
+		//FreeBlock* t_Temp = reinterpret_cast<FreeBlock*>(t_BlockStart);
+		//t_Temp->size = t_BlockSize;
+		//t_Temp->next = t_PreviousBlock->next;
+		//t_PreviousBlock->next = t_Temp;
+		//t_PreviousBlock = t_Temp;
+	}
+
+	if (t_FreeBlock != nullptr && reinterpret_cast<uintptr_t>(t_FreeBlock) == t_BlockEnd)
+	{
+		t_PreviousBlock->size += t_FreeBlock->size;
+		t_PreviousBlock->next = t_FreeBlock->next;
+	}
 }
