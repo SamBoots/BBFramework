@@ -21,6 +21,8 @@ namespace BB
 			void Free(void*);
 			void Clear();
 
+			void* begin() const { return m_Start; };
+
 		private:
 			uint8_t* m_Start;
 			uint8_t* m_Buffer;
@@ -40,6 +42,8 @@ namespace BB
 			void* Alloc(size_t a_Size, size_t a_Alignment);
 			void Free(void* a_Ptr);
 
+			void* begin() const;
+
 			struct AllocHeader 
 			{
 				size_t size;
@@ -52,6 +56,27 @@ namespace BB
 			};
 			uint8_t* m_Start;
 			FreeBlock* m_FreeBlocks;
+		};
+
+		struct PoolAllocator
+		{
+			PoolAllocator(const size_t a_ObjectSize, const size_t a_ObjectCount, const size_t a_Alignment);
+			~PoolAllocator();
+
+			//just delete these for safety, copies might cause errors.
+			PoolAllocator(const LinearAllocator&) = delete;
+			PoolAllocator(const LinearAllocator&&) = delete;
+			PoolAllocator& operator =(const LinearAllocator&) = delete;
+			PoolAllocator& operator =(LinearAllocator&&) = delete;
+
+			void* Alloc(size_t a_Size, size_t);
+			void Free(void* a_Ptr);
+
+			void* begin() const { return m_Start; };
+
+			size_t m_Alignment;
+			uint8_t* m_Start;
+			void** m_Pool;
 		};
 	}
 

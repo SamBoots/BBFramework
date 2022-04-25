@@ -37,4 +37,22 @@ namespace BB
 
 	static BackingAllocator virtualAllocBackingAllocator;
 	static size_t PAGESIZE;
+
+
+	enum class MEM_VIRTUAL_CMD
+	{
+		RESERVE = 0, //WINDOWS VIRTUAL RESERVE
+		COMMIT = 1, //WINDOWS VIRTUAL COMMIT
+		RESERVE_COMMIT = 2 //LINUX MMAP
+	};
+
+	/// <summary>
+	/// Allocates virtual memory in pages, the amount allocated will be in multiples of BB::PAGESIZE;
+	/// </summary>
+	/// <param name="a_Start"> where the pages will start, nullptr if you do not want not care about the start position. </param>
+	/// <param name="a_Size"> size of the virtual memory allocation in bytes, will be internally changed to be a multiple of BB::PAGESIZE</param>
+	/// <param name="a_Cmd"> the type of memory you want to reserve, read the respective virtual allocator API for the platform.</param>
+	/// <returns>Pointer to the start of the virtual memory. </returns>
+	void* mallocVirtual(void* a_Start, size_t a_Size, MEM_VIRTUAL_CMD a_Cmd) ;
+	void freeVirtual(void* a_Ptr);
 }

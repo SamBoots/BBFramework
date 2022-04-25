@@ -8,11 +8,43 @@
 
 using namespace BB;
 
-static int RoundUp(int a_NumToRound, int a_Multiple)
+static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
 {
 	BB_ASSERT(a_Multiple, "Multiple is 0!");
 	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
 }
+
+void* BB::mallocVirtual(void* a_Start, size_t a_Size, MEM_VIRTUAL_CMD a_Cmd)
+{
+	BB_WARNING(a_Size < PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
+	BB_WARNING(a_Cmd != MEM_VIRTUAL_CMD::RESERVE_COMMIT, "Virtual Alloc will now reserve + commit, but this is not optimal use. Reserve pages and commit what you need.");
+
+	DWORD memcmd;
+	switch (a_Cmd)
+	{
+	case BB::MEM_VIRTUAL_CMD::RESERVE:
+		memcmd = MEM_RESERVE;
+		break;
+	case BB::MEM_VIRTUAL_CMD::COMMIT:
+		memcmd = MEM_COMMIT;
+		break;
+	case BB::MEM_VIRTUAL_CMD::RESERVE_COMMIT:
+		memcmd = MEM_COMMIT | MEM_RESERVE;
+		break;
+	default:
+		BB_EXCEPTION(false, "Windows backing allocator does not seem to recognize the MEM_VIRTUAL_CMD, program will have unexpected behaviour.");
+		memcmd = 0;
+		break;
+	}
+
+	return VirtualAlloc(a_Start, RoundUp(a_Size, PAGESIZE), memcmd, PAGE_READWRITE);
+}
+
+void BB::freeVirtual(void* a_Ptr)
+{
+	VirtualFree(a_Ptr, 0, MEM_RELEASE);
+}
+
 
 BackingAllocator::BackingAllocator()
 {

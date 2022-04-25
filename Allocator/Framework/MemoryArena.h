@@ -1,7 +1,6 @@
 #pragma once
 
 //Source on idea: https://blog.molecular-matters.com/2011/06/29/designing-extensible-modular-classes/
-#include "Allocators.h"
 
 namespace BB
 {
@@ -42,6 +41,10 @@ namespace BB
 		MemoryArena(const size_t a_Size)
 			: m_Allocator(a_Size), m_BoundsCheckPolicy(a_Size)
 		{}
+		
+		MemoryArena(const size_t a_ObjectSize, const size_t a_ObjectCount, const size_t a_Alignment)
+			: m_Allocator(a_ObjectSize, a_ObjectCount, a_Alignment), m_BoundsCheckPolicy(a_ObjectSize * a_ObjectCount)
+		{}
 
 		void* Alloc(size_t a_Size, size_t a_Alignment)
 		{
@@ -77,6 +80,11 @@ namespace BB
 			m_Allocator.Clear();
 
 			m_ThreadPolicy.Leave();
+		}
+
+		void* begin() const
+		{
+			return m_Allocator.begin();
 		}
 
 	private:

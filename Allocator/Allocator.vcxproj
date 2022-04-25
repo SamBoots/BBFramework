@@ -164,8 +164,10 @@
   <ItemGroup>
     <ClInclude Include="Framework\BackingAllocator.h" />
     <ClInclude Include="Framework\Allocators.h" />
+    <ClInclude Include="Framework\BB_AllocTypes.h" />
     <ClInclude Include="Framework\MemoryArena.h" />
     <ClInclude Include="Framework\pointerUtils.h" />
+    <ClInclude Include="Framework\Storage\Dynamic_Array.h" />
     <ClInclude Include="pch\pch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
