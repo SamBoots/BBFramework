@@ -6,7 +6,19 @@
 #include <memoryapi.h>
 #include <sysinfoapi.h>
 
+#include <cmath>
+
+
 using namespace BB;
+
+constexpr const size_t RESERVEMULTIPLICATION = 16;
+
+struct PageHeader
+{
+	size_t bytesCommited;
+	size_t bytesReserved;
+};
+
 
 static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
 {
@@ -14,30 +26,39 @@ static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
 	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
 }
 
-void* BB::mallocVirtual(void* a_Start, size_t a_Size, MEM_VIRTUAL_CMD a_Cmd)
+void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 {
 	BB_WARNING(a_Size < PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
-	BB_WARNING(a_Cmd != MEM_VIRTUAL_CMD::RESERVE_COMMIT, "Virtual Alloc will now reserve + commit, but this is not optimal use. Reserve pages and commit what you need.");
 
-	DWORD memcmd;
-	switch (a_Cmd)
+	size_t t_AdjustedSize = RoundUp(a_Size, PAGESIZE);
+	//Check the pageHeader
+	if (a_Start != nullptr)
 	{
-	case BB::MEM_VIRTUAL_CMD::RESERVE:
-		memcmd = MEM_RESERVE;
-		break;
-	case BB::MEM_VIRTUAL_CMD::COMMIT:
-		memcmd = MEM_COMMIT;
-		break;
-	case BB::MEM_VIRTUAL_CMD::RESERVE_COMMIT:
-		memcmd = MEM_COMMIT | MEM_RESERVE;
-		break;
-	default:
-		BB_EXCEPTION(false, "Windows backing allocator does not seem to recognize the MEM_VIRTUAL_CMD, program will have unexpected behaviour.");
-		memcmd = 0;
-		break;
+		PageHeader* t_Header = reinterpret_cast<PageHeader*>(pointerutils::Subtract(a_Start, sizeof(PageHeader)));
+		void* a_Address = pointerutils::Add(a_Start, t_Header->bytesCommited);
+
+		if (t_Header->bytesReserved < t_AdjustedSize)
+		{
+			size_t t_AdditionalReserve = t_AdjustedSize * RESERVEMULTIPLICATION;
+			VirtualAlloc(a_Address, t_AdditionalReserve, MEM_RESERVE, PAGE_READWRITE);
+			t_Header->bytesReserved += t_AdditionalReserve;
+		}
+		t_Header->bytesReserved -= t_AdjustedSize;
+		t_Header->bytesCommited += t_AdjustedSize;
+		return VirtualAlloc(a_Address, t_AdjustedSize, MEM_COMMIT, PAGE_READWRITE);
 	}
 
-	return VirtualAlloc(a_Start, RoundUp(a_Size, PAGESIZE), memcmd, PAGE_READWRITE);
+	size_t t_AdditionalReserve = t_AdjustedSize * RESERVEMULTIPLICATION;
+	void* a_Address = VirtualAlloc(a_Start, t_AdditionalReserve, MEM_RESERVE, PAGE_READWRITE);
+	VirtualAlloc(a_Address, t_AdjustedSize, MEM_COMMIT, PAGE_READWRITE);
+
+	//Pageheader for new allocation.
+	PageHeader* t_Header = reinterpret_cast<PageHeader*>(a_Address);
+	t_Header->bytesReserved = t_AdditionalReserve - t_AdjustedSize;
+	t_Header->bytesCommited = t_AdjustedSize;
+	void* a_AdjustedAddress = pointerutils::Add(a_Address, sizeof(PageHeader));
+
+	return a_AdjustedAddress;
 }
 
 void BB::freeVirtual(void* a_Ptr)

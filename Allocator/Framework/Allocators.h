@@ -24,7 +24,7 @@ namespace BB
 			void* begin() const { return m_Start; };
 
 		private:
-			uint8_t* m_Start;
+			uint8_t* m_Start = nullptr;
 			uint8_t* m_Buffer;
 		};
 
@@ -54,7 +54,7 @@ namespace BB
 				size_t size;
 				FreeBlock* next;
 			};
-			uint8_t* m_Start;
+			uint8_t* m_Start = nullptr;
 			FreeBlock* m_FreeBlocks;
 		};
 
@@ -75,7 +75,7 @@ namespace BB
 			void* begin() const { return m_Start; };
 
 			size_t m_Alignment;
-			uint8_t* m_Start;
+			uint8_t* m_Start = nullptr;
 			void** m_Pool;
 		};
 	}

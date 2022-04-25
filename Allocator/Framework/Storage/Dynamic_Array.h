@@ -27,7 +27,7 @@ namespace BB
 
 	template<typename T>
 	inline Dynamic_Array<T>::Dynamic_Array()
-		: m_Allocator(sizeof(T), m_Size, __alignof(T))
+		: m_Allocator(sizeof(T), m_Capacity, __alignof(T))
 	{}
 
 	template<typename T>

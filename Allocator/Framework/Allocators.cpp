@@ -4,14 +4,12 @@
 
 #include "BackingAllocator.h"
 
-#include <cmath>
-
 using namespace BB::allocators;
 
 LinearAllocator::LinearAllocator(const size_t a_Size)
 {
 	BB_ASSERT(a_Size != 0, "linear allocator is created with a size of 0!");
-	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, a_Size, MEM_VIRTUAL_CMD::RESERVE_COMMIT));
+	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, a_Size));
 	m_Buffer = m_Start;
 }
 
@@ -45,7 +43,7 @@ FreelistAllocator::FreelistAllocator(const size_t a_Size)
 {
 	BB_ASSERT(a_Size != 0, "Freelist allocator is created with a size of 0!");
 	BB_WARNING(a_Size > 10240, "Freelist allocator is smaller then 10 kb, might be too small.");
-	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, a_Size, MEM_VIRTUAL_CMD::RESERVE_COMMIT));
+	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, a_Size));
 	m_FreeBlocks = reinterpret_cast<FreeBlock*>(m_Start);
 	m_FreeBlocks->size = a_Size;
 	m_FreeBlocks->next = nullptr;
@@ -168,8 +166,7 @@ BB::allocators::PoolAllocator::PoolAllocator(const size_t a_ObjectSize, const si
 	BB_WARNING(a_ObjectSize * a_ObjectCount > 10240, "Pool allocator is smaller then 10 kb, might be too small.");
 
 	size_t t_PoolAllocSize = a_ObjectSize * a_ObjectCount;
-	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, t_PoolAllocSize * 16, MEM_VIRTUAL_CMD::RESERVE));
-	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(m_Start, t_PoolAllocSize * 2, MEM_VIRTUAL_CMD::COMMIT));
+	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(m_Start, t_PoolAllocSize * 2));
 	m_Alignment = pointerutils::alignForwardAdjustment(m_Pool, a_Alignment);
 	m_Start = reinterpret_cast<uint8_t*>(pointerutils::Add(m_Start, m_Alignment));
 	m_Pool = reinterpret_cast<void**>(m_Start);

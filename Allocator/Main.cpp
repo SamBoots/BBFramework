@@ -156,7 +156,7 @@ int main()
 		timerStart = timer.now();
 		BB::Dynamic_Array<size_t> dynamic_Array;
 
-		for (size_t i = 0; i < 16; i++)
+		for (size_t i = 0; i < 8; i++)
 		{
 			size_t numb = (i + 2) * 2;
 			dynamic_Array.push_back(numb);
@@ -165,7 +165,7 @@ int main()
 		auto timerStop = timer.now();
 
 #ifdef _DEBUG
-		for (size_t i = 0; i < 16; i++)
+		for (size_t i = 0; i < 8; i++)
 		{
 			std::cout << "Pool allocated array position: " << i << " has value: " << dynamic_Array[i] << "\n";
 		}
