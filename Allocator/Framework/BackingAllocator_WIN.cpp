@@ -17,6 +17,7 @@ static size_t PAGESIZE;
 struct PageHeader
 {
 	size_t bytesCommited;
+	size_t bytesUsed;
 	size_t bytesReserved;
 };
 
@@ -43,17 +44,29 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	if (a_Start != nullptr)
 	{
 		PageHeader* t_Header = reinterpret_cast<PageHeader*>(pointerutils::Subtract(a_Start, sizeof(PageHeader)));
-		void* a_Address = pointerutils::Add(a_Start, t_Header->bytesCommited);
+		void* t_ReturnAddress = pointerutils::Add(a_Start, t_Header->bytesUsed);
+		//If the amount commited is enough just move the pointer and return it.
+		if ((t_Header->bytesCommited - t_Header->bytesUsed) > t_AdjustedSize)
+		{
+			t_Header->bytesUsed += a_Size;
+			return t_ReturnAddress;
+		}
+		
+		void* t_Address = pointerutils::Add(a_Start, t_Header->bytesCommited);
 
+		//If the amount commited is not enough check if there is enough reserved, if not reserve more.
 		if (t_Header->bytesReserved < t_AdjustedSize)
 		{
 			size_t t_AdditionalReserve = t_AdjustedSize * RESERVEMULTIPLICATION;
-			VirtualAlloc(a_Address, t_AdditionalReserve, MEM_RESERVE, PAGE_READWRITE);
+			VirtualAlloc(t_Address, t_AdditionalReserve, MEM_RESERVE, PAGE_READWRITE);
 			t_Header->bytesReserved += t_AdditionalReserve;
 		}
-		t_Header->bytesReserved -= t_AdjustedSize;
 		t_Header->bytesCommited += t_AdjustedSize;
-		return VirtualAlloc(a_Address, t_AdjustedSize, MEM_COMMIT, PAGE_READWRITE);
+		t_Header->bytesUsed += a_Size;
+		t_Header->bytesReserved -= t_AdjustedSize;
+		VirtualAlloc(t_Address, t_AdjustedSize, MEM_COMMIT, PAGE_READWRITE);
+
+		return t_ReturnAddress;
 	}
 
 	size_t t_AdditionalReserve = t_AdjustedSize * RESERVEMULTIPLICATION;
@@ -62,8 +75,9 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 
 	//Pageheader for new allocation.
 	PageHeader* t_Header = reinterpret_cast<PageHeader*>(a_Address);
-	t_Header->bytesReserved = t_AdditionalReserve - t_AdjustedSize;
 	t_Header->bytesCommited = t_AdjustedSize;
+	t_Header->bytesUsed = a_Size + sizeof(PageHeader);
+	t_Header->bytesReserved = t_AdditionalReserve - t_AdjustedSize;
 	void* a_AdjustedAddress = pointerutils::Add(a_Address, sizeof(PageHeader));
 
 	return a_AdjustedAddress;
