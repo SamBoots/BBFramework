@@ -37,7 +37,7 @@ static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
 
 void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 {
-	BB_WARNING(a_Size < PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
+	BB_WARNING(a_Size > PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
 
 	size_t t_AdjustedSize = RoundUp(a_Size, PAGESIZE);
 	//Check the pageHeader

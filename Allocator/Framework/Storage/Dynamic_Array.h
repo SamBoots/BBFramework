@@ -19,7 +19,6 @@ namespace BB
 		const void* data() const { return m_Allocator.begin(); };
 
 	private:
-
 		size_t m_Size = 0;
 		size_t m_Capacity = 8;
 		unsafePoolAllocator_t m_Allocator;
@@ -43,7 +42,7 @@ namespace BB
 	template<typename T>
 	inline void Dynamic_Array<T>::push_back(T& a_Element)
 	{
-		T* t_AllocItem = reinterpret_cast<T*>(AllocNew<T>(m_Allocator, a_Element));
+		reinterpret_cast<T*>(AllocNew<T>(m_Allocator));
 		m_Size++;
 	}
 

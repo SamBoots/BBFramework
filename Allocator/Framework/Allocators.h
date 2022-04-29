@@ -43,6 +43,7 @@ namespace BB
 			void Free(void* a_Ptr);
 
 			void* begin() const;
+			void Clear() const;
 
 			struct AllocHeader 
 			{
@@ -71,6 +72,7 @@ namespace BB
 
 			void* Alloc(size_t a_Size, size_t);
 			void Free(void* a_Ptr);
+			void Clear();
 
 			void* begin() const { return m_Start; };
 

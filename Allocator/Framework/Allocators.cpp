@@ -3,6 +3,7 @@
 #include "pointerUtils.h"
 
 #include "BackingAllocator.h"
+#include "Allocators_UTEST.h"
 
 using namespace BB::allocators;
 
@@ -30,7 +31,7 @@ void* LinearAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 
 void LinearAllocator::Free(void*)
 {
-	BB_ASSERT(false, "Tried to free a pice of memory in a linear allocator, which is not possible!");
+	BB_ASSERT(false, "Tried to free a piece of memory in a linear allocator, which is not possible!");
 }
 
 void LinearAllocator::Clear()
@@ -93,7 +94,7 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 				m_FreeBlocks = t_NextBlock;
 		}
 
-		uintptr_t t_Address = reinterpret_cast<uintptr_t>(t_FreeBlock + t_Adjustment);
+		uintptr_t t_Address = reinterpret_cast<uintptr_t>(t_FreeBlock) + t_Adjustment;
 		AllocHeader* t_Header = reinterpret_cast<AllocHeader*>(t_Address - sizeof(AllocHeader));
 		t_Header->size = t_TotalSize;
 		t_Header->adjustment = t_Adjustment;
@@ -138,11 +139,11 @@ void FreelistAllocator::Free(void* a_Ptr)
 	}
 	else
 	{
-		//FreeBlock* t_Temp = reinterpret_cast<FreeBlock*>(t_BlockStart);
-		//t_Temp->size = t_BlockSize;
-		//t_Temp->next = t_PreviousBlock->next;
-		//t_PreviousBlock->next = t_Temp;
-		//t_PreviousBlock = t_Temp;
+		FreeBlock* t_Temp = reinterpret_cast<FreeBlock*>(t_BlockStart);
+		t_Temp->size = t_BlockSize;
+		t_Temp->next = t_PreviousBlock->next;
+		t_PreviousBlock->next = t_Temp;
+		t_PreviousBlock = t_Temp;
 	}
 
 	if (t_FreeBlock != nullptr && reinterpret_cast<uintptr_t>(t_FreeBlock) == t_BlockEnd)
@@ -156,6 +157,11 @@ void* BB::allocators::FreelistAllocator::begin() const
 {
 	BB_EXCEPTION(false, "Begin with Freelistallcator is not safe and will not work.");
 	return nullptr;
+}
+
+void BB::allocators::FreelistAllocator::Clear() const
+{
+	BB_ASSERT(false, "Freelist allocator is not meant to be cleared yet.");
 }
 
 
@@ -197,4 +203,9 @@ void BB::allocators::PoolAllocator::Free(void* a_Ptr)
 {
 	(*reinterpret_cast<void**>(a_Ptr)) = m_Pool;
 	m_Pool = reinterpret_cast<void**>(a_Ptr);
+}
+
+void BB::allocators::PoolAllocator::Clear()
+{
+	m_Pool = reinterpret_cast<void**>(m_Start);
 }
