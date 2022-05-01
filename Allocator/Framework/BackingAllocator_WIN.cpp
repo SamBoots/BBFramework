@@ -87,3 +87,52 @@ void BB::freeVirtual(void* a_Ptr)
 {
 	VirtualFree(a_Ptr, 0, MEM_RELEASE);
 }
+
+
+#include <gtest/gtest.h>
+#include "Utils/Math.h"
+
+#pragma region Unit Test
+
+struct MockAllocator
+{
+	MockAllocator(size_t a_Size)
+	{
+		maxSize = a_Size;
+		start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, a_Size));
+		buffer = start;
+	}
+
+	void* Alloc(size_t a_Size)
+	{
+		maxSize -= a_Size;
+		currentSize += a_Size;
+		buffer += a_Size;
+		return buffer;
+	};
+	//Not supporting free yet.
+	//void free(size_t a_Size);
+
+	size_t maxSize;
+	size_t currentSize = 0;
+	uint8_t* start;
+	uint8_t* buffer;
+};
+
+TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
+{
+	//Allocator size is equal to half a page, it will allocate an entire page in the background anyway.
+	MockAllocator t_Allocator(PAGESIZE / 2);
+	ASSERT_EQ(GetLastError(), 0x0) << "Windows API error on creating the MockAllocator.";
+
+	PageHeader lastHeader = *reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader)));
+
+	ASSERT_EQ(lastHeader.bytesUsed, t_Allocator.maxSize + sizeof(PageHeader)) << "Used amount is wrong.";
+	ASSERT_EQ(lastHeader.bytesCommited, PAGESIZE) << "Commited amount is wrong.";
+	ASSERT_EQ(lastHeader.bytesReserved, PAGESIZE * RESERVEMULTIPLICATION - lastHeader.bytesCommited) << "Reserved amount is wrong.";
+
+	//Allocate memory equal to an entire page, it should NOT reserve/commit more memory.
+	t_Allocator.Alloc(PAGESIZE - sizeof(PageHeader));
+}
+
+#pragma endregion

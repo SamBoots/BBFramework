@@ -158,8 +158,6 @@ TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 		//This address should always be used since it's a free block.
 		void* repeatAddress32 = BB::AllocNew<size32Bytes>(t_FreelistAllocator);
 		BB::Free(t_FreelistAllocator, repeatAddress32);
-		//repeatAddress32 = BB::pointerutils::Add(repeatAddress32, 
-			//sizeof(size32Bytes) + sizeof(BB::allocators::FreelistAllocator::AllocHeader));
 
 		for (size_t i = 0; i < sample_32_bytes; i++)
 		{
