@@ -52,7 +52,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 			t_PageHeader = t_PageHeader->next;
 		}
 
-		void* t_ReturnAddress = pointerutils::Add(a_Start, t_PageHeader->bytesUsed);
+		void* t_ReturnAddress = pointerutils::Add(t_PageHeader, t_PageHeader->bytesUsed);
 		//If the amount commited is enough just move the pointer and return it.
 		if ((t_PageHeader->bytesCommited - t_PageHeader->bytesUsed) >= a_Size)
 		{
@@ -68,7 +68,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 			t_PageHeader->bytesCommited += t_PageAdjustedSize;
 			t_PageHeader->bytesUsed += a_Size;
 			t_PageHeader->bytesReserved -= t_PageAdjustedSize;
-			VirtualAlloc(t_Address, t_PageAdjustedSize, MEM_COMMIT, PAGE_READWRITE);
+			VirtualAlloc(t_ReturnAddress, t_PageAdjustedSize, MEM_COMMIT, PAGE_READWRITE);
 			BB_ASSERT(GetLastError() == 0x0, "Windows API error commiting VirtualAlloc");
 			return t_ReturnAddress;
 		}
@@ -121,6 +121,8 @@ struct MockAllocator
 	{
 		maxSize = a_Size;
 		start = reinterpret_cast<uint8_t*>(mallocVirtual(start, a_Size));
+		//using memset because the memory is NOT commited to ram unless it's accessed.
+		memset(start, 5215, a_Size);
 		buffer = start;
 	}
 
@@ -138,8 +140,15 @@ struct MockAllocator
 			t_Address = buffer;
 		else
 		{
-			size_t t_BufferIncrease = RoundUp(a_Size, maxSize);
+			size_t t_BufferIncrease{};
+			if (maxSize > a_Size)
+				t_BufferIncrease = RoundUp(a_Size, maxSize);
+			else
+				t_BufferIncrease = a_Size;
+
 			t_Address = mallocVirtual(start, t_BufferIncrease);
+			//using memset because the memory is NOT commited to ram unless it's accessed.
+			memset(t_Address, 5215, t_BufferIncrease);
 			maxSize += t_BufferIncrease;
 		}
 
@@ -201,70 +210,84 @@ TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
 
 TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES_RANDOM)
 {
-	//Allocator size is equal to half a page, it will allocate an entire page in the background anyway.
-	MockAllocator t_Allocator(PAGESIZE);
-	ASSERT_EQ(GetLastError(), 0x0) << "Windows API error on creating the MockAllocator.";
-
+	constexpr const size_t RANDOM_ALLOCATORS_AMOUNT = 32;
 	constexpr const size_t RANDOM_SAMPLE_AMOUNT = 512;
 	constexpr const size_t MAX_RANDOM_VALUE = 2097152; //256 KB.
 	constexpr const size_t MIN_RANDOM_VALUE = 8192; //4 KB.
 
-	struct MockPageHeader
+	for (size_t i = 0; i < RANDOM_ALLOCATORS_AMOUNT; i++)
 	{
-		size_t bytesCommited = 0;
-		size_t bytesUsed = 0;
-		size_t bytesReserved = 0;
+		//Allocator size is equal to half a page, it will allocate an entire page in the background anyway.
+		MockAllocator t_Allocator(PAGESIZE);
+		ASSERT_EQ(GetLastError(), 0x0) << "Windows API error on creating the MockAllocator.";
 
-		MockPageHeader(PageHeader& a_PageHeader) : 
-			bytesCommited(a_PageHeader.bytesCommited), 
-			bytesUsed(a_PageHeader.bytesUsed),
-			bytesReserved(a_PageHeader.bytesReserved)
-		{}
-
-		void operator+=(PageHeader& a_PageHeader)
+		struct MockPageHeader
 		{
-			bytesCommited += a_PageHeader.bytesCommited;
-			bytesUsed += a_PageHeader.bytesUsed;
-			bytesReserved += a_PageHeader.bytesReserved;
-		}
-	} t_LastMockHeader(*reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader))));
+			size_t bytesCommited = 0;
+			size_t bytesUsed = 0;
+			size_t bytesReserved = 0;
 
-	for (size_t i = 0; i < RANDOM_SAMPLE_AMOUNT; i++)
-	{
-		const size_t t_RandomAllocAmount = Utils::RandomUintMinMax(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
-		const size_t t_SpaceLeft = t_Allocator.SpaceLeft();
+			MockPageHeader(PageHeader& a_PageHeader) :
+				bytesCommited(a_PageHeader.bytesCommited),
+				bytesUsed(a_PageHeader.bytesUsed),
+				bytesReserved(a_PageHeader.bytesReserved)
+			{}
 
-		t_Allocator.Alloc(t_RandomAllocAmount);
-		PageHeader* newHeader = reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader)));
-		MockPageHeader t_NewMockHeader(*newHeader);
+			void operator+=(PageHeader& a_PageHeader)
+			{
+				bytesCommited += a_PageHeader.bytesCommited;
+				bytesUsed += a_PageHeader.bytesUsed;
+				bytesReserved += a_PageHeader.bytesReserved;
+			}
+		} t_LastMockHeader(*reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader))));
+		PageHeader* t_LastHeader = reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader)));
 
-		while (newHeader->next)
+
+		for (size_t i = 0; i < RANDOM_SAMPLE_AMOUNT; i++)
 		{
-			newHeader = newHeader->next;
-			t_NewMockHeader += *newHeader;
-		}
+			const size_t t_RandomAllocAmount = Utils::RandomUintMinMax(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
+			const size_t t_SpaceLeft = t_Allocator.SpaceLeft();
 
-		//If the buffer had to be resized need to reserve more space record it.
-		if (t_RandomAllocAmount > t_SpaceLeft)
+			t_Allocator.Alloc(t_RandomAllocAmount);
+			PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader)));
+			MockPageHeader t_NewMockHeader(*t_NewHeader);
+
+			while (t_NewHeader->next)
+			{
+				t_NewHeader = t_NewHeader->next;
+				t_NewMockHeader += *t_NewHeader;
+			}
+
+			//If the buffer had to be resized need to reserve more space record it.
+			if (t_RandomAllocAmount > t_SpaceLeft)
+			{
+				EXPECT_NE(t_LastMockHeader.bytesUsed, t_NewMockHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
+				if (t_LastMockHeader.bytesCommited < t_LastMockHeader.bytesUsed + t_RandomAllocAmount && t_NewHeader == t_LastHeader)
+				{
+					EXPECT_NE(t_LastMockHeader.bytesCommited, t_NewMockHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
+					EXPECT_EQ(t_NewMockHeader.bytesReserved + t_NewMockHeader.bytesCommited, t_LastMockHeader.bytesReserved + t_LastMockHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
+				}
+					
+				if (t_NewHeader != t_LastHeader)
+				{
+					EXPECT_LT(t_LastMockHeader.bytesReserved, t_NewMockHeader.bytesReserved) << "Bytes reserved has not been increased, this means that the backend allocator does not reserve more memory as it should.";
+				}
+					
+			}
+
+			t_LastHeader = t_NewHeader;
+			t_LastMockHeader = t_NewMockHeader;
+		}
+		PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader)));
+		std::cout << "The COMMIT_RESERVE_PAGES_RANDOM test has these pageheaders: \n";
+
+		size_t t_HeaderAmount = 0;
+		while (t_NewHeader->next)
 		{
-			EXPECT_NE(t_LastMockHeader.bytesUsed, t_NewMockHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
-			if (t_LastMockHeader.bytesCommited < t_LastMockHeader.bytesUsed + t_RandomAllocAmount)
-				EXPECT_NE(t_LastMockHeader.bytesCommited, t_NewMockHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
-			if (t_LastMockHeader.bytesReserved < t_LastMockHeader.bytesCommited + t_RandomAllocAmount)
-				EXPECT_LT(t_LastMockHeader.bytesReserved, t_NewMockHeader.bytesReserved) << "Bytes reserved has not been increased, this means that the backend allocator does not reserve more memory as it should.";
+			t_HeaderAmount++;
+			std::cout << "PageHeader number: " << t_HeaderAmount << " it had reserved and/or commited enough memory (in bytes): " << t_NewHeader->bytesCommited + t_NewHeader->bytesReserved << "\n";
+			t_NewHeader = t_NewHeader->next;
 		}
-
-		t_LastMockHeader = t_NewMockHeader;
-	}
-	PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(PageHeader)));
-	std::cout << "The COMMIT_RESERVE_PAGES_RANDOM test has these pageheaders: \n";
-
-	size_t t_HeaderAmount = 0;
-	while (t_NewHeader->next)
-	{
-		t_HeaderAmount++;
-		std::cout << "PageHeader number: " << t_HeaderAmount << " it had reserved and/or commited enough memory (in bytes): " << t_NewHeader->bytesCommited + t_NewHeader->bytesReserved << "\n";
-		t_NewHeader = t_NewHeader->next;
 	}
 }
 
