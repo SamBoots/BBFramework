@@ -210,7 +210,7 @@ TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
 
 TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES_RANDOM)
 {
-	constexpr const size_t RANDOM_ALLOCATORS_AMOUNT = 32;
+	constexpr const size_t RANDOM_ALLOCATORS_AMOUNT = 8;
 	constexpr const size_t RANDOM_SAMPLE_AMOUNT = 512;
 	constexpr const size_t MAX_RANDOM_VALUE = 2097152; //256 KB.
 	constexpr const size_t MIN_RANDOM_VALUE = 8192; //4 KB.

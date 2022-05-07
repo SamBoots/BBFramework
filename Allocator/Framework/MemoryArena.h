@@ -2,6 +2,9 @@
 
 //Source on idea: https://blog.molecular-matters.com/2011/06/29/designing-extensible-modular-classes/
 
+		//needs replacement by a custom hashmap.
+#include <unordered_map>
+
 namespace BB
 {
 	namespace memorypolicies
@@ -23,8 +26,31 @@ namespace BB
 
 		struct No_MemoryTrack
 		{
-			inline void OnAlloc(void*, size_t, size_t) const {}
+			inline void OnAlloc(void*, size_t) const {}
 			inline void OnDealloc(void*) const {}
+		};
+
+		struct Count_MemoryTrack
+		{
+			~Count_MemoryTrack()
+			{
+				for (auto& t_It : m_TrackingList)
+				{
+					std::cout << "Address: " << t_It.first << " Leak size: " << t_It.second << "\n";
+				}
+				BB_EXCEPTION(m_TrackingList.size() == 0, "Memory tracker reports a memory leak, Log of leaks have been posted.");
+			}
+			inline void OnAlloc(void* a_Ptr, size_t a_Size)
+			{
+				m_TrackingList.emplace(a_Ptr, a_Size);
+			}
+			inline void OnDealloc(void* a_Ptr)
+			{
+				m_TrackingList.erase(a_Ptr);
+			}
+
+			//needs replacement by a custom hashmap.
+			std::unordered_map<void*, size_t> m_TrackingList;
 		};
 
 		struct No_MemoryTagging
@@ -35,7 +61,7 @@ namespace BB
 	}
 
 
-	template <class Allocator, class ThreadPolicy, class BoundsCheckPolicy, class MemoryTaggingPolicy>
+	template <class Allocator, class ThreadPolicy, class BoundsCheckPolicy, class MemoryTrackPolicy>
 	struct MemoryArena
 	{
 		MemoryArena(const size_t a_Size)
@@ -54,7 +80,8 @@ namespace BB
 
 			uint8_t* returnMemory = static_cast<uint8_t*>(m_Allocator.Alloc(a_Size, a_Alignment));
 
-			m_MemoryTaggingPolicy.TagAlloc(returnMemory, t_AllocSize);
+			//m_MemoryTaggingPolicy.TagAlloc(returnMemory, t_AllocSize);
+			m_MemoryTrackPolicy.OnAlloc(returnMemory, t_AllocSize);
 
 			m_ThreadPolicy.Leave();
 
@@ -66,7 +93,8 @@ namespace BB
 
 			uint8_t* originalMemory = static_cast<uint8_t*>(a_Ptr);
 
-			m_MemoryTaggingPolicy.TagDealloc(originalMemory);
+			//m_MemoryTaggingPolicy.TagDealloc(originalMemory);
+			m_MemoryTrackPolicy.OnDealloc(originalMemory);
 
 			m_Allocator.Free(originalMemory);
 
@@ -87,18 +115,18 @@ namespace BB
 			return m_Allocator.begin();
 		}
 
-	private:
+	protected:
 		Allocator m_Allocator;
 		ThreadPolicy m_ThreadPolicy;
 		BoundsCheckPolicy m_BoundsCheckPolicy;
-		MemoryTaggingPolicy m_MemoryTaggingPolicy;
+		MemoryTrackPolicy m_MemoryTrackPolicy;
 	};
 
-	template <class MemoryArena, class MemoryTrackPolicy>
+	template <class MemoryArena, class MemoryTaggingPolicy>
 	struct MemoryArenaProxy
 	{
 		MemoryArena m_MemoryArena;
-
-		MemoryTrackPolicy m_MemoryTrackPolicy;
+		MemoryTaggingPolicy m_MemoryTaggingPolicy;
+		
 	};
 }

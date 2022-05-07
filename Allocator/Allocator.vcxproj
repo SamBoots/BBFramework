@@ -169,6 +169,7 @@
   <ItemGroup>
     <ClCompile Include="Framework\BackingAllocator_WIN.cpp" />
     <ClCompile Include="Framework\Allocators.cpp" />
+    <ClCompile Include="Framework\MemoryArena.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="pch\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

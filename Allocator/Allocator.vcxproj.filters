@@ -27,6 +27,9 @@
     <ClCompile Include="Framework\BackingAllocator_WIN.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Framework\MemoryArena.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Allocators.h">
