@@ -77,7 +77,8 @@ namespace BB
 			void* begin() const { return m_Start; };
 
 			size_t m_Alignment;
-			uint8_t* m_Start = nullptr;
+			size_t m_ObjectCount;
+			void** m_Start = nullptr;
 			void** m_Pool;
 		};
 	}

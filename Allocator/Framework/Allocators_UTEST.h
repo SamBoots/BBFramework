@@ -291,4 +291,35 @@ TEST(MemoryAllocators, POOL_SINGLE_ALLOCATIONS)
 
 	t_PoolAllocator.Clear();
 }
+
+TEST(MemoryAllocators, POOL_SINGLE_ALLOCATIONS_RESIZE)
+{
+	std::cout << "Pool allocator with 1000 2593 bytes samples, but an allocator size for only 100 elements to test resizing." << "\n";
+
+	//Get some random values to test
+	size_t randomValues[sample_2593_bytes]{};
+	for (size_t i = 0; i < sample_2593_bytes; i++)
+	{
+		randomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+	}
+
+	BB::unsafePoolAllocator_t t_PoolAllocator(sizeof(size2593bytes), sample_2593_bytes / 10, __alignof(size2593bytes));
+
+	for (size_t i = 0; i < sample_2593_bytes; i++)
+	{
+		size2593bytes* sample = BB::AllocNew<size2593bytes>(t_PoolAllocator);
+		sample->value = randomValues[i];
+	}
+
+	//Test all the values inside the allocations.
+	size2593bytes* t_AllocData = reinterpret_cast<size2593bytes*>(t_PoolAllocator.begin());
+	for (size_t i = 0; i < sample_2593_bytes; i++)
+	{
+		ASSERT_EQ(t_AllocData[i].value, randomValues[i]) << "2593 bytes, Value is different in the Pool allocator.";
+
+	}
+
+	t_PoolAllocator.Clear();
+}
+
 #pragma endregion

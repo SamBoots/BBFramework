@@ -169,17 +169,18 @@ BB::allocators::PoolAllocator::PoolAllocator(const size_t a_ObjectSize, const si
 {
 	BB_ASSERT(a_ObjectSize != 0, "Pool allocator is created with an object size of 0!");
 	BB_ASSERT(a_ObjectCount != 0, "Pool allocator is created with an object count of 0!");
-	BB_WARNING(a_ObjectSize * a_ObjectCount > 10240, "Pool allocator is smaller then 10 kb, might be too small.");
+	//BB_WARNING(a_ObjectSize * a_ObjectCount > 10240, "Pool allocator is smaller then 10 kb, might be too small.");
 
 	size_t t_PoolAllocSize = a_ObjectSize * a_ObjectCount;
-	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(m_Start, t_PoolAllocSize * 2));
-	m_Alignment = pointerutils::alignForwardAdjustment(m_Pool, a_Alignment);
-	m_Start = reinterpret_cast<uint8_t*>(pointerutils::Add(m_Start, m_Alignment));
-	m_Pool = reinterpret_cast<void**>(m_Start);
+	m_ObjectCount = a_ObjectCount;
+	m_Start = reinterpret_cast<void**>(mallocVirtual(m_Start, t_PoolAllocSize));
+	m_Alignment = pointerutils::alignForwardAdjustment(m_Start, a_Alignment);
+	m_Start = reinterpret_cast<void**>(pointerutils::Add(m_Start, m_Alignment));
+	m_Pool = m_Start;
 
 	void** t_Pool = m_Pool;
 
-	for (size_t i = 0; i < a_ObjectCount; i++)
+	for (size_t i = 0; i < m_ObjectCount - 1; i++)
 	{
 		*t_Pool = pointerutils::Add(t_Pool, a_ObjectSize);
 		t_Pool = reinterpret_cast<void**>(*t_Pool);
@@ -195,6 +196,24 @@ BB::allocators::PoolAllocator::~PoolAllocator()
 void* BB::allocators::PoolAllocator::Alloc(size_t a_Size, size_t)
 {
 	void* t_Item = m_Pool;
+
+	//Increase the Pool allocator by double
+	if (t_Item == nullptr)
+	{
+		size_t t_Increase = m_ObjectCount;
+		size_t t_ByteIncrease = m_ObjectCount * a_Size;
+		void** t_Pool = reinterpret_cast<void**>(pointerutils::Add(m_Start, t_ByteIncrease));
+		m_ObjectCount += m_ObjectCount;
+		mallocVirtual(m_Start, t_ByteIncrease);
+		for (size_t i = 0; i < t_Increase - 1; i++)
+		{
+			*t_Pool = pointerutils::Add(t_Pool, a_Size);
+			t_Pool = reinterpret_cast<void**>(*t_Pool);
+		}
+
+		t_Pool = nullptr;
+		return Alloc(a_Size, 0);
+	}
 	m_Pool = reinterpret_cast<void**>(*m_Pool);
 	return t_Item;
 }
