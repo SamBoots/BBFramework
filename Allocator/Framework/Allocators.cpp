@@ -3,7 +3,6 @@
 #include "pointerUtils.h"
 
 #include "BackingAllocator.h"
-#include "Allocators_UTEST.h"
 
 using namespace BB::allocators;
 
@@ -190,7 +189,7 @@ BB::allocators::PoolAllocator::PoolAllocator(const size_t a_ObjectSize, const si
 
 BB::allocators::PoolAllocator::~PoolAllocator()
 {
-	freeVirtual(m_Pool);
+	freeVirtual(m_Start);
 }
 
 void* BB::allocators::PoolAllocator::Alloc(size_t a_Size, size_t)

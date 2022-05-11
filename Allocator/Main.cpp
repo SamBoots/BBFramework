@@ -44,6 +44,6 @@ int main()
 		std::cout << std::chrono::duration_cast<ms_t>(timerStop - timerStart).count() << " DYNAMIC_ARRAY: " << testcases << "INSERTING SINGLE ELEMENTS \n";
 	}
 
-	//system("pause");
+	system("pause");
 }
 

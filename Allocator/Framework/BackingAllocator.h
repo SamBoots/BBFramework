@@ -4,14 +4,6 @@
 
 namespace BB
 {
-	struct BackingAllocator
-	{
-		BackingAllocator(); //Get needed info for the backing allocator.
-	};
-
-	static BackingAllocator virtualAllocBackingAllocator;
-
-
 	/// <summary>
 	/// Allocates virtual memory in pages, the amount allocated will be in multiples of BB::PAGESIZE;
 	/// </summary>
@@ -20,4 +12,35 @@ namespace BB
 	/// <returns>Pointer to the start of the virtual memory. </returns>
 	void* mallocVirtual(void* a_Start, size_t a_Size);
 	void freeVirtual(void* a_Ptr);
+	struct PageHeader
+	{
+		size_t bytesCommited;
+		size_t bytesUsed;
+		size_t bytesReserved;
+		void* reserveSpot;
+		PageHeader* previous = nullptr;
+	};
+
+
+	struct PagePool
+	{
+		PagePool();
+		~PagePool();
+
+		void* AllocHeader();
+		void FreeHeader(void* a_Ptr);
+
+		void* bufferStart;
+		void** pool;
+	};
+
+	struct BackingAllocator
+	{
+		BackingAllocator(); //Get needed info for the backing allocator.
+		PagePool pagePool{};
+	};
+
+	static BackingAllocator virtualAllocBackingAllocator;
+
+
 }
