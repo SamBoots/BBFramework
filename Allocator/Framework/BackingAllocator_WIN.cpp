@@ -75,7 +75,8 @@ void* PagePool::AllocHeader()
 
 void PagePool::FreeHeader(void* a_Ptr)
 {
-
+	(*reinterpret_cast<void**>(a_Ptr)) = pool;
+	pool = reinterpret_cast<void**>(a_Ptr);
 };
 
 
@@ -117,12 +118,15 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 			BB_ASSERT(GetLastError() == 0x0, "Windows API error commiting VirtualAlloc");
 			return nullptr;
 		}
-	}
 
-	if (t_StartPageHeader)
-	{
+		//Not enough commited, so just commit the remaining memory and reserve a new header.
 		VirtualAlloc(t_PageHeader->reserveSpot, t_PageHeader->bytesReserved + t_PageHeader->bytesCommited, MEM_COMMIT, PAGE_READWRITE);
-		a_Start = pointerutils::Add(t_StartPageHeader, t_StartPageHeader->totalSize);
+		t_PageHeader->bytesCommited += t_PageHeader->bytesReserved;
+		t_PageHeader->bytesUsed = t_PageHeader->bytesCommited;
+		t_PageHeader->bytesReserved = 0;
+
+		//Adjust the start pointer to be the end pointer of the page header.
+		a_Start = pointerutils::Add(t_PageHeader->reserveSpot, t_PageHeader->bytesCommited);
 	}
 
 	size_t t_AdditionalReserve = t_PageAdjustedSize * RESERVEMULTIPLICATION;

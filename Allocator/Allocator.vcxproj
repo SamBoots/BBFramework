@@ -179,7 +179,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Framework\Allocators_UTEST.cpp" />
+    <ClInclude Include="Framework\Allocators_UTEST.h" />
     <ClInclude Include="Framework\BackingAllocator.h" />
     <ClInclude Include="Framework\Allocators.h" />
     <ClInclude Include="Framework\BB_AllocTypes.h" />

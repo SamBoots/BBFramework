@@ -2,6 +2,7 @@
 #include "Allocators.h"
 #include "pointerUtils.h"
 
+#include "Allocators_UTEST.h"
 #include "BackingAllocator.h"
 
 using namespace BB::allocators;
@@ -202,6 +203,7 @@ void* BB::allocators::PoolAllocator::Alloc(size_t a_Size, size_t)
 		size_t t_Increase = m_ObjectCount;
 		size_t t_ByteIncrease = m_ObjectCount * a_Size;
 		void** t_Pool = reinterpret_cast<void**>(pointerutils::Add(m_Start, t_ByteIncrease));
+		m_Pool = t_Pool;
 		m_ObjectCount += m_ObjectCount;
 		mallocVirtual(m_Start, t_ByteIncrease);
 		for (size_t i = 0; i < t_Increase - 1; i++)
