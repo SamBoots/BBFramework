@@ -4,8 +4,13 @@
 cmake_minimum_required (VERSION 3.8)
 
 # Add source to this project's executable.
+if (WIN32)
 add_executable (Allocator "Main.cpp" "Framework/Allocators.cpp" "Framework/Allocators.h" "Framework/Allocators_UTEST.h" "Framework/BackingAllocator_WIN.cpp" "Framework/BackingAllocator.h" "Framework/BB_AllocTypes.h" "Framework/Storage/Dynamic_Array.h" "pch/pch.h" "pch/pch.cpp" "UnitTests/Utils/Math.h")
+endif (WIN32)
 
+if (UNIX)
+add_executable (Allocator "Main.cpp" "Framework/Allocators.cpp" "Framework/Allocators.h" "Framework/Allocators_UTEST.h"  "Framework/BackingAllocator_LINUX.cpp" "Framework/BackingAllocator.h" "Framework/BB_AllocTypes.h" "Framework/Storage/Dynamic_Array.h" "pch/pch.h" "pch/pch.cpp" "UnitTests/Utils/Math.h")
+endif (UNIX)
 
 include(FetchContent)
 FetchContent_Declare(

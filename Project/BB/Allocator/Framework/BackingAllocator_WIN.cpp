@@ -14,6 +14,15 @@ using namespace BB;
 constexpr const size_t RESERVEMULTIPLICATION = 128;
 static size_t PAGESIZE;
 
+struct PageHeader
+{
+	size_t bytesCommited;
+	size_t bytesUsed;
+	size_t bytesReserved;
+	void* reserveSpot;
+	PageHeader* previous = nullptr;
+};
+
 struct StartPageHeader
 {
 	PageHeader* head;

@@ -12,15 +12,6 @@ namespace BB
 	/// <returns>Pointer to the start of the virtual memory. </returns>
 	void* mallocVirtual(void* a_Start, size_t a_Size);
 	void freeVirtual(void* a_Ptr);
-	struct PageHeader
-	{
-		size_t bytesCommited;
-		size_t bytesUsed;
-		size_t bytesReserved;
-		void* reserveSpot;
-		PageHeader* previous = nullptr;
-	};
-
 
 	struct PagePool
 	{

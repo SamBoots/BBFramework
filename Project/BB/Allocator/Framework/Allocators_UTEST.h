@@ -15,9 +15,9 @@ constexpr const size_t sample_2593_bytes = 1000;
 constexpr const size_t samples = sample_32_bytes + sample_256_bytes + sample_2593_bytes;
 
 //Structs with different sizes, union to check for the values.
-struct size32Bytes { union { char data[32]; uint64_t value; }; };
-struct size256Bytes { union { char data[256]; uint64_t value; }; };
-struct size2593bytes { union { char data[2593]; uint64_t value; }; };
+struct size32Bytes { union { char data[32]; size_t value; }; };
+struct size256Bytes { union { char data[256]; size_t value; }; };
+struct size2593bytes { union { char data[2593]; size_t value; }; };
 
 
 
@@ -215,11 +215,9 @@ TEST(MemoryAllocators, FREELIST_ARRAY_ALLOCATIONS)
 	std::cout << "Freelist allocator with 10000 32 byte samples, 2000 256 byte samples and 1000 2593 bytes samples." << "\n";
 
 	constexpr const size_t allocatorSize =
-		sizeof(size32Bytes) * sample_32_bytes +
-		sizeof(size256Bytes) * sample_256_bytes +
-		sizeof(size2593bytes) * sample_2593_bytes +
-		//add space for 3 headers for the Array.
-		sizeof(BB::allocators::FreelistAllocator::AllocHeader) * 3;
+		(sizeof(size32Bytes) * sample_32_bytes +
+			sizeof(size256Bytes) * sample_256_bytes +
+			sizeof(size2593bytes) * sample_2593_bytes) * 2;
 
 	//Get some random values to test.
 	size_t randomValues[samples]{};
