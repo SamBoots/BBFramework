@@ -38,8 +38,6 @@ BackingAllocator::BackingAllocator()
 constexpr const size_t PREALLOC_PAGEHEADERS = 512;
 constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
 
-static size_t PAGEPOOLSIZE;
-
 PagePool::PagePool()
 {
 	bufferStart = mmap(nullptr, PREALLOC_PAGEHEADERS_COMMIT_SIZE,
@@ -58,7 +56,7 @@ PagePool::PagePool()
 
 PagePool::~PagePool()
 {
-	BB_ASSERT(munmap(bufferStart, PAGEPOOLSIZE), "munmap error on PagePool deconstructor.");
+	BB_ASSERT(munmap(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE), "munmap error on PagePool deconstructor.");
 }
 
 void* PagePool::AllocHeader()

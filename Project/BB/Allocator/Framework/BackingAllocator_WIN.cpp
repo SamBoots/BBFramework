@@ -11,7 +11,12 @@
 
 using namespace BB;
 
+#ifdef _X64
 constexpr const size_t RESERVEMULTIPLICATION = 128;
+#endif _X64
+#ifdef _X86
+constexpr const size_t RESERVEMULTIPLICATION = 64;
+#endif _X86
 static size_t PAGESIZE;
 
 struct PageHeader
