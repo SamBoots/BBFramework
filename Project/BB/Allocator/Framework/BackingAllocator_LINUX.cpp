@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "BackingAllocator.h"
 #include "pointerUtils.h"
+#include "OSDevice.h"
 
-#include <unistd.h>
 #include <sys/mman.h>
 
 using namespace BB;
@@ -14,8 +14,6 @@ constexpr const size_t OVERCOMMIT_MULTIPLIER = 128;
 constexpr const size_t OVERCOMMIT_MULTIPLIER = 64;
 #endif _X86
 
-static size_t PAGESIZE;
-
 struct PageHeader
 {
 	size_t bytesCommited;
@@ -23,6 +21,9 @@ struct PageHeader
 	void* reserveSpot;
 	PageHeader* previous = nullptr;
 };
+
+constexpr const size_t PREALLOC_PAGEHEADERS = 128 * 16;
+constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
 
 struct StartPageHeader
 {
@@ -34,15 +35,6 @@ static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
 	BB_ASSERT(a_Multiple, "Multiple is 0!");
 	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
 }
-
-
-BackingAllocator::BackingAllocator()
-{
-	PAGESIZE = sysconf(_SC_PAGE_SIZE);
-}
-
-constexpr const size_t PREALLOC_PAGEHEADERS = 512;
-constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
 
 PagePool::PagePool()
 {
@@ -65,22 +57,10 @@ PagePool::~PagePool()
 	BB_ASSERT(munmap(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE) == 0, "munmap error on PagePool deconstructor.");
 }
 
-void* PagePool::AllocHeader()
-{
-	void* t_Header = pool;
-	pool = reinterpret_cast<void**>(*pool);
-	return t_Header;
-};
-
-void PagePool::FreeHeader(void* a_Ptr)
-{
-	(*reinterpret_cast<void**>(a_Ptr)) = pool;
-	pool = reinterpret_cast<void**>(a_Ptr);
-};
 
 void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 {
-	size_t t_OverCommitValue = RoundUp(a_Size, PAGESIZE) * OVERCOMMIT_MULTIPLIER;
+	size_t t_OverCommitValue = RoundUp(a_Size, AppOSDevice().virtualMemoryPageSize) * OVERCOMMIT_MULTIPLIER;
 
 	StartPageHeader* t_StartPageHeader = nullptr;
 	PageHeader* t_PageHeader = nullptr;
@@ -111,7 +91,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	t_StartPageHeader = reinterpret_cast<StartPageHeader*>(t_VirtualAddress);
 	t_StartPageHeader->head = nullptr;
 
-	PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(virtualAllocBackingAllocator.pagePool.AllocHeader());
+	PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(pagePool.AllocHeader());
 	t_NewHeader->bytesCommited = t_OverCommitValue;
 	t_NewHeader->bytesUsed = a_Size + sizeof(StartPageHeader);
 	//Reserve spot is in front of the StartPageHeader.

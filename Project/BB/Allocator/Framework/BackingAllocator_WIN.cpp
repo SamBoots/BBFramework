@@ -1,13 +1,10 @@
 #include "pch.h"
 #include "BackingAllocator.h"
 #include "pointerUtils.h"
+#include "OSDevice.h"
 
 #include <Windows.h>
 #include <memoryapi.h>
-#include <sysinfoapi.h>
-
-#include <cmath>
-
 
 using namespace BB;
 
@@ -17,7 +14,6 @@ constexpr const size_t RESERVEMULTIPLICATION = 128;
 #ifdef _X86
 constexpr const size_t RESERVEMULTIPLICATION = 64;
 #endif _X86
-static size_t PAGESIZE;
 
 struct PageHeader
 {
@@ -28,25 +24,19 @@ struct PageHeader
 	PageHeader* previous = nullptr;
 };
 
+constexpr const size_t PREALLOC_PAGEHEADERS = 128 * 16;
+constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
+
 struct StartPageHeader
 {
 	PageHeader* head;
 };
 
-BackingAllocator::BackingAllocator()
-{
-	SYSTEM_INFO t_SystemInfo;
-	GetSystemInfo(&t_SystemInfo);
-	PAGESIZE = t_SystemInfo.dwAllocationGranularity;
-}
-
-constexpr const size_t PREALLOC_PAGEHEADERS = 128;
-constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
-
 PagePool::PagePool()
 {
-	bufferStart = VirtualAlloc(nullptr, PREALLOC_PAGEHEADERS_COMMIT_SIZE * 16, MEM_RESERVE, PAGE_NOACCESS);
-	pool = reinterpret_cast<void**>(VirtualAlloc(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE, MEM_COMMIT, PAGE_READWRITE));
+	
+	bufferStart = VirtualAlloc(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	pool = reinterpret_cast<void**>(bufferStart);
 
 	void** t_Pool = pool;
 	for (size_t i = 0; i < PREALLOC_PAGEHEADERS - 1; i++)
@@ -60,38 +50,8 @@ PagePool::PagePool()
 PagePool::~PagePool()
 {
 	VirtualFree(bufferStart, 0, MEM_RELEASE);
-	BB_ASSERT(GetLastError() == 0x0, "Windows API error releasing page pool memory.");
+	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error releasing page pool memory.");
 }
-
-void* PagePool::AllocHeader()
-{
-	void* t_Header = pool;
-
-	//Increase the Pool allocator by double
-	if (t_Header == nullptr)
-	{
-		void** t_Pool = reinterpret_cast<void**>(pointerutils::Add(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE));
-		pool = reinterpret_cast<void**>(VirtualAlloc(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE, MEM_COMMIT, PAGE_READWRITE));
-
-		for (size_t i = 0; i < PREALLOC_PAGEHEADERS - 1; i++)
-		{
-			*t_Pool = pointerutils::Add(t_Pool, sizeof(PageHeader));
-			t_Pool = reinterpret_cast<void**>(*t_Pool);
-		}
-
-		t_Pool = nullptr;
-		return AllocHeader();
-	}
-	pool = reinterpret_cast<void**>(*pool);
-	return t_Header;
-};
-
-void PagePool::FreeHeader(void* a_Ptr)
-{
-	(*reinterpret_cast<void**>(a_Ptr)) = pool;
-	pool = reinterpret_cast<void**>(a_Ptr);
-};
-
 
 static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
 {
@@ -103,7 +63,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 {
 	//BB_WARNING(a_Size > PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
 
-	size_t t_PageAdjustedSize = RoundUp(a_Size + sizeof(PageHeader), PAGESIZE);
+	size_t t_PageAdjustedSize = RoundUp(a_Size + sizeof(PageHeader), AppOSDevice().virtualMemoryPageSize);
 	StartPageHeader* t_StartPageHeader = nullptr;
 	PageHeader* t_PageHeader = nullptr;
 	//Check the pageHeader
@@ -128,7 +88,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 			t_PageHeader->bytesUsed += a_Size;
 			t_PageHeader->bytesReserved -= t_PageAdjustedSize;
 			VirtualAlloc(t_PageHeader->reserveSpot, t_PageAdjustedSize + t_PageHeader->bytesUsed, MEM_COMMIT, PAGE_READWRITE);
-			BB_ASSERT(GetLastError() == 0x0, "Windows API error commiting VirtualAlloc");
+			BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error commiting VirtualAlloc");
 			return t_CurrentEnd;
 		}
 
@@ -145,10 +105,9 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	//When making a new header reserve a lot more then that is requested to support later resizes better.
 	size_t t_AdditionalReserve = t_PageAdjustedSize * RESERVEMULTIPLICATION;
 	void* t_Address = VirtualAlloc(a_Start, t_AdditionalReserve, MEM_RESERVE, PAGE_NOACCESS);
-	DWORD latestError = GetLastError();
-	BB_ASSERT(GetLastError() == 0x0, "Windows API error reserving VirtualAlloc");
+	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error reserving VirtualAlloc");
 	VirtualAlloc(t_Address, t_PageAdjustedSize, MEM_COMMIT, PAGE_READWRITE);
-	BB_ASSERT(GetLastError() == 0x0, "Windows API error commiting right after a reserve VirtualAlloc");
+	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error commiting right after a reserve VirtualAlloc");
 
 	//StartPageHeader when the allocation is new.
 	if (!t_StartPageHeader)
@@ -157,7 +116,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 		t_StartPageHeader->head = nullptr;
 		a_Size += sizeof(StartPageHeader);
 	}
-	PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(virtualAllocBackingAllocator.pagePool.AllocHeader());
+	PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(pagePool.AllocHeader());
 	t_NewHeader->bytesCommited = t_PageAdjustedSize;
 	t_NewHeader->bytesUsed = a_Size;
 	t_NewHeader->bytesReserved = t_AdditionalReserve - t_PageAdjustedSize;
@@ -177,7 +136,7 @@ void BB::freeVirtual(void* a_Ptr)
 	{
 		PageHeader* t_NextHeader = t_PageHeader->previous;
 		VirtualFree(t_PageHeader->reserveSpot, 0, MEM_RELEASE);
-		BB_ASSERT(GetLastError() == 0x0, "Windows API error virtualFree");
+		BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error virtualFree");
 		t_PageHeader = t_NextHeader;
 	}
 }
@@ -243,17 +202,17 @@ struct MockAllocator
 TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
 {
 	//Allocator size is equal to half a page, it will allocate an entire page in the background anyway.
-	MockAllocator t_Allocator(PAGESIZE / 4 - sizeof(StartPageHeader));
-	ASSERT_EQ(GetLastError(), 0x0) << "Windows API error on creating the MockAllocator.";
+	MockAllocator t_Allocator(AppOSDevice().virtualMemoryPageSize / 4 - sizeof(StartPageHeader));
+	ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on creating the MockAllocator.";
 
 	PageHeader lastHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
 
 	EXPECT_EQ(lastHeader.bytesUsed, t_Allocator.maxSize + sizeof(StartPageHeader)) << "Used amount is wrong.";
-	EXPECT_EQ(lastHeader.bytesCommited, PAGESIZE) << "Commited amount is wrong.";
-	EXPECT_EQ(lastHeader.bytesReserved, PAGESIZE * RESERVEMULTIPLICATION - lastHeader.bytesCommited) << "Reserved amount is wrong.";
+	EXPECT_EQ(lastHeader.bytesCommited, AppOSDevice().virtualMemoryPageSize) << "Commited amount is wrong.";
+	EXPECT_EQ(lastHeader.bytesReserved, AppOSDevice().virtualMemoryPageSize * RESERVEMULTIPLICATION - lastHeader.bytesCommited) << "Reserved amount is wrong.";
 
 	//Allocate memory equal to half a page, it should NOT reserve/commit more pages, just use more.
-	t_Allocator.Alloc(PAGESIZE / 2);
+	t_Allocator.Alloc(AppOSDevice().virtualMemoryPageSize / 2);
 	PageHeader newHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
 	EXPECT_NE(lastHeader.bytesUsed, newHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
 	EXPECT_EQ(lastHeader.bytesCommited, newHeader.bytesCommited) << "Bytes commited is changed, more was allocated while it shouldn't!";
@@ -261,8 +220,8 @@ TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
 	lastHeader = newHeader;
 
 	//Allocate memory equal to an entire page, this should increase the commited amount of pages, but not reserved.
-	t_Allocator.Alloc(PAGESIZE);
-	ASSERT_EQ(GetLastError(), 0x0) << "Windows API error on commiting more memory.";
+	t_Allocator.Alloc(AppOSDevice().virtualMemoryPageSize);
+	ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on commiting more memory.";
 	newHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
 	EXPECT_NE(lastHeader.bytesUsed, newHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
 	EXPECT_NE(lastHeader.bytesCommited, newHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
@@ -291,8 +250,8 @@ TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES_RANDOM)
 
 	for (size_t i = 0; i < RANDOM_ALLOCATORS_AMOUNT; i++)
 	{
-		MockAllocator t_Allocator(PAGESIZE * ALLOCATOR_MULTIPLY_PAGE_SIZE);
-		ASSERT_EQ(GetLastError(), 0x0) << "Windows API error on creating the MockAllocator.";
+		MockAllocator t_Allocator(AppOSDevice().virtualMemoryPageSize * ALLOCATOR_MULTIPLY_PAGE_SIZE);
+		ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on creating the MockAllocator.";
 
 		struct MockPageHeader
 		{

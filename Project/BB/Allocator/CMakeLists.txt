@@ -5,12 +5,12 @@ cmake_minimum_required (VERSION 3.8)
 
 # Add source to this project's executable.
 if (WIN32)
-add_executable (Allocator "Main.cpp" "Framework/Allocators.cpp" "Framework/Allocators.h" "Framework/Allocators_UTEST.h" "Framework/BackingAllocator_WIN.cpp" "Framework/BackingAllocator.h" "Framework/BB_AllocTypes.h" "Framework/Storage/Dynamic_Array.h" "pch/pch.h" "pch/pch.cpp" "UnitTests/Utils/Math.h")
+add_executable (Allocator "Main.cpp" "Framework/Allocators.cpp" "Framework/Allocators.h" "Framework/Allocators_UTEST.h" "Framework/BackingAllocator_WIN.cpp" "Framework/BackingAllocator.h" "Framework/BB_AllocTypes.h" "Framework/Storage/Dynamic_Array.h" "pch/pch.h" "pch/pch.cpp" "UnitTests/Utils/Math.h" "Framework/OSDevice.h" "Framework/OSDevice_WIN.cpp")
 add_compile_definitions(_WIN32)
 endif (WIN32)
 
 if (UNIX)
-add_executable (Allocator "Main.cpp" "Framework/Allocators.cpp" "Framework/Allocators.h" "Framework/Allocators_UTEST.h"  "Framework/BackingAllocator_LINUX.cpp" "Framework/BackingAllocator.h" "Framework/BB_AllocTypes.h" "Framework/Storage/Dynamic_Array.h" "pch/pch.h" "pch/pch.cpp" "UnitTests/Utils/Math.h")
+add_executable (Allocator "Main.cpp" "Framework/Allocators.cpp" "Framework/Allocators.h" "Framework/Allocators_UTEST.h"  "Framework/BackingAllocator_LINUX.cpp" "Framework/BackingAllocator.h" "Framework/BB_AllocTypes.h" "Framework/Storage/Dynamic_Array.h" "pch/pch.h" "pch/pch.cpp" "UnitTests/Utils/Math.h" "Framework/OSDevice.h" "Framework/OSDevice_LINUX.cpp")
 add_compile_definitions(_UNIX)
 endif (UNIX)
 

@@ -1,5 +1,4 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
 #include <cstdint>
 
 namespace BB
@@ -18,20 +17,23 @@ namespace BB
 		PagePool();
 		~PagePool();
 
-		void* AllocHeader();
-		void FreeHeader(void* a_Ptr);
+		void* AllocHeader()
+		{
+			void* t_Header = pool;
+			pool = reinterpret_cast<void**>(*pool);
+			return t_Header;
+		};
+		void FreeHeader(void* a_Ptr)
+		{
+			(*reinterpret_cast<void**>(a_Ptr)) = pool;
+			pool = reinterpret_cast<void**>(a_Ptr);
+		};
 
 		void* bufferStart;
 		void** pool;
 	};
 
-	struct BackingAllocator
-	{
-		BackingAllocator(); //Get needed info for the backing allocator.
-		PagePool pagePool{};
-	};
-
-	static BackingAllocator virtualAllocBackingAllocator;
+	static PagePool pagePool{};
 
 
 }
