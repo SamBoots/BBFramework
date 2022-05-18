@@ -57,6 +57,7 @@ namespace BB
 			};
 			uint8_t* m_Start = nullptr;
 			FreeBlock* m_FreeBlocks;
+			size_t m_TotalAllocSize;
 		};
 
 		struct PoolAllocator

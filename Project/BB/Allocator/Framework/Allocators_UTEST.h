@@ -136,7 +136,7 @@ TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 {
 	std::cout << "Freelist allocator with 10000 32 byte samples, 2000 256 byte samples and 1000 2593 bytes samples." << "\n";
 
-	//Structs with different sizes, union to check for the values.
+	//Using union so that I can check if the data is correct.
 	struct size32Bytes { union { char data[32]; uint64_t value; }; };
 	struct size256Bytes { union { char data[256]; uint64_t value; }; };
 	struct size2593bytes { union { char data[2593]; uint64_t value; }; };
@@ -259,7 +259,43 @@ TEST(MemoryAllocators, FREELIST_ARRAY_ALLOCATIONS)
 	{
 		ASSERT_EQ(size2593Array[i].value, randomValues[sample_32_bytes + sample_256_bytes + i]) << "2593 bytes, Value is different in the freelist allocator.";
 	}
+
+	//Clear is not suppoted by freelist, commented just to show this is not a mistake.
+	//t_FreelistAllocator.Clear();
 }
+
+
+TEST(MemoryAllocators, FREELIST_RESIZE_MEMSET)
+{
+#ifdef _X64
+	//1 GB allocation
+	constexpr const size_t allocatorSize = 1073741824;
+#endif
+#ifdef _X86
+	//64 MB allocation for X86 due to the virtual address limit and a 4 bytes unsigned int limit.
+	constexpr const size_t allocatorSize = 16777216;
+#endif
+
+	struct AlignmentCheckStruct { char data[allocatorSize]; };
+
+	BB::allocators::FreelistAllocator t_FreeList(allocatorSize + sizeof(BB::allocators::FreelistAllocator::AllocHeader));
+
+	//Alloc the entire thing, memset to check if the allocation throws errors.
+	void* t_Data = t_FreeList.Alloc(allocatorSize, __alignof(AlignmentCheckStruct));
+	memset(t_Data, 256, allocatorSize);
+
+	ASSERT_EQ(t_FreeList.m_FreeBlocks, nullptr) << "Allocator resized while it shouldn't.";
+
+	t_Data = t_FreeList.Alloc(allocatorSize, __alignof(AlignmentCheckStruct));
+	memset(t_Data, 256, allocatorSize);
+
+	ASSERT_EQ(t_FreeList.m_FreeBlocks, nullptr) << "Allocator resized, but there is a freeblock while there shouldn't be one available. Since the allocator should be totally full.";
+
+
+	//Clear is not suppoted by freelist, commented just to show this is not a mistake.
+	//t_FreelistAllocator.Clear();
+}
+
 #pragma endregion
 
 #pragma region POOL_ALLOCATOR

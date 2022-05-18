@@ -111,12 +111,14 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	{
 		t_StartPageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Start, sizeof(StartPageHeader)));
 		t_PageHeader = t_StartPageHeader->head;
+		
+		void* t_CurrentEnd = pointerutils::Add(t_PageHeader->reserveSpot, t_PageHeader->bytesUsed);
 
 		//If the amount commited is enough just move the pointer and return it.
 		if ((t_PageHeader->bytesCommited - t_PageHeader->bytesUsed) >= a_Size)
 		{
 			t_PageHeader->bytesUsed += a_Size;
-			return nullptr;
+			return t_CurrentEnd;
 		}
 
 		//If the amount commited is not enough check if there is enough reserved, if not reserve more.
@@ -127,7 +129,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 			t_PageHeader->bytesReserved -= t_PageAdjustedSize;
 			VirtualAlloc(t_PageHeader->reserveSpot, t_PageAdjustedSize + t_PageHeader->bytesUsed, MEM_COMMIT, PAGE_READWRITE);
 			BB_ASSERT(GetLastError() == 0x0, "Windows API error commiting VirtualAlloc");
-			return nullptr;
+			return t_CurrentEnd;
 		}
 
 		//Not enough commited memory available to support the size, so just commit the remaining memory and reserve a new header.

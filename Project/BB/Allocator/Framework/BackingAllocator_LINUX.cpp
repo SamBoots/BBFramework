@@ -7,7 +7,13 @@
 
 using namespace BB;
 
+#ifdef _X64
+constexpr const size_t OVERCOMMIT_MULTIPLIER = 128;
+#endif _X64
+#ifdef _X86
 constexpr const size_t OVERCOMMIT_MULTIPLIER = 64;
+#endif _X86
+
 static size_t PAGESIZE;
 
 struct PageHeader
@@ -56,7 +62,7 @@ PagePool::PagePool()
 
 PagePool::~PagePool()
 {
-	BB_ASSERT(munmap(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE), "munmap error on PagePool deconstructor.");
+	BB_ASSERT(munmap(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE) == 0, "munmap error on PagePool deconstructor.");
 }
 
 void* PagePool::AllocHeader()
@@ -80,23 +86,26 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	PageHeader* t_PageHeader = nullptr;
 
 	//Check the existing page header.
-	if (a_Start)
+	if (a_Start != nullptr)
 	{
 		t_StartPageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Start, sizeof(StartPageHeader)));
 		t_PageHeader = t_StartPageHeader->head;
+
+		void* t_CurrentEnd = pointerutils::Add(t_PageHeader->reserveSpot, t_PageHeader->bytesUsed);
+
 
 		//If the amount commited is enough just move the pointer and return it.
 		if ((t_PageHeader->bytesCommited - t_PageHeader->bytesUsed) >= a_Size)
 		{
 			t_PageHeader->bytesUsed += a_Size;
-			return nullptr;
+			return t_CurrentEnd;
 		}
 	}
 
-	//New allocation so 
+	//New allocation so mmap some new memory on that nullptr.
 	void* t_VirtualAddress = mmap(a_Start, t_OverCommitValue,
 		PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-	BB_ASSERT(t_VirtualAddress, "mmap returned 0 creating a new startheader mallocVirtual, MAP_FAILED.");
+	BB_ASSERT(t_VirtualAddress != nullptr, "mmap returned 0 creating a new startheader mallocVirtual, MAP_FAILED.");
 
 	//Set the header.
 	t_StartPageHeader = reinterpret_cast<StartPageHeader*>(t_VirtualAddress);
@@ -121,7 +130,7 @@ void BB::freeVirtual(void* a_Ptr)
 	while (t_PageHeader)
 	{
 		PageHeader* t_NextHeader = t_PageHeader->previous;
-		BB_ASSERT(munmap(t_PageHeader->reserveSpot, t_PageHeader->bytesCommited), "munmap error on freeVirtual function.");;
+		BB_ASSERT(munmap(pointerutils::Subtract(t_PageHeader->reserveSpot, sizeof(StartPageHeader)), t_PageHeader->bytesCommited) == 0, "munmap error on freeVirtual function.");
 		t_PageHeader = t_NextHeader;
 	}
 }

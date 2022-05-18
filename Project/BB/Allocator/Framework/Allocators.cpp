@@ -43,10 +43,11 @@ void LinearAllocator::Clear()
 FreelistAllocator::FreelistAllocator(const size_t a_Size)
 {
 	BB_ASSERT(a_Size != 0, "Freelist allocator is created with a size of 0!");
-	BB_WARNING(a_Size > 10240, "Freelist allocator is smaller then 10 kb, might be too small.");
-	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, a_Size));
+	BB_WARNING(a_Size > 10240, "Freelist allocator is smaller then 10 kb, you generally want a bigger freelist.");
+	m_TotalAllocSize = a_Size;
+	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, m_TotalAllocSize));
 	m_FreeBlocks = reinterpret_cast<FreeBlock*>(m_Start);
-	m_FreeBlocks->size = a_Size;
+	m_FreeBlocks->size = m_TotalAllocSize;
 	m_FreeBlocks->next = nullptr;
 }
 
@@ -101,9 +102,19 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 
 		return reinterpret_cast<void*>(t_Address);
 	}
+	BB_WARNING(false, "Increasing the size of a freelist allocator, risk of fragmented memory.");
+	//Double the size of the freelist.
+	FreeBlock* t_NewAllocBlock = reinterpret_cast<FreeBlock*>(mallocVirtual(m_Start, m_TotalAllocSize));
+	t_NewAllocBlock->size = m_TotalAllocSize;
+	t_NewAllocBlock->next = m_FreeBlocks;
 
-	BB_ASSERT(false, "Freelist allocator out of memory!");
-	return nullptr;
+	//Update the new total alloc size.
+	m_TotalAllocSize += m_TotalAllocSize;
+
+	//Set the new block as the main block.
+	m_FreeBlocks = t_NewAllocBlock;
+
+	return this->Alloc(a_Size, a_Alignment);
 }
 
 void FreelistAllocator::Free(void* a_Ptr)
