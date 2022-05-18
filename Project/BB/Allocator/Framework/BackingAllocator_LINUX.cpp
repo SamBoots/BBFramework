@@ -36,6 +36,8 @@ static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
 	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
 }
 
+static PagePool pagePool{};
+
 PagePool::PagePool()
 {
 	bufferStart = mmap(nullptr, PREALLOC_PAGEHEADERS_COMMIT_SIZE,

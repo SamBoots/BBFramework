@@ -32,6 +32,14 @@ struct StartPageHeader
 	PageHeader* head;
 };
 
+static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
+{
+	BB_ASSERT(a_Multiple, "Multiple is 0!");
+	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
+}
+
+static PagePool pagePool{};
+
 PagePool::PagePool()
 {
 	
@@ -51,12 +59,6 @@ PagePool::~PagePool()
 {
 	VirtualFree(bufferStart, 0, MEM_RELEASE);
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error releasing page pool memory.");
-}
-
-static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
-{
-	BB_ASSERT(a_Multiple, "Multiple is 0!");
-	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
 }
 
 void* BB::mallocVirtual(void* a_Start, size_t a_Size)

@@ -32,8 +32,4 @@ namespace BB
 		void* bufferStart;
 		void** pool;
 	};
-
-	static PagePool pagePool{};
-
-
 }
