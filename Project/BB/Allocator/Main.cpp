@@ -3,14 +3,14 @@
 #include "pch.h"
 #include <gtest/gtest.h>
 #include "OS/OSDevice.h"
+#include "Storage/Pool.h"
 
 int main()
 {
-	testing::InitGoogleTest();
-	RUN_ALL_TESTS();
-
 	BB::AppOSDevice().CreateOSWindow(200, 200, 640, 480, "Memory Studies window");
 
+	testing::InitGoogleTest();
+	RUN_ALL_TESTS();
 	
 	while (BB::AppOSDevice().ProcessMessages())
 	{

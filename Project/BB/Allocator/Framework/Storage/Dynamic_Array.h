@@ -42,7 +42,7 @@ namespace BB
 	template<typename T>
 	inline void Dynamic_Array<T>::push_back(T& a_Element)
 	{
-		reinterpret_cast<T*>(AllocNew<T>(m_Allocator));
+		reinterpret_cast<T*>(BBalloc<T>(m_Allocator));
 		m_Size++;
 	}
 
