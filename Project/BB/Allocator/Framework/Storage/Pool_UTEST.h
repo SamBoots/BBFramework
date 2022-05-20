@@ -13,9 +13,9 @@ TEST(PoolDataStructure, Pool_Create_Get_Free)
 	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
 	//2 MB alloactor.
-	BB::LinearAllocator_t t_Allocator(1024 * 1024 * 2);
+	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Pool<size2593bytes, BB::LinearAllocator_t> t_Pool(samples, t_Allocator);
+	BB::Pool<size2593bytes, BB::FreeListAllocator_t> t_Pool(samples, t_Allocator);
 
 	size_t t_RandomValues[samples]{};
 	size2593bytes* t_Array[samples];

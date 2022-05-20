@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include "OS/OSDevice.h"
 #include "Storage/Pool.h"
+#include "Storage/Pool_UTEST.h"
 
 int main()
 {
