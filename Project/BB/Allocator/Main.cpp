@@ -3,8 +3,8 @@
 #include "pch.h"
 #include <gtest/gtest.h>
 #include "OS/OSDevice.h"
-#include "Storage/Pool.h"
 #include "Storage/Pool_UTEST.h"
+#include "Storage/Dynamic_Array_UTEST.h"
 
 int main()
 {
@@ -13,6 +13,8 @@ int main()
 	testing::InitGoogleTest();
 	RUN_ALL_TESTS();
 	
+	BB::framework_handle handle = FRAMEWORK_NULL_HANDLE;
+
 	while (BB::AppOSDevice().ProcessMessages())
 	{
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "pch.h"
-#include "Framework/BB_AllocTypes.h"
+#include "Framework/Allocators/BB_AllocTypes.h"
 
 namespace BB
 {
@@ -8,7 +8,7 @@ namespace BB
 	class Pool
 	{
 	public:
-		Pool(const size_t a_Size, Allocator& a_Allocator);
+		Pool(Allocator& a_Allocator, const size_t a_Size);
 		~Pool();
 
 		T* Get();
@@ -26,8 +26,8 @@ namespace BB
 	};
 
 	template<typename T, typename Allocator>
-	inline BB::Pool<T, Allocator>::Pool(const size_t a_Size, Allocator& a_Allocator)
-		: m_Size(a_Size), m_Allocator(a_Allocator)
+	inline BB::Pool<T, Allocator>::Pool(Allocator& a_Allocator, const size_t a_Size)
+		: m_Allocator(a_Allocator), m_Size(a_Size)
 	{
 		BB_ASSERT(sizeof(T) >= sizeof(void*), "Pool object is smaller then the size of a pointer.");
 		BB_ASSERT(a_Size != 0, "Pool is created with an object size of 0!");

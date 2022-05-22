@@ -15,14 +15,14 @@ TEST(PoolDataStructure, Pool_Create_Get_Free)
 	//2 MB alloactor.
 	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Pool<size2593bytes, BB::FreeListAllocator_t> t_Pool(samples, t_Allocator);
+	BB::Pool<size2593bytes, BB::FreeListAllocator_t> t_Pool(t_Allocator, samples);
 
 	size_t t_RandomValues[samples]{};
-	size2593bytes* t_Array[samples];
+	size2593bytes* t_Array[samples]{};
 
 	for (size_t i = 0; i < samples; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 		t_Array[i] = t_Pool.Get();
 
 		//If the pool is empty it returns a nullptr, so it must not return a nullptr here.
@@ -46,7 +46,7 @@ TEST(PoolDataStructure, Pool_Create_Get_Free)
 
 	for (size_t i = 0; i < samples; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 		t_Array[i] = t_Pool.Get();
 
 		//If the pool is empty it returns a nullptr, so it must not return a nullptr here.

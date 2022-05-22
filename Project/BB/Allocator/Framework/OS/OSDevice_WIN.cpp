@@ -114,9 +114,10 @@ const uint32_t OSDevice::LatestOSError() const
 	return static_cast<uint32_t>(t_LatestError);
 }
 
-void OSDevice::CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
+framework_handle OSDevice::CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 {
 	window = new Window(a_X, a_Y, a_Width, a_Height, a_WindowName);
+	return FRAMEWORK_NULL_HANDLE;
 }
 
 void OSDevice::ExitApp() const

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "BackingAllocator.h"
-#include "pointerUtils.h"
+#include "Utils/pointerUtils.h"
+#include "Utils/Math.h"
 #include "OS/OSDevice.h"
 
 #include <Windows.h>
@@ -32,12 +33,6 @@ struct StartPageHeader
 	PageHeader* head;
 };
 
-static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
-{
-	BB_ASSERT(a_Multiple, "Multiple is 0!");
-	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
-}
-
 static PagePool pagePool{};
 
 PagePool::PagePool()
@@ -65,7 +60,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 {
 	//BB_WARNING(a_Size > PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
 
-	size_t t_PageAdjustedSize = RoundUp(a_Size + sizeof(PageHeader), AppOSDevice().virtualMemoryPageSize);
+	size_t t_PageAdjustedSize = Math::RoundUp(a_Size + sizeof(PageHeader), AppOSDevice().virtualMemoryPageSize);
 	StartPageHeader* t_StartPageHeader = nullptr;
 	PageHeader* t_PageHeader = nullptr;
 	//Check the pageHeader
@@ -175,7 +170,7 @@ struct MockAllocator
 		{
 			size_t t_BufferIncrease{};
 			if (maxSize > a_Size)
-				t_BufferIncrease = RoundUp(a_Size, maxSize);
+				t_BufferIncrease = Math::RoundUp(a_Size, maxSize);
 			else
 				t_BufferIncrease = a_Size;
 

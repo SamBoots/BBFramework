@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "Common.h"
 
 namespace BB
 {
@@ -24,7 +25,7 @@ namespace BB
 		//Prints the latest OS error and returns the error code, if it has no error code it returns 0.
 		const uint32_t LatestOSError() const;
 
-		void CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName);
+		framework_handle CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName);
 
 		//Exits the application.
 		void ExitApp() const;
@@ -33,6 +34,7 @@ namespace BB
 
 	private:
 		Window* window;
+
 	};
 
 	OSDevice& AppOSDevice();

@@ -35,7 +35,7 @@ TEST(MemoryAllocators, LINEAR_SINGLE_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
 	BB::unsafeLinearAllocator_t t_LinearAllocator(allocatorSize);
@@ -92,7 +92,7 @@ TEST(MemoryAllocators, LINEAR_ARRAY_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
 	BB::unsafeLinearAllocator_t t_LinearAllocator(allocatorSize);
@@ -152,7 +152,7 @@ TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
 	BB::unsafeFreeListAllocator_t t_FreelistAllocator(allocatorSize);
@@ -223,7 +223,7 @@ TEST(MemoryAllocators, FREELIST_ARRAY_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
 	BB::unsafeFreeListAllocator_t t_FreeList(allocatorSize);
@@ -307,7 +307,7 @@ TEST(MemoryAllocators, POOL_SINGLE_ALLOCATIONS)
 	size_t randomValues[sample_2593_bytes]{};
 	for (size_t i = 0; i < sample_2593_bytes; i++)
 	{
-		randomValues[i] = static_cast<size_t>(Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
 	BB::unsafePoolAllocator_t t_PoolAllocator(sizeof(size2593bytes), sample_2593_bytes, __alignof(size2593bytes));
