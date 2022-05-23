@@ -15,8 +15,8 @@ namespace BB
 	template<typename T, typename Allocator>
 	struct Dynamic_Array
 	{
-
-		Dynamic_Array(Allocator& a_Allocator, size_t a_Size = 0);
+		Dynamic_Array(Allocator& a_Allocator);
+		Dynamic_Array(Allocator& a_Allocator, size_t a_Size);
 		~Dynamic_Array();
 
 		T& operator[](const size_t a_Index) const;
@@ -24,6 +24,9 @@ namespace BB
 		void push_back(T& a_Element);
 		void push_back(const T* a_Elements, size_t a_Count);
 		void reserve(size_t a_Size);
+
+		void pop();
+		void empty();
 
 		const size_t size() const { return m_Size; };
 		const size_t capacity() const { return m_Capacity; }
@@ -43,10 +46,20 @@ namespace BB
 	};
 
 	template<typename T, typename Allocator>
+	inline BB::Dynamic_Array<T, Allocator>::Dynamic_Array(Allocator& a_Allocator)
+		: m_Allocator(a_Allocator)
+	{
+		m_Capacity = Dynamic_Array_Specs::multipleValue;
+
+		m_Arr = BBallocArray<T>(m_Allocator, m_Capacity);
+	}
+
+	template<typename T, typename Allocator>
 	inline Dynamic_Array<T, Allocator>::Dynamic_Array(Allocator& a_Allocator, size_t a_Size)
 		: m_Allocator(a_Allocator)
 	{
-		m_Capacity = Math::RoundUp(a_Size, Dynamic_Array_Specs::multipleValue) * Dynamic_Array_Specs::overAllocateMultiplier;
+		BB_EXCEPTION(a_Size != 0, "Dynamic_array size is specified to be 0, use constructor without size!");
+		m_Capacity = Math::RoundUp(a_Size, Dynamic_Array_Specs::multipleValue);
 
 		m_Arr = BBallocArray<T>(m_Allocator, m_Capacity);
 	}
@@ -89,11 +102,23 @@ namespace BB
 	{
 		if (a_Size > m_Capacity)
 		{
-			size_t t_ModifiedCapacity = Math::RoundUp(a_Size, Dynamic_Array_Specs::multipleValue) * Dynamic_Array_Specs::overAllocateMultiplier;
+			size_t t_ModifiedCapacity = Math::RoundUp(a_Size, Dynamic_Array_Specs::multipleValue);
 
 			reallocate(t_ModifiedCapacity);
 			return;
 		}
+	}
+
+	template<typename T, typename Allocator>
+	inline void BB::Dynamic_Array<T, Allocator>::pop()
+	{
+		m_Size--;
+	}
+
+	template<typename T, typename Allocator>
+	inline void BB::Dynamic_Array<T, Allocator>::empty()
+	{
+		m_Size = 0;
 	}
 
 	template<typename T, typename Allocator>
