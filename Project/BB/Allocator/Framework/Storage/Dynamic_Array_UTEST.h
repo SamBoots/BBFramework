@@ -47,7 +47,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 
 	//Cache the current capacity since we will go over it. 
 	t_OldCapacity = t_Array.capacity();
-	for (size_t i = 0; i <  -1 + initialSize; i++)
+	for (size_t i = 0; i <  initialSize; i++)
 	{
 		size2593bytes t_Object;
 		t_Object.value = t_RandomValues[i];
@@ -63,6 +63,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 
 	EXPECT_EQ(t_OldCapacity, t_Array.capacity()) << "Dynamic array resized while it shouldn't!";
 	
+	//add a single object to go over the limit and test the resize.
 	size2593bytes t_LimitObject;
 	t_LimitObject.value = t_RandomValues[t_Array.size()];
 	t_Array.push_back(t_LimitObject);
@@ -82,14 +83,14 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	t_OldCapacity = t_Array.capacity();
 
 	//now just fill the entire thing up.
-	for (size_t i = 0; i < -1 + samples; i++)
+	for (size_t i = 0; i < samples; i++)
 	{
 		size2593bytes t_Object;
 		t_Object.value = t_RandomValues[i];
 		t_Array.push_back(t_Object);
 	};
 
-	for (size_t i = 0; i < -1 + samples; i++)
+	for (size_t i = 0; i < samples; i++)
 	{
 		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic array value is wrong, something went bad after the resize events.";
 	}
@@ -97,7 +98,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	EXPECT_EQ(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity has been resized at the end while enough should've been reserve.";
 }
 
-TEST(Dynamic_ArrayDataStructure, Dynamic_Array_push_reserve)
+TEST(Dynamic_ArrayDataStructure, Dynamic_Array_push)
 {
 	constexpr const size_t initialSize = 8;
 	constexpr const size_t pushSize = 64;
@@ -142,10 +143,24 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_push_reserve)
 	//Cache the current capacity since need to check that we do not go over it. 
 	t_OldCapacity = t_Array.capacity();
 	t_Array.push_back(t_SizeArray2, pushSize);
-	EXPECT_NE(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity has been resized while enough should've been reserved.";
+	EXPECT_NE(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity is not different from the previous one, too much was allocated.";
+
+	for (size_t i = 0; i < pushSize; i++)
+	{
+		EXPECT_EQ(t_SizeArray2[i].value, t_RandomValues[i]) << "Dynamic Array, second array test has wrong values.";
+	}
+
+	//let it grow by one and compare all the values again.
+	size2593bytes t_SingleElement{};
+	t_SingleElement.value = t_RandomValues[t_Array.size()];
+	t_Array.push_back(t_SingleElement);
+
+	EXPECT_NE(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity is not different from the previous one, too much was allocated.";
 
 	for (size_t i = 0; i < pushSize; i++)
 	{
 		EXPECT_EQ(t_SizeArray2[i].value, t_RandomValues[i]) << "Dynamic Array, second array test has wrong values.";
 	}
 }
+
+

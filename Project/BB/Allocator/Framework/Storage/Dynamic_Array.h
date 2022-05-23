@@ -90,8 +90,8 @@ namespace BB
 	template<typename T, typename Allocator>
 	inline void Dynamic_Array<T, Allocator>::push_back(const T* a_Elements, size_t a_Count)
 	{
-		if (m_Size + a_Count >= m_Capacity)
-			grow();
+		if (m_Size + a_Count > m_Capacity)
+			grow(a_Count);
 
 		memcpy(m_Arr + m_Size, a_Elements, sizeof(T) * a_Count);
 		m_Size += a_Count;
@@ -136,7 +136,7 @@ namespace BB
 	inline void Dynamic_Array<T, Allocator>::reallocate(size_t a_NewCapacity)
 	{
 		T* t_NewArr = BBallocArray<T>(m_Allocator, a_NewCapacity);
-		memcpy(t_NewArr, m_Arr, sizeof(T) * m_Size);
+		memcpy(t_NewArr, m_Arr, sizeof(T) * m_Capacity);
 
 		BBFreeArray(m_Allocator, m_Arr);
 
