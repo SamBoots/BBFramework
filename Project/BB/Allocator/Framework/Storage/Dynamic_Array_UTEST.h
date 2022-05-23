@@ -6,10 +6,6 @@
 #include "Dynamic_Array.h"
 #include "Utils/Math.h"
 
-#include <vector>
-
-std::vector<int> k;
-
 TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 {
 	constexpr const size_t initialSize = 8;
@@ -32,27 +28,29 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 
 	//Cache the current capacity since we will go over it. 
 	const size_t t_OldSize = t_Array.capacity();
-	for (size_t i = 0; i < initialSize * BB::Dynamic_Array_Specs::overAllocateMultiplier; i++)
+	for (size_t i = 0; i <  -1 + initialSize * BB::Dynamic_Array_Specs::overAllocateMultiplier; i++)
 	{
 		size2593bytes t_Object;
 		t_Object.value = t_RandomValues[i];
 		t_Array.push_back(t_Object);
 	};
 
-	//Test all results before resize
+	//Test all results before doing a resize event
 	for (size_t i = 0; i < t_Array.size(); i++)
 	{
-		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic array value is wrong, something went bad.";
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic array value is wrong, something went bad before a resize event.";
 	}
+	
 
-	//
 	EXPECT_EQ(t_OldSize, t_Array.capacity()) << "Dynamic array resized while it shouldn't!";
 	
 	size2593bytes t_LimitObject;
-	t_LimitObject.value = t_RandomValues[t_Array.size() + 1];
+	t_LimitObject.value = t_RandomValues[t_Array.size()];
 	t_Array.push_back(t_LimitObject);
 
 	EXPECT_NE(t_OldSize, t_Array.capacity()) << "Dynamic array did not resize, test might be unaccurate and needs to be updated.";
+	EXPECT_EQ(t_Array[t_Array.size() - 1].value, t_LimitObject.value) << "Dynamic Array resize event went badly.";
+
 
 	//now just fill the entire thing up.
 	for (size_t i = t_Array.size(); i < samples; i++)
@@ -64,7 +62,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 
 	for (size_t i = 0; i < samples; i++)
 	{
-		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic array value is wrong, something went bad.";
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic array value is wrong, something went bad after the resize events.";
 	}
 }
 
