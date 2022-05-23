@@ -100,23 +100,52 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 TEST(Dynamic_ArrayDataStructure, Dynamic_Array_push_reserve)
 {
 	constexpr const size_t initialSize = 8;
-	constexpr const size_t pushSize = 128;
+	constexpr const size_t pushSize = 64;
 	//Unaligned big struct with a union to test the value.
 	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
 	//2 MB alloactor.
 	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Pool<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator, initialSize);
+	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator, initialSize);
 
 	size_t t_RandomValues[pushSize]{};
-	size2593bytes* t_SizeArray[pushSize]{};
+	size2593bytes t_SizeArray[initialSize]{};
 
 	for (size_t i = 0; i < pushSize; i++)
 	{
 		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
-	//Cache the current capacity since we will go over it. 
-	//size_t t_OldSize = t_Array.capacity();
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		t_SizeArray[i].value = t_RandomValues[i];
+	}
+	//Cache the current capacity since need to check that we do not go over it. 
+	size_t t_OldCapacity = t_Array.capacity();
+	t_Array.push_back(t_SizeArray, initialSize);
+	EXPECT_EQ(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity has been resized while enough should've been reserved.";
+
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic Array, first array test has wrong values.";
+	}
+	
+	//Empty for next task.
+	t_Array.empty();
+
+	size2593bytes t_SizeArray2[pushSize]{};
+	for (size_t i = 0; i < pushSize; i++)
+	{
+		t_SizeArray2[i].value = t_RandomValues[i];
+	}
+	//Cache the current capacity since need to check that we do not go over it. 
+	t_OldCapacity = t_Array.capacity();
+	t_Array.push_back(t_SizeArray2, pushSize);
+	EXPECT_NE(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity has been resized while enough should've been reserved.";
+
+	for (size_t i = 0; i < pushSize; i++)
+	{
+		EXPECT_EQ(t_SizeArray2[i].value, t_RandomValues[i]) << "Dynamic Array, second array test has wrong values.";
+	}
 }

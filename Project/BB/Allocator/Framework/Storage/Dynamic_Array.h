@@ -73,14 +73,14 @@ namespace BB
 	template<typename T, typename Allocator>
 	inline T& Dynamic_Array<T, Allocator>::operator[](const size_t a_Index) const
 	{
-		BB_EXCEPTION(a_Index < m_Size, "Dynamic_Array, trying to get an element using the [] operator but that element is not there.");
+		BB_EXCEPTION(a_Index <= m_Size, "Dynamic_Array, trying to get an element using the [] operator but that element is not there.");
 		return m_Arr[a_Index];
 	}
 
 	template<typename T, typename Allocator>
 	inline void Dynamic_Array<T, Allocator>::push_back(T& a_Element)
 	{
-		if (m_Size + 1 >= m_Capacity)
+		if (m_Size >= m_Capacity)
 			grow();
 
 		m_Arr[m_Size] = a_Element;
@@ -90,7 +90,7 @@ namespace BB
 	template<typename T, typename Allocator>
 	inline void Dynamic_Array<T, Allocator>::push_back(const T* a_Elements, size_t a_Count)
 	{
-		if (m_Size + 1 >= m_Capacity)
+		if (m_Size + a_Count >= m_Capacity)
 			grow();
 
 		memcpy(m_Arr + m_Size, a_Elements, sizeof(T) * a_Count);
