@@ -1,86 +1,70 @@
 #include "pch.h"
 #include "MemoryArena.h"
 
-#pragma warning (push, 0)
-#include <gtest/gtest.h>
-#pragma warning (pop)
-#include "Utils/Math.h"
-#include "Allocators.h"
+using namespace BB;
 
-TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
+memorypolicies::BoundsCheck::~BoundsCheck()
 {
-	//We use a freelist for the test since it allows for easy allocations and deallocations.
-	typedef BB::MemoryArena<BB::allocators::FreelistAllocator, BB::memorypolicies::Single_Thread, BB::memorypolicies::No_BoundsCheck, BB::memorypolicies::Count_MemoryTrack> LinearAllocatorWithTracking;
-	constexpr const size_t ALLOCATORSIZE = 41943040;
-
-	constexpr const size_t TRACKAMOUNT = 512;
-	constexpr const size_t MAX_RANDOM_VALUE = 4096; //4 KB.
-	constexpr const size_t MIN_RANDOM_VALUE = 1024; //1 KB.
-
-	struct MemoryTrackInstance
+	for (auto& t_It : m_BoundsList)
 	{
-		void* ptr;
-		size_t size;
-	};
-
-	struct MockMemoryArena : LinearAllocatorWithTracking
-	{
-		MockMemoryArena() : LinearAllocatorWithTracking(ALLOCATORSIZE) {}
-
-		void CheckAllocExists(const MemoryTrackInstance& a_Instance)
-		{
-			ASSERT_EQ(allocationsDone, m_MemoryTrackPolicy.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
-
-
-			auto t_It = m_MemoryTrackPolicy.m_TrackingList.find(a_Instance.ptr);
-			ASSERT_NE(t_It, m_MemoryTrackPolicy.m_TrackingList.end()) << "Memory allocation doesn't exist on the tracking list.";
-
-			ASSERT_EQ(a_Instance.size, t_It->second) << "Memory allocation doesn't share the size.";
-		};
-
-		void CheckAllocDoesntExists(const MemoryTrackInstance& a_Instance)
-		{
-			ASSERT_EQ(allocationsDone, m_MemoryTrackPolicy.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
-
-			ASSERT_EQ(m_MemoryTrackPolicy.m_TrackingList.find(a_Instance.ptr), m_MemoryTrackPolicy.m_TrackingList.end()) << "Memory allocation exist on the tracking list while it shouldn't.";
-		};
-
-		void* MockAlloc(size_t a_Size, size_t a_Alignment)
-		{
-			allocationsDone++;
-			return Alloc(a_Size, a_Alignment);
-		}
-
-		void MockFree(void* a_Ptr)
-		{
-			allocationsDone--;
-			Free(a_Ptr);
-		}
-
-		size_t allocationsDone = 0;
-
-	} t_MockArena{};
-
-	MemoryTrackInstance t_TrackInstances[TRACKAMOUNT]{};
-
-	for (size_t i = 0; i < TRACKAMOUNT; i++)
-	{
-		const size_t t_RandomAllocSize = BB::Utils::RandomUintMinMax(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
-
-		t_TrackInstances[i].size = t_RandomAllocSize;
-		t_TrackInstances[i].ptr = t_MockArena.MockAlloc(t_RandomAllocSize, __alignof(t_RandomAllocSize));
+		//Set the begin bound value
+		BB_ASSERT(*reinterpret_cast<size_t*>(t_It.first) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
+		BB_ASSERT(*reinterpret_cast<size_t*>(t_It.second) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
 	}
+	m_BoundsList.clear();
+}
 
-	//Check if the allocation exists in the tracking list.
-	for (size_t i = 0; i < TRACKAMOUNT; i++)
-	{
-		t_MockArena.CheckAllocExists(t_TrackInstances[i]);
-	}
+void memorypolicies::BoundsCheck::AddBoundries(void* a_FrontPtr, size_t a_AllocSize)
+{
+	//Set the begin bound value
+	*reinterpret_cast<size_t*>(a_FrontPtr) = BoundryCheckValue;
 
-	//now just dealloc the entire thing and check if the tracking still exists.
-	for (size_t i = 0; i < TRACKAMOUNT; i++)
+	void* a_BackPtr = pointerutils::Add(a_FrontPtr, a_AllocSize - BOUNDRY_BACK);
+	*reinterpret_cast<size_t*>(a_BackPtr) = BoundryCheckValue;
+
+	m_BoundsList.emplace(a_FrontPtr, a_BackPtr);
+}
+
+void memorypolicies::BoundsCheck::CheckBoundries(void* a_FrontPtr)
+{
+	//Set the begin bound value
+	BB_ASSERT(*reinterpret_cast<size_t*>(a_FrontPtr) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
+
+	void* a_BackPtr = m_BoundsList.find(a_FrontPtr)->second;
+	BB_ASSERT(*reinterpret_cast<size_t*>(a_BackPtr) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
+
+	m_BoundsList.erase(a_FrontPtr);
+}
+
+void memorypolicies::BoundsCheck::Clear()
+{
+	for (auto& t_It : m_BoundsList)
 	{
-		t_MockArena.MockFree(t_TrackInstances[i].ptr);
-		t_MockArena.CheckAllocDoesntExists(t_TrackInstances[i]);
+		//Set the begin bound value
+		BB_ASSERT(*reinterpret_cast<size_t*>(t_It.first) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
+		BB_ASSERT(*reinterpret_cast<size_t*>(t_It.second) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
 	}
+	m_BoundsList.clear();
+}
+
+memorypolicies::Count_MemoryTrack::~Count_MemoryTrack()
+{
+	for (auto& t_It : m_TrackingList)
+	{
+		std::cout << "Address: " << t_It.first << " Leak size: " << t_It.second << "\n";
+	}
+	//BB_EXCEPTION(m_TrackingList.size() == 0, "Memory tracker reports a memory leak, Log of leaks have been posted.");
+}
+
+void memorypolicies::Count_MemoryTrack::OnAlloc(void* a_Ptr, size_t a_Size)
+{
+	m_TrackingList.emplace(a_Ptr, a_Size);
+}
+void memorypolicies::Count_MemoryTrack::OnDealloc(void* a_Ptr)
+{
+	m_TrackingList.erase(a_Ptr);
+}
+void memorypolicies::Count_MemoryTrack::Clear()
+{
+	m_TrackingList.clear();
 }

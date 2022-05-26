@@ -28,7 +28,7 @@ add_executable (Allocator
 "Framework/OS/OSDevice_WIN.cpp" 
 "Framework/Utils/PointerUtils"
 "Framework/Utils/Math.h"
-)
+ "Framework/Allocators/MemoryArena_UTEST.h")
 add_compile_definitions(_WIN32)
 endif (WIN32)
 

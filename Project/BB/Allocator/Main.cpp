@@ -5,6 +5,8 @@
 #include "OS/OSDevice.h"
 #include "Storage/Pool_UTEST.h"
 #include "Storage/Dynamic_Array_UTEST.h"
+#include "Allocators/MemoryArena_UTEST.h"
+#include "Allocators/Allocators_UTEST.h"
 
 int main()
 {
