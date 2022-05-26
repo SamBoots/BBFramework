@@ -65,7 +65,7 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 
 	for (size_t i = 0; i < TRACKAMOUNT; i++)
 	{
-		const size_t t_RandomAllocSize = Utils::RandomUintMinMax(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
+		const size_t t_RandomAllocSize = BB::Utils::RandomUintMinMax(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
 
 		t_TrackInstances[i].size = t_RandomAllocSize;
 		t_TrackInstances[i].ptr = t_MockArena.MockAlloc(t_RandomAllocSize, __alignof(t_RandomAllocSize));

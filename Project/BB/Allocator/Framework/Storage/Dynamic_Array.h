@@ -127,7 +127,7 @@ namespace BB
 		size_t t_ModifiedCapacity = m_Capacity * 2;
 
 		if (a_MinCapacity > t_ModifiedCapacity)
-			t_ModifiedCapacity = Math::RoundUp(t_ModifiedCapacity, Dynamic_Array_Specs::multipleValue);
+			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Dynamic_Array_Specs::multipleValue);
 
 		reallocate(t_ModifiedCapacity);
 	}

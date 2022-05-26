@@ -38,7 +38,7 @@ TEST(MemoryAllocators, LINEAR_SINGLE_ALLOCATIONS)
 		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
-	BB::unsafeLinearAllocator_t t_LinearAllocator(allocatorSize);
+	BB::LinearAllocator_t t_LinearAllocator(allocatorSize);
 	
 	for (size_t i = 0; i < sample_32_bytes; i++)
 	{
@@ -56,24 +56,25 @@ TEST(MemoryAllocators, LINEAR_SINGLE_ALLOCATIONS)
 		sample->value = randomValues[sample_32_bytes + sample_256_bytes + i];
 	}
 
-	//Test all the values inside the allocations.
-	void* t_AllocData = t_LinearAllocator.begin();
-	for (size_t i = 0; i < sample_32_bytes; i++)
-	{
-		size32Bytes* data = reinterpret_cast<size32Bytes*>(t_AllocData);
-		ASSERT_EQ(data->value, randomValues[i]) << "32 bytes, Value is different in the linear allocator.";
-		t_AllocData = BB::pointerutils::Add(t_AllocData, sizeof(size32Bytes));
-	}
-	for (size_t i = sample_32_bytes; i < sample_32_bytes + sample_256_bytes; i++)
-	{
-		ASSERT_EQ(reinterpret_cast<size256Bytes*>(t_AllocData)->value, randomValues[i]) << "256 bytes, Value is different in the linear allocator.";
-		t_AllocData = BB::pointerutils::Add(t_AllocData, sizeof(size256Bytes));
-	}
-	for (size_t i = sample_32_bytes + sample_256_bytes; i < sample_32_bytes + sample_256_bytes + sample_2593_bytes; i++)
-	{
-		ASSERT_EQ(reinterpret_cast<size2593bytes*>(t_AllocData)->value, randomValues[i]) << "2593 bytes, Value is different in the linear allocator.";
-		t_AllocData = BB::pointerutils::Add(t_AllocData, sizeof(size2593bytes));
-	}
+	////Test is depricated because of Boundrychecking.
+	//Test all the values inside the allocations
+	//void* t_AllocData = t_LinearAllocator.begin();
+	//for (size_t i = 0; i < sample_32_bytes; i++)
+	//{
+	//	size32Bytes* data = reinterpret_cast<size32Bytes*>(t_AllocData);
+	//	ASSERT_EQ(data->value, randomValues[i]) << "32 bytes, Value is different in the linear allocator.";
+	//	t_AllocData = BB::pointerutils::Add(t_AllocData, sizeof(size32Bytes));
+	//}
+	//for (size_t i = sample_32_bytes; i < sample_32_bytes + sample_256_bytes; i++)
+	//{
+	//	ASSERT_EQ(reinterpret_cast<size256Bytes*>(t_AllocData)->value, randomValues[i]) << "256 bytes, Value is different in the linear allocator.";
+	//	t_AllocData = BB::pointerutils::Add(t_AllocData, sizeof(size256Bytes));
+	//}
+	//for (size_t i = sample_32_bytes + sample_256_bytes; i < sample_32_bytes + sample_256_bytes + sample_2593_bytes; i++)
+	//{
+	//	ASSERT_EQ(reinterpret_cast<size2593bytes*>(t_AllocData)->value, randomValues[i]) << "2593 bytes, Value is different in the linear allocator.";
+	//	t_AllocData = BB::pointerutils::Add(t_AllocData, sizeof(size2593bytes));
+	//}
 
 	t_LinearAllocator.Clear();
 }
@@ -95,12 +96,12 @@ TEST(MemoryAllocators, LINEAR_ARRAY_ALLOCATIONS)
 		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
-	BB::unsafeLinearAllocator_t t_LinearAllocator(allocatorSize);
+	BB::LinearAllocator_t t_LinearAllocator(allocatorSize);
 
 	size32Bytes* size32Array = BB::BBallocArray<size32Bytes>(t_LinearAllocator, sample_32_bytes);
 	size256Bytes* size256Array = BB::BBallocArray<size256Bytes>(t_LinearAllocator, sample_256_bytes);
 	size2593bytes* size2593Array = BB::BBallocArray<size2593bytes>(t_LinearAllocator, sample_2593_bytes);
-
+	
 	//Checking the arrays
 	for (size_t i = 0; i < sample_32_bytes; i++)
 	{
@@ -128,6 +129,8 @@ TEST(MemoryAllocators, LINEAR_ARRAY_ALLOCATIONS)
 	{
 		ASSERT_EQ(size2593Array[i].value, randomValues[sample_32_bytes + sample_256_bytes + i]) << "2593 bytes, Value is different in the linear allocator.";
 	}
+
+	t_LinearAllocator.Clear();
 }
 #pragma endregion
 
@@ -155,7 +158,7 @@ TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
-	BB::unsafeFreeListAllocator_t t_FreelistAllocator(allocatorSize);
+	BB::FreeListAllocator_t t_FreelistAllocator(allocatorSize);
 
 	{
 		//This address should always be used since it's a free block.
@@ -226,7 +229,7 @@ TEST(MemoryAllocators, FREELIST_ARRAY_ALLOCATIONS)
 		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 
-	BB::unsafeFreeListAllocator_t t_FreeList(allocatorSize);
+	BB::FreeListAllocator_t t_FreeList(allocatorSize);
 
 	size32Bytes* size32Array = BB::BBallocArray<size32Bytes>(t_FreeList, sample_32_bytes);
 	size256Bytes* size256Array = BB::BBallocArray<size256Bytes>(t_FreeList, sample_256_bytes);
@@ -251,15 +254,17 @@ TEST(MemoryAllocators, FREELIST_ARRAY_ALLOCATIONS)
 	{
 		ASSERT_EQ(size32Array[i].value, randomValues[i]) << "32 bytes, Value is different in the freelist allocator.";
 	}
+	BB::BBFreeArray(t_FreeList, size32Array);
 	for (size_t i = 0; i < sample_256_bytes; i++)
 	{
 		ASSERT_EQ(size256Array[i].value, randomValues[sample_32_bytes + i]) << "256 bytes, Value is different in the freelist allocator.";
 	}
+	BB::BBFreeArray(t_FreeList, size256Array);
 	for (size_t i = 0; i < sample_2593_bytes; i++)
 	{
 		ASSERT_EQ(size2593Array[i].value, randomValues[sample_32_bytes + sample_256_bytes + i]) << "2593 bytes, Value is different in the freelist allocator.";
 	}
-
+	BB::BBFreeArray(t_FreeList, size2593Array);
 	//Clear is not suppoted by freelist, commented just to show this is not a mistake.
 	//t_FreelistAllocator.Clear();
 }
@@ -278,6 +283,7 @@ TEST(MemoryAllocators, FREELIST_RESIZE_MEMSET)
 
 	struct AlignmentCheckStruct { char data[allocatorSize]; };
 
+
 	BB::allocators::FreelistAllocator t_FreeList(allocatorSize + sizeof(BB::allocators::FreelistAllocator::AllocHeader));
 
 	//Alloc the entire thing, memset to check if the allocation throws errors.
@@ -289,9 +295,6 @@ TEST(MemoryAllocators, FREELIST_RESIZE_MEMSET)
 	t_Data = t_FreeList.Alloc(allocatorSize, __alignof(AlignmentCheckStruct));
 	memset(t_Data, 256, allocatorSize);
 
-	ASSERT_EQ(t_FreeList.m_FreeBlocks, nullptr) << "Allocator resized, but there is a freeblock while there shouldn't be one available. Since the allocator should be totally full.";
-
-
 	//Clear is not suppoted by freelist, commented just to show this is not a mistake.
 	//t_FreelistAllocator.Clear();
 }
@@ -301,32 +304,32 @@ TEST(MemoryAllocators, FREELIST_RESIZE_MEMSET)
 #pragma region POOL_ALLOCATOR
 TEST(MemoryAllocators, POOL_SINGLE_ALLOCATIONS)
 {
-	std::cout << "Pool allocator with 1000 2593 bytes samples." << "\n";
+	//std::cout << "Pool allocator with 1000 2593 bytes samples." << "\n";
 
-	//Get some random values to test
-	size_t randomValues[sample_2593_bytes]{};
-	for (size_t i = 0; i < sample_2593_bytes; i++)
-	{
-		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
-	}
+	////Get some random values to test
+	//size_t randomValues[sample_2593_bytes]{};
+	//for (size_t i = 0; i < sample_2593_bytes; i++)
+	//{
+	//	randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	//}
 
-	BB::unsafePoolAllocator_t t_PoolAllocator(sizeof(size2593bytes), sample_2593_bytes, __alignof(size2593bytes));
+	//BB::PoolAllocator_t t_PoolAllocator(sizeof(size2593bytes), sample_2593_bytes, __alignof(size2593bytes));
 
-	for (size_t i = 0; i < sample_2593_bytes; i++)
-	{
-		size2593bytes* sample = BB::BBalloc<size2593bytes>(t_PoolAllocator);
-		sample->value = randomValues[i];
-	}
+	//for (size_t i = 0; i < sample_2593_bytes; i++)
+	//{
+	//	size2593bytes* sample = BB::BBalloc<size2593bytes>(t_PoolAllocator);
+	//	sample->value = randomValues[i];
+	//}
 
+	////Test is depricated because of Boundrychecking.
 	//Test all the values inside the allocations.
-	size2593bytes* t_AllocData = reinterpret_cast<size2593bytes*>(t_PoolAllocator.begin());
-	for (size_t i = 0; i < sample_2593_bytes; i++)
-	{
-		ASSERT_EQ(t_AllocData[i].value, randomValues[i]) << "2593 bytes, Value is different in the Pool allocator.";
+	//size2593bytes* t_AllocData = reinterpret_cast<size2593bytes*>(t_PoolAllocator.begin());
+	//for (size_t i = 0; i < sample_2593_bytes; i++)
+	//{
+	//	ASSERT_EQ(t_AllocData[i].value, randomValues[i]) << "2593 bytes, Value is different in the Pool allocator.";
+	//}
 
-	}
-
-	t_PoolAllocator.Clear();
+	//t_PoolAllocator.Clear();
 }
 
 TEST(MemoryAllocators, POOL_SINGLE_ALLOCATIONS_RESIZE)

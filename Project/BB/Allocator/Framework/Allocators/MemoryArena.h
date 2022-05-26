@@ -4,6 +4,8 @@
 
 		//needs replacement by a custom hashmap.
 #include <unordered_map>
+#include "Utils/pointerUtils.h"
+#include "pch.h"
 
 namespace BB
 {
@@ -17,17 +19,76 @@ namespace BB
 
 		struct No_BoundsCheck
 		{
-			No_BoundsCheck(size_t) {};
-			const size_t memorySize = 0;
+			No_BoundsCheck() {};
 
-			inline void CheckFront(const void*) const {}
-			inline void CheckBack(const void*) const {}
+			static const size_t BOUNDRY_FRONT = 0;
+			static const size_t BOUNDRY_BACK = 0;
+
+			inline void AddBoundries(void*, const size_t) const {};
+			inline void CheckBoundries(void*) const {}
+		};
+
+		constexpr const size_t BoundryCheckValue = 128;
+
+		struct BoundsCheck
+		{
+			BoundsCheck() {};
+			~BoundsCheck() 
+			{
+				for (auto& t_It : m_BoundsList)
+				{
+					//Set the begin bound value
+					BB_ASSERT(*reinterpret_cast<size_t*>(t_It.first) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
+					BB_ASSERT(*reinterpret_cast<size_t*>(t_It.second) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
+				}
+				m_BoundsList.clear();
+			};
+
+			static const size_t BOUNDRY_FRONT = sizeof(size_t);
+			static const size_t BOUNDRY_BACK = sizeof(size_t);
+
+			inline void AddBoundries(void* a_FrontPtr, size_t a_AllocSize)
+			{
+				//Set the begin bound value
+				*reinterpret_cast<size_t*>(a_FrontPtr) = BoundryCheckValue;
+
+				void* a_BackPtr = pointerutils::Add(a_FrontPtr, a_AllocSize - BOUNDRY_BACK);
+				*reinterpret_cast<size_t*>(a_BackPtr) = BoundryCheckValue;
+
+				m_BoundsList.emplace(a_FrontPtr, a_BackPtr);
+			}
+			inline void CheckBoundries(void* a_FrontPtr)
+			{
+				//Set the begin bound value
+				BB_ASSERT(*reinterpret_cast<size_t*>(a_FrontPtr) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
+
+				void* a_BackPtr = m_BoundsList.find(a_FrontPtr)->second;
+				BB_ASSERT(*reinterpret_cast<size_t*>(a_BackPtr) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
+
+				m_BoundsList.erase(a_FrontPtr);
+			}
+			inline void Clear()
+			{
+				for (auto& t_It : m_BoundsList)
+				{
+					//Set the begin bound value
+					BB_ASSERT(*reinterpret_cast<size_t*>(t_It.first) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
+					BB_ASSERT(*reinterpret_cast<size_t*>(t_It.second) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
+				}
+				m_BoundsList.clear();
+			}
+
+			//needs replacement by a custom hashmap.
+			//First pointer = front.
+			//Second pointer = back.
+			std::unordered_map<void*, void*> m_BoundsList;
 		};
 
 		struct No_MemoryTrack
 		{
 			inline void OnAlloc(void*, size_t) const {}
 			inline void OnDealloc(void*) const {}
+			inline void Clear() const {}
 		};
 
 		struct Count_MemoryTrack
@@ -48,6 +109,10 @@ namespace BB
 			{
 				m_TrackingList.erase(a_Ptr);
 			}
+			inline void Clear()
+			{
+				m_TrackingList.clear();
+			}
 
 			//needs replacement by a custom hashmap.
 			std::unordered_map<void*, size_t> m_TrackingList;
@@ -65,34 +130,35 @@ namespace BB
 	struct MemoryArena
 	{
 		MemoryArena(const size_t a_Size)
-			: m_Allocator(a_Size), m_BoundsCheckPolicy(a_Size)
+			: m_Allocator(a_Size)
 		{}
 		
 		MemoryArena(const size_t a_ObjectSize, const size_t a_ObjectCount, const size_t a_Alignment)
-			: m_Allocator(a_ObjectSize, a_ObjectCount, a_Alignment), m_BoundsCheckPolicy(a_ObjectSize * a_ObjectCount)
+			: m_Allocator(a_ObjectSize, a_ObjectCount, a_Alignment)
 		{}
 
 		void* Alloc(size_t a_Size, size_t a_Alignment)
 		{
 			m_ThreadPolicy.Enter();
 
-			const size_t t_AllocSize = a_Size;
+			const size_t t_AllocSize = a_Size + BoundsCheckPolicy::BOUNDRY_FRONT + BoundsCheckPolicy::BOUNDRY_BACK;
 
-			uint8_t* returnMemory = static_cast<uint8_t*>(m_Allocator.Alloc(a_Size, a_Alignment));
+			uint8_t* allocatedMemory = static_cast<uint8_t*>(m_Allocator.Alloc(t_AllocSize, a_Alignment));
+			m_BoundsCheckPolicy.AddBoundries(allocatedMemory, t_AllocSize);
 
 			//m_MemoryTaggingPolicy.TagAlloc(returnMemory, t_AllocSize);
-			m_MemoryTrackPolicy.OnAlloc(returnMemory, t_AllocSize);
+			m_MemoryTrackPolicy.OnAlloc(allocatedMemory, t_AllocSize);
 
 			m_ThreadPolicy.Leave();
 
-			return returnMemory;
+			return pointerutils::Add(allocatedMemory, BoundsCheckPolicy::BOUNDRY_FRONT);
 		}
 		void Free(void* a_Ptr)
 		{
 			m_ThreadPolicy.Enter();
 
-			uint8_t* originalMemory = static_cast<uint8_t*>(a_Ptr);
-
+			void* originalMemory = pointerutils::Subtract(a_Ptr, BoundsCheckPolicy::BOUNDRY_FRONT);
+			m_BoundsCheckPolicy.CheckBoundries(originalMemory);
 			//m_MemoryTaggingPolicy.TagDealloc(originalMemory);
 			m_MemoryTrackPolicy.OnDealloc(originalMemory);
 
@@ -105,14 +171,11 @@ namespace BB
 		{
 			m_ThreadPolicy.Enter();
 
+			m_BoundsCheckPolicy.Clear();
+			m_MemoryTrackPolicy.Clear();
 			m_Allocator.Clear();
 
 			m_ThreadPolicy.Leave();
-		}
-
-		void* begin() const
-		{
-			return m_Allocator.begin();
 		}
 
 	protected:

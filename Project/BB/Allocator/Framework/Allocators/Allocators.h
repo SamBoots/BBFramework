@@ -21,11 +21,10 @@ namespace BB
 			void Free(void*);
 			void Clear();
 
-			void* begin() const { return m_Start; };
-
 		private:
-			uint8_t* m_Start = nullptr;
-			uint8_t* m_Buffer;
+			void* m_Start;
+			void* m_Buffer;
+			uintptr_t m_End;
 		};
 
 		struct FreelistAllocator
@@ -41,8 +40,6 @@ namespace BB
 
 			void* Alloc(size_t a_Size, size_t a_Alignment);
 			void Free(void* a_Ptr);
-
-			void* begin() const;
 			void Clear() const;
 
 			struct AllocHeader 
@@ -60,28 +57,26 @@ namespace BB
 			size_t m_TotalAllocSize;
 		};
 
-		struct PoolAllocator
-		{
-			PoolAllocator(const size_t a_ObjectSize, const size_t a_ObjectCount, const size_t a_Alignment);
-			~PoolAllocator();
+		//struct PoolAllocator
+		//{
+		//	PoolAllocator(const size_t a_ObjectSize, const size_t a_ObjectCount, const size_t a_Alignment);
+		//	~PoolAllocator();
 
-			//just delete these for safety, copies might cause errors.
-			PoolAllocator(const PoolAllocator&) = delete;
-			PoolAllocator(const PoolAllocator&&) = delete;
-			PoolAllocator& operator =(const PoolAllocator&) = delete;
-			PoolAllocator& operator =(PoolAllocator&&) = delete;
+		//	//just delete these for safety, copies might cause errors.
+		//	PoolAllocator(const PoolAllocator&) = delete;
+		//	PoolAllocator(const PoolAllocator&&) = delete;
+		//	PoolAllocator& operator =(const PoolAllocator&) = delete;
+		//	PoolAllocator& operator =(PoolAllocator&&) = delete;
 
-			void* Alloc(size_t a_Size, size_t);
-			void Free(void* a_Ptr);
-			void Clear();
+		//	void* Alloc(size_t a_Size, size_t);
+		//	void Free(void* a_Ptr);
+		//	void Clear();
 
-			void* begin() const { return m_Start; };
-
-			size_t m_Alignment;
-			size_t m_ObjectCount;
-			void** m_Start = nullptr;
-			void** m_Pool;
-		};
+		//	size_t m_Alignment;
+		//	size_t m_ObjectCount;
+		//	void** m_Start = nullptr;
+		//	void** m_Pool;
+		//};
 	}
 
 	template <typename T, typename MemoryArena>
@@ -106,7 +101,7 @@ namespace BB
 		if (sizeof(size_t) % sizeof(T) > 0) t_HeaderSize += 1;
 
 		//Allocate the array, but shift it by sizeof(size_t) bytes forward to allow the size of the header to be put in as well.
-		T* ptr = (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T) * (a_Length * t_HeaderSize), __alignof(T)))) + t_HeaderSize;
+		T* ptr = (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T) * (a_Length + t_HeaderSize), __alignof(T)))) + t_HeaderSize;
 
 		//Store the size of the array inside the first element of the pointer.
 		*(reinterpret_cast<size_t*>(ptr) - 1) = a_Length;
