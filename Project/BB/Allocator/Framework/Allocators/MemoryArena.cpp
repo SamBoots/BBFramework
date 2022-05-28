@@ -29,9 +29,7 @@ void memorypolicies::BoundsCheck::CheckBoundries(void* a_FrontPtr)
 {
 	//Set the begin bound value
 	BB_ASSERT(*reinterpret_cast<size_t*>(a_FrontPtr) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
-
-	void* a_BackPtr = m_BoundsList.find(a_FrontPtr)->second;
-	BB_ASSERT(*reinterpret_cast<size_t*>(a_BackPtr) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
+	BB_ASSERT(*reinterpret_cast<size_t*>(m_BoundsList.find(a_FrontPtr)->second) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the back.");
 
 	m_BoundsList.erase(a_FrontPtr);
 }
@@ -53,7 +51,7 @@ memorypolicies::Count_MemoryTrack::~Count_MemoryTrack()
 	{
 		std::cout << "Address: " << t_It.first << " Leak size: " << t_It.second << "\n";
 	}
-	//BB_EXCEPTION(m_TrackingList.size() == 0, "Memory tracker reports a memory leak, Log of leaks have been posted.");
+	BB_WARNING(m_TrackingList.size() == 0, "Memory tracker reports a memory leak, Log of leaks have been posted.");
 }
 
 void memorypolicies::Count_MemoryTrack::OnAlloc(void* a_Ptr, size_t a_Size)

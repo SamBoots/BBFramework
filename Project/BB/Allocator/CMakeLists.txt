@@ -20,15 +20,19 @@ add_executable (Allocator
 "Framework/Allocators/BB_AllocTypes.h" 
 "Framework/Allocators/MemoryArena.h" 
 "Framework/Allocators/MemoryArena.cpp" 
+"Framework/Allocators/MemoryArena_UTEST.h" 
 "Framework/Storage/Dynamic_Array.h" 
 "Framework/Storage/Dynamic_Array_UTEST.h"
 "Framework/Storage/Pool.h" 
 "Framework/Storage/Pool_UTEST.h" 
+"Framework/Storage/Hashmap.h"
+"Framework/Storage/Hashmap_UTEST.h"
 "Framework/OS/OSDevice.h" 
 "Framework/OS/OSDevice_WIN.cpp" 
 "Framework/Utils/PointerUtils"
 "Framework/Utils/Math.h"
- "Framework/Allocators/MemoryArena_UTEST.h")
+"Framework/Utils/Hash.h"
+)
 add_compile_definitions(_WIN32)
 endif (WIN32)
 
@@ -48,14 +52,18 @@ add_executable (Allocator
 "Framework/Allocators/BB_AllocTypes.h" 
 "Framework/Allocators/MemoryArena.h" 
 "Framework/Allocators/MemoryArena.cpp" 
+"Framework/Allocators/MemoryArena_UTEST.h" 
 "Framework/Storage/Dynamic_Array.h" 
 "Framework/Storage/Dynamic_Array_UTEST.h"
 "Framework/Storage/Pool.h" 
 "Framework/Storage/Pool_UTEST.h" 
+"Framework/Storage/Hashmap.h"
+"Framework/Storage/Hashmap_UTEST.h"
 "Framework/OS/OSDevice.h" 
 "Framework/OS/OSDevice_LINUX.cpp" 
 "Framework/Utils/PointerUtils"
 "Framework/Utils/Math.h"
+"Framework/Utils/Hash.h"
 )
 add_compile_definitions(_UNIX)
 endif (UNIX)
