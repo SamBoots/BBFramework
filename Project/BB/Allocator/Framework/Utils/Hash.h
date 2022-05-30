@@ -1,5 +1,6 @@
 #pragma once
 #include "pch.h"
+#include <type_traits>
 
 struct Hash
 {
@@ -12,10 +13,8 @@ struct Hash
 	//Create with uint64_t.
 	template<typename T>
 	static Hash MakeHash(T a_Value);
-
-	template <uint64_t>
-	static Hash MakeHash(uint64_t a_Value);
-
+	template <size_t>
+	static Hash MakeHash(size_t a_Value);
 	template <const char*>
 	static Hash MakeHash(const char* a_Value);
 
@@ -26,15 +25,29 @@ private:
 template<typename T>
 inline Hash Hash::MakeHash(T a_Value)
 {
+	constexpr bool is_integral_v = std::is_integral<T>::value;
+	if (is_integral_v)
+		return MakeHash<size_t>(a_Value);;
+
 	BB_ASSERT(false, "MakeHash function doesn't support this type");
 	return Hash();
 }
 
 template<>
-inline Hash Hash::MakeHash(uint64_t a_Value)
+inline Hash Hash::MakeHash(size_t a_Value)
 {
-	return Hash(a_Value * 8 ^ 8);
+	a_Value ^= a_Value << 13, a_Value ^= a_Value >> 17;
+	a_Value ^= a_Value << 5;
+	return Hash(a_Value);
 }
+
+//template<>
+//inline Hash Hash::MakeHash(uint32_t a_Value)
+//{
+//	a_Value ^= a_Value << 13, a_Value ^= a_Value >> 17;
+//	a_Value ^= a_Value << 5;
+//	return Hash(a_Value);
+//}
 
 template<>
 inline Hash Hash::MakeHash(const char* a_Value)

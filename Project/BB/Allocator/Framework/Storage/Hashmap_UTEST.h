@@ -8,6 +8,7 @@
 
 TEST(Hashmap_Datastructure, Hashmap_Insert)
 {
+	constexpr const uint32_t samples = 256;
 	//Unaligned big struct with a union to test the value.
 	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
@@ -15,5 +16,23 @@ TEST(Hashmap_Datastructure, Hashmap_Insert)
 	const size_t allocatorSize = BB::gbSize * 2;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::HashMap<size2593bytes, const char*, BB::FreeListAllocator_t> t_Array(t_Allocator);
+	BB::UM_HashMap<size2593bytes, uint32_t, BB::FreeListAllocator_t> t_Map(t_Allocator);
+
+	{
+		size2593bytes t_Value{};
+		t_Value.value = 500;
+		uint32_t t_Key = 124;
+		t_Map.Insert(t_Value, t_Key);
+
+		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+
+		t_Map.Remove(t_Key);
+		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
+	}
+
+	for (uint32_t i = 0; i < length; i++)
+	{
+
+	}
 }

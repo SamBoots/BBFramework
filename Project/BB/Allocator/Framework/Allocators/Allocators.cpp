@@ -32,7 +32,6 @@ void* LinearAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 		mallocVirtual(m_Start, t_Increase);
 		m_End += t_Increase;
 	}
-		
 
 	return reinterpret_cast<void*>(t_Address);
 }

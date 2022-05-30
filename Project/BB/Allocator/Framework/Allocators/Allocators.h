@@ -108,7 +108,7 @@ namespace BB
 
 		//Create the elements.
 		for (size_t i = 0; i < a_Length; i++)
-			new (&ptr[i]) T;
+			new (&ptr[i]) T();
 
 		return ptr;
 	}
