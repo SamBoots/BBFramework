@@ -31,8 +31,23 @@ TEST(Hashmap_Datastructure, Hashmap_Insert)
 		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
-	for (uint32_t i = 0; i < length; i++)
+	uint32_t t_RandomKeys[samples]{};
+	for (uint32_t i = 0; i < samples; i++)
 	{
+		t_RandomKeys[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	}
+	
+	for (uint32_t i = 0; i < samples; i++)
+	{
+		size2593bytes t_Value{};
+		t_Value.value = 500;
+		uint32_t t_Key = t_RandomKeys[i];
+		t_Map.Insert(t_Value, t_Key);
 
+		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+
+		t_Map.Remove(t_Key);
+		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 }

@@ -7,6 +7,8 @@ namespace BB
 {
 	constexpr uint8_t MAPEMPTY = 0x01;
 
+#pragma region Unordered_Map
+	//Unordered Map, uses linked list for collision.
 	template<typename Value, typename Key, typename Allocator>
 	class UM_HashMap
 	{
@@ -143,4 +145,68 @@ namespace BB
 		}
 		return false;
 	}
+
+#pragma endregion
+
+#pragma region Open Addressing Linear (OL)
+	//Open addressing with Linear probing.
+	template<typename Value, typename Key, typename Allocator>
+	class OL_HashMap
+	{
+		union HashState
+		{
+			uint64_t state = MAPEMPTY;
+			Hash hash;
+		};
+
+		HashState* m_HashStates;
+		Key* m_Keys;
+		Value* m_Values;
+
+
+
+		Allocator& m_Allocator;
+
+	public:
+		OL_HashMap(Allocator& a_Allocator);
+		~OL_HashMap();
+
+		void Insert(Value& a_Res, Key& a_Key);
+		Value* Find(const Key& a_Key) const;
+		void Remove(const Key& a_Key);
+	};
+
+
+	template<typename Value, typename Key, typename Allocator>
+	inline OL_HashMap<Value, Key, Allocator>::OL_HashMap(Allocator& a_Allocator)
+		:	m_Allocator(a_Allocator)
+	{
+		m_HashStates = BBallocArray<HashState>(m_Allocator, STANDARDHASHMAPSIZE);
+		m_Keys = BBallocArray<Key>(m_Allocator, STANDARDHASHMAPSIZE);
+		m_Values = BBallocArray<Value>(m_Allocator, STANDARDHASHMAPSIZE);
+	}
+
+	template<typename Value, typename Key, typename Allocator>
+	inline OL_HashMap<Value, Key, Allocator>::~OL_HashMap()
+	{
+	}
+
+	template<typename Value, typename Key, typename Allocator>
+	inline void OL_HashMap<Value, Key, Allocator>::Insert(Value& a_Res, Key& a_Key)
+	{
+	}
+
+	template<typename Value, typename Key, typename Allocator>
+	inline Value* OL_HashMap<Value, Key, Allocator>::Find(const Key& a_Key) const
+	{
+		return nullptr;
+	}
+
+	template<typename Value, typename Key, typename Allocator>
+	inline void OL_HashMap<Value, Key, Allocator>::Remove(const Key& a_Key)
+	{
+	}
+
 }
+
+#pragma endregion
