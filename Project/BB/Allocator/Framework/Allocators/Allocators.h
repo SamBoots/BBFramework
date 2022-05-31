@@ -79,6 +79,12 @@ namespace BB
 		//};
 	}
 
+	template <typename MemoryArena>
+	inline void* BBalloc(MemoryArena& a_Arena, const size_t a_Size)
+	{
+		return a_Arena.Alloc(a_Size, 1);
+	}
+
 	template <typename T, typename MemoryArena>
 	inline T* BBalloc(MemoryArena& a_Arena)
 	{

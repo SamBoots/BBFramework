@@ -18,8 +18,6 @@ namespace BB
 
 		struct No_BoundsCheck
 		{
-			No_BoundsCheck() {};
-
 			static const size_t BOUNDRY_FRONT = 0;
 			static const size_t BOUNDRY_BACK = 0;
 
@@ -31,7 +29,6 @@ namespace BB
 
 		struct BoundsCheck
 		{
-			BoundsCheck() {};
 			~BoundsCheck();
 
 			static const size_t BOUNDRY_FRONT = sizeof(size_t);

@@ -9,6 +9,7 @@ struct Hash
 
 	operator const uint64_t() const { return hash; }
 	void operator=(const uint64_t a_Rhs) { hash = a_Rhs; }
+	Hash operator++(int) { return hash++; }
 
 	//Create with uint64_t.
 	template<typename T>

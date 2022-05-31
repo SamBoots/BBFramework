@@ -118,6 +118,7 @@ namespace BB
 		if (t_Entry->next_Entry == nullptr)
 		{
 			t_Entry->state = MAPEMPTY;
+			t_Entry->value.~Value();
 			return;
 		}
 
@@ -153,16 +154,12 @@ namespace BB
 	template<typename Value, typename Key, typename Allocator>
 	class OL_HashMap
 	{
-		union HashState
-		{
-			uint64_t state = MAPEMPTY;
-			Hash hash;
-		};
+		size_t m_Capacity;
 
-		HashState* m_HashStates;
+		//All the elements.
+		Hash* m_Hashes;
 		Key* m_Keys;
 		Value* m_Values;
-
 
 
 		Allocator& m_Allocator;
@@ -181,30 +178,65 @@ namespace BB
 	inline OL_HashMap<Value, Key, Allocator>::OL_HashMap(Allocator& a_Allocator)
 		:	m_Allocator(a_Allocator)
 	{
-		m_HashStates = BBallocArray<HashState>(m_Allocator, STANDARDHASHMAPSIZE);
-		m_Keys = BBallocArray<Key>(m_Allocator, STANDARDHASHMAPSIZE);
-		m_Values = BBallocArray<Value>(m_Allocator, STANDARDHASHMAPSIZE);
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * STANDARDHASHMAPSIZE;
+		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
+
+		m_Capacity = STANDARDHASHMAPSIZE;
+
+		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
+		memset(m_Hashes, 0, sizeof(Hash) * STANDARDHASHMAPSIZE);
+		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * STANDARDHASHMAPSIZE));
+		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, sizeof(Hash) * sizeof(Key) * STANDARDHASHMAPSIZE));
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline OL_HashMap<Value, Key, Allocator>::~OL_HashMap()
 	{
+		BBFree(m_Allocator, m_Hashes);
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline void OL_HashMap<Value, Key, Allocator>::Insert(Value& a_Res, Key& a_Key)
 	{
+		Hash t_Hash = Hash::MakeHash(a_Key);
+		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
+
+		while (m_Hashes[t_Hash] != 0)
+		{
+			t_Hash++;
+		}
+		m_Hashes[t_Hash] = t_Hash;
+		m_Keys[t_Hash] = a_Key;
+		m_Values[t_Hash] = a_Res;
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline Value* OL_HashMap<Value, Key, Allocator>::Find(const Key& a_Key) const
 	{
-		return nullptr;
+		Hash t_Hash = Hash::MakeHash(a_Key);
+		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
+
+		while (m_Keys[t_Hash] != a_Key)
+		{
+			t_Hash++;
+		}
+
+		return &m_Values[t_Hash];
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline void OL_HashMap<Value, Key, Allocator>::Remove(const Key& a_Key)
 	{
+		Hash t_Hash = Hash::MakeHash(a_Key);
+		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
+
+		while (m_Keys[t_Hash] != a_Key)
+		{
+			t_Hash++;
+		}
+		m_Hashes[t_Hash] = 0;
+		m_Keys[t_Hash] = 0;
+		m_Values[t_Hash].~Value();
 	}
 
 }
