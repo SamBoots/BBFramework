@@ -201,13 +201,30 @@ namespace BB
 		Hash t_Hash = Hash::MakeHash(a_Key);
 		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
 
-		while (m_Hashes[t_Hash] != 0)
+		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			t_Hash++;
+			if (m_Hashes[i] == 0)
+			{
+				m_Hashes[t_Hash] = t_Hash;
+				m_Keys[t_Hash] = a_Key;
+				m_Values[t_Hash] = a_Res;
+				return;
+			}
 		}
-		m_Hashes[t_Hash] = t_Hash;
-		m_Keys[t_Hash] = a_Key;
-		m_Values[t_Hash] = a_Res;
+
+		//Loop again but then from the start and stop at the hash. 
+		for (size_t i = 0; i < t_Hash; i++)
+		{
+			if (m_Hashes[i] == 0)
+			{
+				m_Hashes[t_Hash] = t_Hash;
+				m_Keys[t_Hash] = a_Key;
+				m_Values[t_Hash] = a_Res;
+				return;
+			}
+		}
+
+		BB_ASSERT(false, "OL_Hashmap cannot resize!");
 	}
 
 	template<typename Value, typename Key, typename Allocator>
@@ -216,12 +233,21 @@ namespace BB
 		Hash t_Hash = Hash::MakeHash(a_Key);
 		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
 
-		while (m_Keys[t_Hash] != a_Key)
+		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			t_Hash++;
+			if (m_Keys[i] == a_Key)
+				return &m_Values[i];
 		}
 
-		return &m_Values[t_Hash];
+		//Loop again but then from the start and stop at the hash. 
+		for (size_t i = 0; i < t_Hash; i++)
+		{
+			if (m_Keys[i] == a_Key)
+				return &m_Values[i];
+		}
+
+		//Key does not exist.
+		return nullptr;
 	}
 
 	template<typename Value, typename Key, typename Allocator>
@@ -230,15 +256,29 @@ namespace BB
 		Hash t_Hash = Hash::MakeHash(a_Key);
 		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
 
-		while (m_Keys[t_Hash] != a_Key)
+		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			t_Hash++;
+			if (m_Keys[i] == a_Key)
+			{
+				m_Hashes[t_Hash] = 0;
+				m_Keys[t_Hash] = 0;
+				m_Values[t_Hash].~Value();
+				return;
+			}
 		}
-		m_Hashes[t_Hash] = 0;
-		m_Keys[t_Hash] = 0;
-		m_Values[t_Hash].~Value();
-	}
 
+		//Loop again but then from the start and stop at the hash. 
+		for (size_t i = 0; i < t_Hash; i++)
+		{
+			if (m_Keys[i] == a_Key)
+			{
+				m_Hashes[t_Hash] = 0;
+				m_Keys[t_Hash] = 0;
+				m_Values[t_Hash].~Value();
+				return;
+			}
+		}
+	}
 }
 
 #pragma endregion
