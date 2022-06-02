@@ -54,7 +54,7 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 
 TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 {
-	constexpr const uint32_t samples = 256;
+	constexpr const uint32_t samples = 2024;
 	//Unaligned big struct with a union to test the value.
 	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
@@ -80,10 +80,11 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 	uint32_t t_RandomKeys[samples]{};
 	for (uint32_t i = 0; i < samples; i++)
 	{
-		t_RandomKeys[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomKeys[i] = (i + 1) * 10;
 	}
 
-	for (uint32_t i = 0; i < samples; i++)
+	//Only test a quarter of the samples for just inserting and removing.
+	for (uint32_t i = 0; i < samples / 4; i++)
 	{
 		size2593bytes t_Value{};
 		t_Value.value = 500;
@@ -95,6 +96,28 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 
 		t_Map.Remove(t_Key);
 		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
+	}
+
+	//FIll the map to double it's size and test if a resize works.
+	for (uint32_t i = 0; i < samples; i++)
+	{
+		size2593bytes t_Value{};
+		t_Value.value = t_RandomKeys[i] << 2;
+		uint32_t t_Key = t_RandomKeys[i];
+		t_Map.Insert(t_Value, t_Key);
+
+
+	}
+	//Now check it
+	for (uint32_t i = 0; i < samples; i++)
+	{
+		uint32_t t_Key = t_RandomKeys[i];
+
+		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Key << 2) << "Wrong element was likely grabbed.";
+
+		t_Map.Remove(t_RandomKeys[i]);
+		ASSERT_EQ(t_Map.Find(t_RandomKeys[i]), nullptr) << "Element was found while it should've been deleted.";
 	}
 }
 

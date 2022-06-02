@@ -171,6 +171,9 @@ namespace BB
 		void Insert(Value& a_Res, Key& a_Key);
 		Value* Find(const Key& a_Key) const;
 		void Remove(const Key& a_Key);
+
+	private:
+		void grow(size_t a_MinumumSize = 1);
 	};
 
 
@@ -178,36 +181,37 @@ namespace BB
 	inline OL_HashMap<Value, Key, Allocator>::OL_HashMap(Allocator& a_Allocator)
 		:	m_Allocator(a_Allocator)
 	{
-		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * STANDARDHASHMAPSIZE;
-		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
-
 		m_Capacity = STANDARDHASHMAPSIZE;
 
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
+
+		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
+
 		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
-		memset(m_Hashes, 0, sizeof(Hash) * STANDARDHASHMAPSIZE);
-		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * STANDARDHASHMAPSIZE));
-		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, sizeof(Hash) * sizeof(Key) * STANDARDHASHMAPSIZE));
+		memset(m_Hashes, 0, sizeof(Hash) * m_Capacity);
+		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * m_Capacity));
+		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline OL_HashMap<Value, Key, Allocator>::~OL_HashMap()
 	{
-		BBFree(m_Allocator, m_Hashes);
+
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline void OL_HashMap<Value, Key, Allocator>::Insert(Value& a_Res, Key& a_Key)
 	{
 		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
+		t_Hash = t_Hash % m_Capacity;
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
 			if (m_Hashes[i] == 0)
 			{
-				m_Hashes[t_Hash] = t_Hash;
-				m_Keys[t_Hash] = a_Key;
-				m_Values[t_Hash] = a_Res;
+				m_Hashes[i] = t_Hash;
+				m_Keys[i] = a_Key;
+				m_Values[i] = a_Res;
 				return;
 			}
 		}
@@ -217,21 +221,22 @@ namespace BB
 		{
 			if (m_Hashes[i] == 0)
 			{
-				m_Hashes[t_Hash] = t_Hash;
-				m_Keys[t_Hash] = a_Key;
-				m_Values[t_Hash] = a_Res;
+				m_Hashes[i] = t_Hash;
+				m_Keys[i] = a_Key;
+				m_Values[i] = a_Res;
 				return;
 			}
 		}
 
-		BB_ASSERT(false, "OL_Hashmap cannot resize!");
+		grow();
+		Insert(a_Res, a_Key);
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline Value* OL_HashMap<Value, Key, Allocator>::Find(const Key& a_Key) const
 	{
 		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
+		t_Hash = t_Hash % m_Capacity;
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
@@ -254,15 +259,15 @@ namespace BB
 	inline void OL_HashMap<Value, Key, Allocator>::Remove(const Key& a_Key)
 	{
 		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % STANDARDHASHMAPSIZE;
+		t_Hash = t_Hash % m_Capacity;
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			if (m_Keys[i] == a_Key)
+			if (m_Keys[m_Hashes[i]] == a_Key)
 			{
-				m_Hashes[t_Hash] = 0;
-				m_Keys[t_Hash] = 0;
-				m_Values[t_Hash].~Value();
+				m_Hashes[i] = 0;
+				m_Keys[i] = 0;
+				m_Values[i].~Value();
 				return;
 			}
 		}
@@ -270,14 +275,50 @@ namespace BB
 		//Loop again but then from the start and stop at the hash. 
 		for (size_t i = 0; i < t_Hash; i++)
 		{
-			if (m_Keys[i] == a_Key)
+			if (m_Keys[m_Hashes[i]] == a_Key)
 			{
-				m_Hashes[t_Hash] = 0;
-				m_Keys[t_Hash] = 0;
-				m_Values[t_Hash].~Value();
+				m_Hashes[i] = 0;
+				m_Keys[i] = 0;
+				m_Values[i].~Value();
 				return;
 			}
 		}
+	}
+
+	template<typename Value, typename Key, typename Allocator>
+	inline void OL_HashMap<Value, Key, Allocator>::grow(size_t a_MinumumSize)
+	{
+		BB_WARNING(false, "Resizing an OL_HashMap, this might be a bit slow. Possibly reserve more.");
+
+		size_t t_NewCapacity = m_Capacity * 2;
+
+		//Increase the hashes by double to account for the resize and the new hash.
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			m_Hashes[i] *= 2;
+		}
+
+		//Allocate the new buffer.
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * t_NewCapacity;
+		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
+
+		Hash* t_NewHashes = reinterpret_cast<Hash*>(t_Buffer);
+		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * t_NewCapacity));
+		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * t_NewCapacity));
+		memset(t_NewHashes, 0, sizeof(Hash) * t_NewCapacity);
+
+
+		//Place the previous hashes back together with the keys and values.
+		memcpy(t_NewHashes, m_Hashes, m_Capacity * sizeof(Hash));
+		memcpy(t_NewKeys, m_Keys, m_Capacity * sizeof(Key));
+		memcpy(t_NewValues, m_Values, m_Capacity * sizeof(Value));
+
+		BBFree(m_Allocator, m_Hashes);
+		m_Hashes = t_NewHashes;
+		m_Keys = t_NewKeys;
+		m_Values = t_NewValues;
+
+		m_Capacity = t_NewCapacity;
 	}
 }
 
