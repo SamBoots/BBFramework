@@ -188,7 +188,7 @@ namespace BB
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
 
 		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
-		memset(m_Hashes, 0, sizeof(Hash) * m_Capacity);
+		memset(m_Hashes, 0, (sizeof(Hash) + sizeof(Key)) * m_Capacity);
 		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * m_Capacity));
 		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
 	}
@@ -196,7 +196,7 @@ namespace BB
 	template<typename Value, typename Key, typename Allocator>
 	inline OL_HashMap<Value, Key, Allocator>::~OL_HashMap()
 	{
-
+		BBFree(m_Allocator, m_Hashes);
 	}
 
 	template<typename Value, typename Key, typename Allocator>
@@ -237,18 +237,19 @@ namespace BB
 	{
 		Hash t_Hash = Hash::MakeHash(a_Key);
 		t_Hash = t_Hash % m_Capacity;
+		Hash t_AdjustedHash = m_Hashes[t_Hash];
 
-		for (size_t i = t_Hash; i < m_Capacity; i++)
+		for (size_t i = t_AdjustedHash; i < m_Capacity; i++)
 		{
-			if (m_Keys[i] == a_Key)
-				return &m_Values[i];
+			if (m_Keys[m_Hashes[i]] == a_Key)
+				return &m_Values[m_Hashes[i]];
 		}
 
 		//Loop again but then from the start and stop at the hash. 
-		for (size_t i = 0; i < t_Hash; i++)
+		for (size_t i = 0; i < t_AdjustedHash; i++)
 		{
-			if (m_Keys[i] == a_Key)
-				return &m_Values[i];
+			if (m_Keys[m_Hashes[i]] == a_Key)
+				return &m_Values[m_Hashes[i]];
 		}
 
 		//Key does not exist.
@@ -260,26 +261,27 @@ namespace BB
 	{
 		Hash t_Hash = Hash::MakeHash(a_Key);
 		t_Hash = t_Hash % m_Capacity;
+		Hash t_AdjustedHash = m_Hashes[t_Hash];
 
-		for (size_t i = t_Hash; i < m_Capacity; i++)
+		for (size_t i = t_AdjustedHash; i < m_Capacity; i++)
 		{
 			if (m_Keys[m_Hashes[i]] == a_Key)
 			{
-				m_Hashes[i] = 0;
-				m_Keys[i] = 0;
-				m_Values[i].~Value();
+				m_Keys[m_Hashes[i]] = 0;
+				m_Values[m_Hashes[i]].~Value();
+				m_Hashes[m_Hashes[i]] = 0;
 				return;
 			}
 		}
 
 		//Loop again but then from the start and stop at the hash. 
-		for (size_t i = 0; i < t_Hash; i++)
+		for (size_t i = 0; i < t_AdjustedHash; i++)
 		{
 			if (m_Keys[m_Hashes[i]] == a_Key)
 			{
-				m_Hashes[i] = 0;
-				m_Keys[i] = 0;
-				m_Values[i].~Value();
+				m_Keys[m_Hashes[i]] = 0;
+				m_Values[m_Hashes[i]].~Value();
+				m_Hashes[m_Hashes[i]] = 0;
 				return;
 			}
 		}
@@ -292,12 +294,6 @@ namespace BB
 
 		size_t t_NewCapacity = m_Capacity * 2;
 
-		//Increase the hashes by double to account for the resize and the new hash.
-		for (size_t i = 0; i < m_Capacity; i++)
-		{
-			m_Hashes[i] *= 2;
-		}
-
 		//Allocate the new buffer.
 		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * t_NewCapacity;
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
@@ -305,11 +301,18 @@ namespace BB
 		Hash* t_NewHashes = reinterpret_cast<Hash*>(t_Buffer);
 		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * t_NewCapacity));
 		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * t_NewCapacity));
-		memset(t_NewHashes, 0, sizeof(Hash) * t_NewCapacity);
+		memset(t_NewHashes, 0, (sizeof(Hash) + sizeof(Key)) * m_Capacity);
 
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			Hash t_Hash = Hash::MakeHash(m_Keys[i]);
+			Hash t_NewHash = t_Hash % t_NewCapacity;
+			Hash t_OldHash = t_Hash % m_Capacity;
+
+			t_NewHashes[t_NewHash] = m_Hashes[t_OldHash];
+		}
 
 		//Place the previous hashes back together with the keys and values.
-		memcpy(t_NewHashes, m_Hashes, m_Capacity * sizeof(Hash));
 		memcpy(t_NewKeys, m_Keys, m_Capacity * sizeof(Key));
 		memcpy(t_NewValues, m_Values, m_Capacity * sizeof(Value));
 

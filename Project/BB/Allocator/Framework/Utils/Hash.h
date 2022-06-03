@@ -5,6 +5,7 @@
 struct Hash
 {
 	Hash() {};
+	Hash(uint64_t a_Hash) : hash(a_Hash) {};
 	uint64_t hash = 0;
 
 	operator const uint64_t() const { return hash; }
@@ -21,7 +22,7 @@ struct Hash
 	static Hash MakeHash(const char* a_Value);
 
 private:
-	Hash(uint64_t a_Hash) : hash(a_Hash) {};
+
 };
 
 template<typename T>

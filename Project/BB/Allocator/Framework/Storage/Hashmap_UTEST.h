@@ -54,7 +54,7 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 
 TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 {
-	constexpr const uint32_t samples = 2024;
+	constexpr const uint32_t samples = 4096 + 2;
 	//Unaligned big struct with a union to test the value.
 	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
@@ -105,8 +105,6 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		t_Value.value = t_RandomKeys[i] << 2;
 		uint32_t t_Key = t_RandomKeys[i];
 		t_Map.Insert(t_Value, t_Key);
-
-
 	}
 	//Now check it
 	for (uint32_t i = 0; i < samples; i++)
