@@ -5,7 +5,13 @@ constexpr uint32_t STANDARDHASHMAPSIZE = 1024;
 
 namespace BB
 {
-	constexpr uint8_t MAPEMPTY = 0x01;
+	namespace Hashmap_Specs
+	{
+		constexpr const size_t OL_LoadFactorCAP = 2;
+		constexpr const size_t OL_LoadFactorSIZE = 3;
+
+		constexpr const size_t UM_EMPTYNODE = 0x00;
+	};
 
 #pragma region Unordered_Map
 	//Unordered Map, uses linked list for collision.
@@ -18,7 +24,7 @@ namespace BB
 
 			union
 			{
-				uint64_t state = MAPEMPTY;
+				uint64_t state = Hashmap_Specs::UM_EMPTYNODE;
 				Key key;
 			};
 			Value value;
@@ -61,7 +67,7 @@ namespace BB
 		t_Hash.hash = t_Hash % STANDARDHASHMAPSIZE;
 
 		HashEntry* t_Entry = &m_Entries[t_Hash.hash];
-		if (t_Entry->state == MAPEMPTY)
+		if (t_Entry->state == Hashmap_Specs::UM_EMPTYNODE)
 		{
 			t_Entry->key = a_Key;
 			t_Entry->value = a_Res;
@@ -93,7 +99,7 @@ namespace BB
 
 		HashEntry* t_Entry = &m_Entries[t_Hash];
 
-		if (t_Entry->state == MAPEMPTY)
+		if (t_Entry->state == Hashmap_Specs::UM_EMPTYNODE)
 			return nullptr;
 
 		while (t_Entry)
@@ -117,7 +123,7 @@ namespace BB
 		HashEntry* t_Entry = &m_Entries[t_Hash];
 		if (t_Entry->next_Entry == nullptr)
 		{
-			t_Entry->state = MAPEMPTY;
+			t_Entry->state = Hashmap_Specs::UM_EMPTYNODE;
 			t_Entry->value.~Value();
 			return;
 		}
@@ -155,12 +161,12 @@ namespace BB
 	class OL_HashMap
 	{
 		size_t m_Capacity;
+		size_t m_Size;
 
 		//All the elements.
 		Hash* m_Hashes;
 		Key* m_Keys;
 		Value* m_Values;
-
 
 		Allocator& m_Allocator;
 
@@ -182,13 +188,14 @@ namespace BB
 		:	m_Allocator(a_Allocator)
 	{
 		m_Capacity = STANDARDHASHMAPSIZE;
+		m_Size = 0;
 
 		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
 
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
 
 		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
-		memset(m_Hashes, 0, (sizeof(Hash) + sizeof(Key)) * m_Capacity);
+		memset(m_Hashes, 0, sizeof(Hash) * m_Capacity);
 		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * m_Capacity));
 		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
 	}
@@ -202,8 +209,11 @@ namespace BB
 	template<typename Value, typename Key, typename Allocator>
 	inline void OL_HashMap<Value, Key, Allocator>::Insert(Value& a_Res, Key& a_Key)
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % m_Capacity;
+		if (m_Size * Hashmap_Specs::OL_LoadFactorSIZE > m_Capacity * Hashmap_Specs::OL_LoadFactorCAP)
+			grow();
+
+		Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
+		m_Size++;
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
@@ -227,29 +237,24 @@ namespace BB
 				return;
 			}
 		}
-
-		grow();
-		Insert(a_Res, a_Key);
 	}
 
 	template<typename Value, typename Key, typename Allocator>
 	inline Value* OL_HashMap<Value, Key, Allocator>::Find(const Key& a_Key) const
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % m_Capacity;
-		Hash t_AdjustedHash = m_Hashes[t_Hash];
+		Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
-		for (size_t i = t_AdjustedHash; i < m_Capacity; i++)
+		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			if (m_Keys[m_Hashes[i]] == a_Key)
-				return &m_Values[m_Hashes[i]];
+			if (m_Keys[i] == a_Key)
+				return &m_Values[i];
 		}
 
 		//Loop again but then from the start and stop at the hash. 
-		for (size_t i = 0; i < t_AdjustedHash; i++)
+		for (size_t i = 0; i < t_Hash; i++)
 		{
-			if (m_Keys[m_Hashes[i]] == a_Key)
-				return &m_Values[m_Hashes[i]];
+			if (m_Keys[i] == a_Key)
+				return &m_Values[i];
 		}
 
 		//Key does not exist.
@@ -259,29 +264,27 @@ namespace BB
 	template<typename Value, typename Key, typename Allocator>
 	inline void OL_HashMap<Value, Key, Allocator>::Remove(const Key& a_Key)
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % m_Capacity;
-		Hash t_AdjustedHash = m_Hashes[t_Hash];
+		Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
-		for (size_t i = t_AdjustedHash; i < m_Capacity; i++)
+		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			if (m_Keys[m_Hashes[i]] == a_Key)
+			if (m_Keys[i] == a_Key)
 			{
-				m_Keys[m_Hashes[i]] = 0;
-				m_Values[m_Hashes[i]].~Value();
-				m_Hashes[m_Hashes[i]] = 0;
+				m_Keys[i] = 0;
+				m_Values[i].~Value();
+				m_Hashes[i] = 0;
 				return;
 			}
 		}
 
 		//Loop again but then from the start and stop at the hash. 
-		for (size_t i = 0; i < t_AdjustedHash; i++)
+		for (size_t i = 0; i < t_Hash; i++)
 		{
 			if (m_Keys[m_Hashes[i]] == a_Key)
 			{
-				m_Keys[m_Hashes[i]] = 0;
-				m_Values[m_Hashes[i]].~Value();
-				m_Hashes[m_Hashes[i]] = 0;
+				m_Keys[i] = 0;
+				m_Values[i].~Value();
+				m_Hashes[i] = 0;
 				return;
 			}
 		}
@@ -301,20 +304,28 @@ namespace BB
 		Hash* t_NewHashes = reinterpret_cast<Hash*>(t_Buffer);
 		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * t_NewCapacity));
 		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * t_NewCapacity));
-		memset(t_NewHashes, 0, (sizeof(Hash) + sizeof(Key)) * m_Capacity);
+		memset(t_NewHashes, 0, sizeof(Hash) * t_NewCapacity);
+
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
-			Hash t_Hash = Hash::MakeHash(m_Keys[i]);
-			Hash t_NewHash = t_Hash % t_NewCapacity;
-			Hash t_OldHash = t_Hash % m_Capacity;
+			if (m_Hashes[i] != 0)
+			{
+				Key t_Key = m_Keys[i];
+				Hash t_Hash = Hash::MakeHash(t_Key) % t_NewCapacity;
 
-			t_NewHashes[t_NewHash] = m_Hashes[t_OldHash];
+				while (t_NewHashes[t_Hash] != 0)
+				{
+					t_Hash++;
+					if (t_Hash > t_NewCapacity - 1)
+						t_Hash = 0;
+				}
+
+				t_NewHashes[t_Hash] = t_Hash;
+				t_NewKeys[t_Hash] = t_Key;
+				t_NewValues[t_Hash] = m_Values[i];
+			}
 		}
-
-		//Place the previous hashes back together with the keys and values.
-		memcpy(t_NewKeys, m_Keys, m_Capacity * sizeof(Key));
-		memcpy(t_NewValues, m_Values, m_Capacity * sizeof(Value));
 
 		BBFree(m_Allocator, m_Hashes);
 		m_Hashes = t_NewHashes;
