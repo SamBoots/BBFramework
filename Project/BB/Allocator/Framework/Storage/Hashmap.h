@@ -7,6 +7,8 @@ namespace BB
 {
 	namespace Hashmap_Specs
 	{
+		constexpr const size_t multipleValue = 8;
+
 		constexpr const size_t OL_LoadFactorCAP = 2;
 		constexpr const size_t OL_LoadFactorSIZE = 3;
 
@@ -178,8 +180,11 @@ namespace BB
 		Value* Find(const Key& a_Key) const;
 		void Remove(const Key& a_Key);
 
+		void reserve(const size_t a_Size);
+
 	private:
-		void grow(size_t a_MinumumSize = 1);
+		void grow(size_t a_MinCapacity = 1);
+		void reallocate(const size_t a_Size);
 	};
 
 
@@ -291,33 +296,53 @@ namespace BB
 	}
 
 	template<typename Value, typename Key, typename Allocator>
-	inline void OL_HashMap<Value, Key, Allocator>::grow(size_t a_MinumumSize)
+	inline void BB::OL_HashMap<Value, Key, Allocator>::reserve(const size_t a_Size)
+	{
+		if (a_Size > m_Capacity)
+		{
+			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactorSIZE, Hashmap_Specs::multipleValue);
+
+			reallocate(t_ModifiedCapacity);
+			return;
+		}
+	}
+
+	template<typename Value, typename Key, typename Allocator>
+	inline void OL_HashMap<Value, Key, Allocator>::grow(size_t a_MinCapacity)
 	{
 		BB_WARNING(false, "Resizing an OL_HashMap, this might be a bit slow. Possibly reserve more.");
 
-		size_t t_NewCapacity = m_Capacity * 2;
+		size_t t_ModifiedCapacity = m_Capacity * 2;
 
+		if (a_MinCapacity > t_ModifiedCapacity)
+			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Dynamic_Array_Specs::multipleValue);
+
+		reallocate(t_ModifiedCapacity);
+	}
+
+	template<typename Value, typename Key, typename Allocator>
+	inline void BB::OL_HashMap<Value, Key, Allocator>::reallocate(const size_t a_NewCapacity)
+	{
 		//Allocate the new buffer.
-		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * t_NewCapacity;
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * a_NewCapacity;
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
 
 		Hash* t_NewHashes = reinterpret_cast<Hash*>(t_Buffer);
-		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * t_NewCapacity));
-		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * t_NewCapacity));
-		memset(t_NewHashes, 0, sizeof(Hash) * t_NewCapacity);
-
+		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * a_NewCapacity));
+		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * a_NewCapacity));
+		memset(t_NewHashes, 0, sizeof(Hash) * a_NewCapacity);
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
 			if (m_Hashes[i] != 0)
 			{
 				Key t_Key = m_Keys[i];
-				Hash t_Hash = Hash::MakeHash(t_Key) % t_NewCapacity;
+				Hash t_Hash = Hash::MakeHash(t_Key) % a_NewCapacity;
 
 				while (t_NewHashes[t_Hash] != 0)
 				{
 					t_Hash++;
-					if (t_Hash > t_NewCapacity - 1)
+					if (t_Hash > a_NewCapacity - 1)
 						t_Hash = 0;
 				}
 
@@ -332,7 +357,7 @@ namespace BB
 		m_Keys = t_NewKeys;
 		m_Values = t_NewValues;
 
-		m_Capacity = t_NewCapacity;
+		m_Capacity = a_NewCapacity;
 	}
 }
 
