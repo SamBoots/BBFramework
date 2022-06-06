@@ -16,13 +16,13 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 	const size_t allocatorSize = BB::gbSize * 2;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::UM_HashMap<size2593bytes, uint32_t, BB::FreeListAllocator_t> t_Map(t_Allocator);
+	BB::UM_HashMap<uint32_t, size2593bytes, BB::FreeListAllocator_t> t_Map(t_Allocator);
 
 	{
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		uint32_t t_Key = 124;
-		t_Map.Insert(t_Value, t_Key);
+		t_Map.Insert(t_Key, t_Value);
 
 		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
@@ -42,7 +42,7 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		uint32_t t_Key = t_RandomKeys[i];
-		t_Map.Insert(t_Value, t_Key);
+		t_Map.Insert(t_Key, t_Value);
 
 		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
@@ -62,13 +62,13 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 	const size_t allocatorSize = BB::gbSize * 2;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::OL_HashMap<size2593bytes, size_t, BB::FreeListAllocator_t> t_Map(t_Allocator);
-
+	BB::OL_HashMap<size_t, size2593bytes, BB::FreeListAllocator_t> t_Map(t_Allocator);
+	t_Map.reserve(samples);
 	{
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		size_t t_Key = 124;
-		t_Map.Insert(t_Value, t_Key);
+		t_Map.Insert(t_Key, t_Value);
 
 		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
@@ -89,7 +89,7 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		size_t t_Key = t_RandomKeys[i];
-		t_Map.Insert(t_Value, t_Key);
+		t_Map.Insert(t_Key, t_Value);
 
 		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
@@ -104,7 +104,7 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = t_RandomKeys[i] + 2;
 		size_t t_Key = t_RandomKeys[i];
-		t_Map.Insert(t_Value, t_Key);
+		t_Map.Insert(t_Key, t_Value);
 	}
 	//Now check it
 	for (size_t i = 0; i < samples; i++)
@@ -129,7 +129,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	typedef std::chrono::duration<float, std::milli> ms;
 	constexpr const float MILLITIMEDIVIDE = 1 / 1000.f;
 
-	constexpr const size_t samples = 512;
+	constexpr const size_t samples = 4096;
 	//Unaligned big struct with a union to test the value.
 	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
@@ -138,8 +138,13 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
 	//all the maps
-	std::unordered_map<uint32_t, size2593bytes> t_UnorderedMap;
-	BB::OL_HashMap<size2593bytes, size_t, BB::FreeListAllocator_t> t_OL_Map(t_Allocator);
+	std::unordered_map<size_t, size2593bytes> t_UnorderedMap;
+	BB::UM_HashMap<size_t, size2593bytes, BB::FreeListAllocator_t> t_UM_Map(t_Allocator);
+	BB::OL_HashMap<size_t, size2593bytes, BB::FreeListAllocator_t> t_OL_Map(t_Allocator);
+
+	t_UnorderedMap.reserve(4096);
+	t_UM_Map.reserve(4096);
+	t_OL_Map.reserve(4096);
 
 	//The samples we will use as an example.
 	size_t t_RandomKeys[samples]{};
@@ -164,20 +169,35 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	}
 
 	{
-		
 		auto t_Timer = std::chrono::high_resolution_clock::now();
-		//Unordered Map speed.
+		//BB::UM speed.
 		for (size_t i = 0; i < samples; i++)
 		{
 			size2593bytes t_Insert;
 			t_Insert.value = t_RandomKeys[i];
-			t_OL_Map.Insert(t_Insert, i);
+			t_UM_Map.Insert(i, t_Insert);
+		}
+		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "UM map emplace speed with: " << samples <<
+			" elements took this much MS: " << t_OLMapSpeed << "\n";
+	}
+
+	{
+		
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//BB::OL speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			size2593bytes t_Insert;
+			t_Insert.value = t_RandomKeys[i];
+			t_OL_Map.Insert(i, t_Insert);
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map emplace speed with: " << samples <<
 			" elements took this much MS: " << t_OLMapSpeed << "\n";
 	}
 
+	//Now do removal speeds
 	{
 		auto t_Timer = std::chrono::high_resolution_clock::now();
 		//Unordered Map speed.
@@ -192,7 +212,19 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 
 	{
 		auto t_Timer = std::chrono::high_resolution_clock::now();
-		//Unordered Map speed.
+		//BB::UM speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			t_UM_Map.Remove(i);
+		}
+		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "UM map remove speed with: " << samples <<
+			" elements took this much MS: " << t_OLMapSpeed << "\n";
+	}
+
+	{
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//BB::OL speed.
 		for (size_t i = 0; i < samples; i++)
 		{
 			t_OL_Map.Remove(i);
