@@ -22,13 +22,13 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		uint32_t t_Key = 124;
-		t_Map.Insert(t_Key, t_Value);
+		t_Map.insert(t_Key, t_Value);
 
-		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
-		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 
-		t_Map.Remove(t_Key);
-		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
+		t_Map.remove(t_Key);
+		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
 	uint32_t t_RandomKeys[samples]{};
@@ -42,13 +42,13 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		uint32_t t_Key = t_RandomKeys[i];
-		t_Map.Insert(t_Key, t_Value);
+		t_Map.insert(t_Key, t_Value);
 
-		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
-		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 
-		t_Map.Remove(t_Key);
-		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
+		t_Map.remove(t_Key);
+		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 }
 
@@ -68,13 +68,13 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		size_t t_Key = 124;
-		t_Map.Insert(t_Key, t_Value);
+		t_Map.insert(t_Key, t_Value);
 
-		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
-		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 
-		t_Map.Remove(t_Key);
-		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
+		t_Map.remove(t_Key);
+		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
 	size_t t_RandomKeys[samples]{};
@@ -89,13 +89,13 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = 500;
 		size_t t_Key = t_RandomKeys[i];
-		t_Map.Insert(t_Key, t_Value);
+		t_Map.insert(t_Key, t_Value);
 
-		ASSERT_NE(t_Map.Find(t_Key), nullptr) << "Cannot find the element while it was added!";
-		ASSERT_EQ(t_Map.Find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 
-		t_Map.Remove(t_Key);
-		ASSERT_EQ(t_Map.Find(t_Key), nullptr) << "Element was found while it should've been deleted.";
+		t_Map.remove(t_Key);
+		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
 	//FIll the map to double it's size and test if a resize works.
@@ -104,18 +104,18 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		size2593bytes t_Value{};
 		t_Value.value = t_RandomKeys[i] + 2;
 		size_t t_Key = t_RandomKeys[i];
-		t_Map.Insert(t_Key, t_Value);
+		t_Map.insert(t_Key, t_Value);
 	}
 	//Now check it
 	for (size_t i = 0; i < samples; i++)
 	{
 		size_t t_Key = t_RandomKeys[i];
 
-		EXPECT_NE(t_Map.Find(t_Key), nullptr) << " Cannot find the element while it was added!";
-		if (t_Map.Find(t_Key) != nullptr)
-			EXPECT_EQ(t_Map.Find(t_Key)->value, t_Key + 2) << "element: " << i << " Wrong element was likely grabbed.";
+		EXPECT_NE(t_Map.find(t_Key), nullptr) << " Cannot find the element while it was added!";
+		if (t_Map.find(t_Key) != nullptr)
+			EXPECT_EQ(t_Map.find(t_Key)->value, t_Key + 2) << "element: " << i << " Wrong element was likely grabbed.";
 
-		t_Map.Remove(t_RandomKeys[i]);
+		t_Map.remove(t_RandomKeys[i]);
 		//EXPECT_EQ(t_Map.Find(t_RandomKeys[i]), nullptr) << "element: " << i << " Element was found while it should've been deleted.";
 	}
 }
@@ -152,16 +152,17 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	{
 		t_RandomKeys[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
-
 	
+
+#pragma region Insert_Test
 	{	
 		auto t_Timer = std::chrono::high_resolution_clock::now();
 		//Unordered Map speed.
 		for (size_t i = 0; i < samples; i++)
 		{
 			size2593bytes t_Insert;
-			t_Insert.value = t_RandomKeys[i];
-			t_UnorderedMap.insert(std::make_pair(i, t_Insert));
+			t_Insert.value = i;
+			t_UnorderedMap.insert(std::make_pair(t_RandomKeys[i], t_Insert));
 		}
 		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "Unordered map emplace speed with: " << samples <<
@@ -174,12 +175,12 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		for (size_t i = 0; i < samples; i++)
 		{
 			size2593bytes t_Insert;
-			t_Insert.value = t_RandomKeys[i];
-			t_UM_Map.Insert(i, t_Insert);
+			t_Insert.value = i;
+			t_UM_Map.insert(t_RandomKeys[i], t_Insert);
 		}
-		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map emplace speed with: " << samples <<
-			" elements took this much MS: " << t_OLMapSpeed << "\n";
+			" elements took this much MS: " << t_UMMapSpeed << "\n";
 	}
 
 	{
@@ -189,15 +190,58 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		for (size_t i = 0; i < samples; i++)
 		{
 			size2593bytes t_Insert;
-			t_Insert.value = t_RandomKeys[i];
-			t_OL_Map.Insert(i, t_Insert);
+			t_Insert.value = i;
+			t_OL_Map.insert(t_RandomKeys[i], t_Insert);
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map emplace speed with: " << samples <<
 			" elements took this much MS: " << t_OLMapSpeed << "\n";
 	}
 
-	//Now do removal speeds
+#pragma endregion
+
+#pragma region Lookup_Test
+
+	{
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//Unordered Map speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			EXPECT_EQ(t_UnorderedMap.find(t_RandomKeys[i])->second.value, i);
+		}
+		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "Unordered map lookup speed with: " << samples <<
+			" elements took this much MS: " << t_Unordered_MapSpeed << "\n";
+	}
+
+	{
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//BB::UM speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			EXPECT_EQ(t_UM_Map.find(t_RandomKeys[i])->value, i);
+		}
+		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "UM map lookup speed with: " << samples <<
+			" elements took this much MS: " << t_UMMapSpeed << "\n";
+	}
+
+	{
+
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//BB::OL speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			EXPECT_EQ(t_OL_Map.find(t_RandomKeys[i])->value, i);
+		}
+		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "OL map lookup speed with: " << samples <<
+			" elements took this much MS: " << t_OLMapSpeed << "\n";
+	}
+
+#pragma endregion
+
+#pragma region Removal_Test
 	{
 		auto t_Timer = std::chrono::high_resolution_clock::now();
 		//Unordered Map speed.
@@ -215,11 +259,11 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::UM speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			t_UM_Map.Remove(i);
+			t_UM_Map.remove(i);
 		}
-		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map remove speed with: " << samples <<
-			" elements took this much MS: " << t_OLMapSpeed << "\n";
+			" elements took this much MS: " << t_UMMapSpeed << "\n";
 	}
 
 	{
@@ -227,10 +271,11 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::OL speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			t_OL_Map.Remove(i);
+			t_OL_Map.remove(i);
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map remove speed with: " << samples <<
 			" elements took this much MS: " << t_OLMapSpeed << "\n";
 	}
+#pragma endregion
 }

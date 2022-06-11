@@ -49,9 +49,9 @@ namespace BB
 		UM_HashMap(Allocator& a_Allocator, const size_t a_Size = Hashmap_Specs::Standard_Hashmap_Size);
 		~UM_HashMap();
 
-		void Insert(Key& a_Key, Value& a_Res);
-		Value* Find(const Key& a_Key) const;
-		void Remove(const Key& a_Key);
+		void insert(Key& a_Key, Value& a_Res);
+		Value* find(const Key& a_Key) const;
+		void remove(const Key& a_Key);
 
 		void reserve(const size_t a_Size);
 
@@ -101,10 +101,9 @@ namespace BB
 	}
 
 	template<typename Key, typename Value, typename Allocator>
-	inline void UM_HashMap<Key, Value, Allocator>::Insert(Key& a_Key, Value& a_Res)
+	inline void UM_HashMap<Key, Value, Allocator>::insert(Key& a_Key, Value& a_Res)
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash.hash = t_Hash % m_Capacity;
+		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		HashEntry* t_Entry = &m_Entries[t_Hash.hash];
 		if (t_Entry->state == Hashmap_Specs::Um_EmptyNode)
@@ -132,10 +131,9 @@ namespace BB
 	}
 
 	template<typename Key, typename Value, typename Allocator>
-	inline Value* UM_HashMap<Key, Value, Allocator>::Find(const Key& a_Key) const
+	inline Value* UM_HashMap<Key, Value, Allocator>::find(const Key& a_Key) const
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % m_Capacity;
+		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		HashEntry* t_Entry = &m_Entries[t_Hash];
 
@@ -154,10 +152,9 @@ namespace BB
 	}
 
 	template<typename Key, typename Value, typename Allocator>
-	inline void UM_HashMap<Key, Value, Allocator>::Remove(const Key& a_Key)
+	inline void UM_HashMap<Key, Value, Allocator>::remove(const Key& a_Key)
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key);
-		t_Hash = t_Hash % m_Capacity;
+		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;;
 
 		HashEntry* t_Entry = &m_Entries[t_Hash];
 		if (Match(t_Entry, a_Key))
@@ -198,10 +195,9 @@ namespace BB
 	{
 		if (a_Size > m_Capacity)
 		{
-			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactorSIZE, Hashmap_Specs::multipleValue);
+			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactorCAP, Hashmap_Specs::multipleValue);
 
 			reallocate(t_ModifiedCapacity);
-			return;
 		}
 	}
 
@@ -215,7 +211,7 @@ namespace BB
 		{
 			if (m_Entries[i].state != Hashmap_Specs::Um_EmptyNode)
 			{
-				Hash t_Hash = Hash::MakeHash(m_Entries[i].key) % a_NewCapacity;
+				const Hash t_Hash = Hash::MakeHash(m_Entries[i].key) % a_NewCapacity;
 
 				HashEntry* t_Entry = &t_NewEntries[t_Hash.hash];
 				if (t_Entry->state == Hashmap_Specs::Um_EmptyNode)
@@ -254,6 +250,7 @@ namespace BB
 	{
 		size_t m_Capacity;
 		size_t m_Size;
+		size_t m_LoadFactor;
 
 		//All the elements.
 		Hash* m_Hashes;
@@ -266,9 +263,9 @@ namespace BB
 		OL_HashMap(Allocator& a_Allocator, const size_t a_Size = Hashmap_Specs::Standard_Hashmap_Size);
 		~OL_HashMap();
 
-		void Insert(Key& a_Key, Value& a_Res);
-		Value* Find(const Key& a_Key) const;
-		void Remove(const Key& a_Key);
+		void insert(Key& a_Key, Value& a_Res);
+		Value* find(const Key& a_Key) const;
+		void remove(const Key& a_Key);
 
 		void reserve(const size_t a_Size);
 
@@ -283,6 +280,7 @@ namespace BB
 	{
 		m_Capacity = a_Size;
 		m_Size = 0;
+		m_LoadFactor = m_Capacity * Hashmap_Specs::UM_LoadFactorCAP;
 
 		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
 
@@ -301,13 +299,13 @@ namespace BB
 	}
 
 	template<typename Key, typename Value, typename Allocator>
-	inline void OL_HashMap<Key, Value, Allocator>::Insert(Key& a_Key, Value& a_Res)
+	inline void OL_HashMap<Key, Value, Allocator>::insert(Key& a_Key, Value& a_Res)
 	{
-		if (m_Size * Hashmap_Specs::OL_LoadFactorSIZE > m_Capacity * Hashmap_Specs::OL_LoadFactorCAP)
+		if (m_Size * Hashmap_Specs::OL_LoadFactorSIZE > m_LoadFactor)
 			grow();
 
 		m_Size++;
-		Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
+		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
@@ -334,9 +332,9 @@ namespace BB
 	}
 
 	template<typename Key, typename Value, typename Allocator>
-	inline Value* OL_HashMap<Key, Value, Allocator>::Find(const Key& a_Key) const
+	inline Value* OL_HashMap<Key, Value, Allocator>::find(const Key& a_Key) const
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
+		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
@@ -356,9 +354,9 @@ namespace BB
 	}
 
 	template<typename Key, typename Value, typename Allocator>
-	inline void OL_HashMap<Key, Value, Allocator>::Remove(const Key& a_Key)
+	inline void OL_HashMap<Key, Value, Allocator>::remove(const Key& a_Key)
 	{
-		Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
+		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
@@ -401,7 +399,6 @@ namespace BB
 			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactorSIZE, Hashmap_Specs::multipleValue);
 
 			reallocate(t_ModifiedCapacity);
-			return;
 		}
 	}
 
@@ -456,6 +453,7 @@ namespace BB
 		m_Values = t_NewValues;
 
 		m_Capacity = a_NewCapacity;
+		m_LoadFactor = m_Capacity * Hashmap_Specs::UM_LoadFactorCAP;
 	}
 }
 
