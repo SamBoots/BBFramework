@@ -247,7 +247,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//Unordered Map speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			t_UnorderedMap.erase(i);
+			t_UnorderedMap.erase(t_RandomKeys[i]);
 		}
 		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "Unordered map remove speed with: " << samples <<
@@ -259,7 +259,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::UM speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			t_UM_Map.remove(i);
+			t_UM_Map.remove(t_RandomKeys[i]);
 		}
 		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map remove speed with: " << samples <<
@@ -271,7 +271,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::OL speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			t_OL_Map.remove(i);
+			t_OL_Map.remove(t_RandomKeys[i]);
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map remove speed with: " << samples <<
