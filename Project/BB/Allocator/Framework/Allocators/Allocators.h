@@ -57,6 +57,37 @@ namespace BB
 			size_t m_TotalAllocSize;
 		};
 
+		struct POW_FreelistAllocator
+		{
+			POW_FreelistAllocator(const size_t);
+			~POW_FreelistAllocator();
+
+			//just delete these for safety, copies might cause errors.
+			POW_FreelistAllocator(const FreelistAllocator&) = delete;
+			POW_FreelistAllocator(const FreelistAllocator&&) = delete;
+			POW_FreelistAllocator& operator =(const FreelistAllocator&) = delete;
+			POW_FreelistAllocator& operator =(FreelistAllocator&&) = delete;
+
+			void* Alloc(size_t a_Size, size_t);
+			void Free(void* a_Ptr);
+			void Clear() const;
+
+			struct AllocHeader
+			{
+				//Can point to the next AllocHeader or to the Freeblocks struct.
+				void* freelistOrNext;
+			};
+			struct FreeBlock
+			{
+				size_t size;
+				void* start;
+				AllocHeader* next;
+			};
+
+			FreeBlock* m_FreeBlocks;
+			size_t m_FreeBlocksAmount;
+		};
+
 		//struct PoolAllocator
 		//{
 		//	PoolAllocator(const size_t a_ObjectSize, const size_t a_ObjectCount, const size_t a_Alignment);

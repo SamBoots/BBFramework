@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Allocators.h"
 #include "Utils/pointerUtils.h"
+#include "Utils/Math.h"
 
 #include "BackingAllocator.h"
+#include "OS/OSDevice.h"
 
 using namespace BB::allocators;
 
@@ -242,3 +244,36 @@ void BB::allocators::FreelistAllocator::Clear() const
 //{
 //	m_Pool = reinterpret_cast<void**>(m_Start);
 //}
+
+BB::allocators::POW_FreelistAllocator::POW_FreelistAllocator(const size_t)
+{
+	constexpr const size_t MIN_FREELIST_SIZE = 32;
+	constexpr const size_t FREELIST_START_SIZE = 6;
+
+	size_t t_Freelist_Buffer_Size = MIN_FREELIST_SIZE;
+	m_FreeBlocksAmount = FREELIST_START_SIZE;
+
+	//Get memory to store the headers for all the freelists.
+	m_FreeBlocks = reinterpret_cast<FreeBlock*>(mallocVirtual(nullptr, AppOSDevice().virtualMemoryPageSize));
+
+	//Set the freelists and let the blocks point to the next free ones.
+	for (size_t i = 0; i < m_FreeBlocksAmount; i++)
+	{
+		size_t t_UsedMemory = Math::RoundUp(AppOSDevice().virtualMemoryPageSize, t_Freelist_Buffer_Size);
+		AllocHeader* t_StartHeader = reinterpret_cast<AllocHeader*>(mallocVirtual(nullptr, t_UsedMemory));
+
+		AllocHeader* t_PreviousHeader = nullptr;
+		AllocHeader* t_CurrentHeader = t_StartHeader;
+		for (size_t i = 0; i < t_UsedMemory; i += t_Freelist_Buffer_Size)
+		{
+			t_PreviousHeader = t_CurrentHeader;
+			t_CurrentHeader = reinterpret_cast<AllocHeader*>(pointerutils::Add(t_CurrentHeader, t_Freelist_Buffer_Size));
+			t_PreviousHeader->freelistOrNext = t_CurrentHeader;
+		}
+	}
+	
+}
+
+BB::allocators::POW_FreelistAllocator::~POW_FreelistAllocator()
+{
+}
