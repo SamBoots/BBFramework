@@ -166,7 +166,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		}
 		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "Unordered map emplace speed with: " << samples <<
-			" elements took this much MS: " << t_Unordered_MapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_Unordered_MapSpeed << "\n";
 	}
 
 	{
@@ -180,7 +180,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		}
 		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map emplace speed with: " << samples <<
-			" elements took this much MS: " << t_UMMapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_UMMapSpeed << "\n";
 	}
 
 	{
@@ -195,7 +195,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map emplace speed with: " << samples <<
-			" elements took this much MS: " << t_OLMapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_OLMapSpeed << "\n";
 	}
 
 #pragma endregion
@@ -207,11 +207,11 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//Unordered Map speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			EXPECT_EQ(t_UnorderedMap.find(t_RandomKeys[i])->second.value, i);
+			EXPECT_EQ(t_UnorderedMap.find(t_RandomKeys[i])->second.value, i) << "std unordered Hashmap couldn't find key " << t_RandomKeys[i];
 		}
 		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "Unordered map lookup speed with: " << samples <<
-			" elements took this much MS: " << t_Unordered_MapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_Unordered_MapSpeed << "\n";
 	}
 
 	{
@@ -219,11 +219,11 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::UM speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			EXPECT_EQ(t_UM_Map.find(t_RandomKeys[i])->value, i);
+			EXPECT_EQ(t_UM_Map.find(t_RandomKeys[i])->value, i) << "UM Hashmap couldn't find key " << t_RandomKeys[i];
 		}
 		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map lookup speed with: " << samples <<
-			" elements took this much MS: " << t_UMMapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_UMMapSpeed << "\n";
 	}
 
 	{
@@ -232,11 +232,11 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::OL speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			EXPECT_EQ(t_OL_Map.find(t_RandomKeys[i])->value, i);
+			EXPECT_EQ(t_OL_Map.find(t_RandomKeys[i])->value, i) << "OL Hashmap couldn't find key " << t_RandomKeys[i];
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map lookup speed with: " << samples <<
-			" elements took this much MS: " << t_OLMapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_OLMapSpeed << "\n";
 	}
 
 #pragma endregion
@@ -251,7 +251,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		}
 		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "Unordered map remove speed with: " << samples <<
-			" elements took this much MS: " << t_Unordered_MapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_Unordered_MapSpeed << "\n";
 	}
 
 	{
@@ -263,7 +263,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		}
 		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map remove speed with: " << samples <<
-			" elements took this much MS: " << t_UMMapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_UMMapSpeed << "\n";
 	}
 
 	{
@@ -275,7 +275,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map remove speed with: " << samples <<
-			" elements took this much MS: " << t_OLMapSpeed << "\n";
+			" 2593 byte elements took this much MS: " << t_OLMapSpeed << "\n";
 	}
 #pragma endregion
 }
