@@ -139,11 +139,6 @@ TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 {
 	std::cout << "Freelist allocator with 10000 32 byte samples, 2000 256 byte samples and 1000 2593 bytes samples." << "\n";
 
-	//Using union so that I can check if the data is correct.
-	struct size32Bytes { union { char data[32]; uint64_t value; }; };
-	struct size256Bytes { union { char data[256]; uint64_t value; }; };
-	struct size2593bytes { union { char data[2593]; uint64_t value; }; };
-
 	//allocator size is modified by the allocheader it needs.
 	constexpr const size_t allocatorSize =
 		(sizeof(size32Bytes) * sample_32_bytes +
@@ -298,6 +293,122 @@ TEST(MemoryAllocators, FREELIST_RESIZE_MEMSET)
 	//Clear is not suppoted by freelist, commented just to show this is not a mistake.
 	//t_FreelistAllocator.Clear();
 }
+
+#pragma endregion
+
+#pragma region POW_FreeList_ALLOCATOR
+
+TEST(MemoryAllocators, POW_FREELIST_SINGLE_ALLOCATIONS)
+{
+	std::cout << "POW_Freelist allocator with 10000 32 byte samples and 2000 256 byte samples" << "\n";
+
+	//allocator size is modified by the allocheader it needs.
+	constexpr const size_t allocatorSize =
+		(sizeof(size32Bytes) * sample_32_bytes +
+			sizeof(size256Bytes) * sample_256_bytes +
+			sizeof(BB::allocators::POW_FreelistAllocator::AllocHeader));
+
+	//Get some random values to test.
+	size_t randomValues[samples]{};
+	for (size_t i = 0; i < samples; i++)
+	{
+		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	}
+
+	BB::POW_FreeListAllocator_t t_POW_FreelistAllocator(allocatorSize);
+
+	{
+		////This address should always be used since it's a free block.
+		//void* repeatAddress32 = BB::BBalloc<size32Bytes>(t_POW_FreelistAllocator);
+		////BB::BBFree(t_POW_FreelistAllocator, repeatAddress32);
+
+		for (size_t i = 0; i < sample_32_bytes; i++)
+		{
+			size32Bytes* sample = BB::BBalloc<size32Bytes>(t_POW_FreelistAllocator);
+			sample->value = randomValues[i];
+			//Compare the values.
+			ASSERT_EQ(sample->value, randomValues[i]) << "32 bytes, Value is different in the freelist allocator.";
+			//Compare the addresses.
+			//ASSERT_EQ(sample, repeatAddress32) << "32 bytes, address is different in the freelist allocator.";
+			//BB::BBFree(t_POW_FreelistAllocator, sample);
+		}
+	}
+	{
+		////This address should always be used since it's a free block.
+		//void* repeatAddress256 = BB::BBalloc<size256Bytes>(t_POW_FreelistAllocator);
+		////BB::BBFree(t_POW_FreelistAllocator, repeatAddress256);
+
+		for (size_t i = 0; i < sample_256_bytes; i++)
+		{
+			size256Bytes* sample = BB::BBalloc<size256Bytes>(t_POW_FreelistAllocator);
+			sample->value = randomValues[sample_32_bytes + i];
+			//Compare the values.
+			ASSERT_EQ(sample->value, randomValues[sample_32_bytes + i]) << "256 bytes, Value is different in the freelist allocator.";
+			//Compare the addresses.
+			//ASSERT_EQ(sample, repeatAddress256) << "256 bytes, address is different in the freelist allocator.";
+			//BB::BBFree(t_POW_FreelistAllocator, sample);
+		}
+	}
+	//Clear the allocator, success if you get no messages about leaks.
+	t_POW_FreelistAllocator.Clear();
+}
+
+
+//TEST(MemoryAllocators, POW_FREELIST_ARRAY_ALLOCATIONS)
+//{
+//	std::cout << "Freelist allocator with 10000 32 byte samples, 2000 256 byte samples and 1000 2593 bytes samples." << "\n";
+//
+//	constexpr const size_t allocatorSize =
+//		(sizeof(size32Bytes) * sample_32_bytes +
+//			sizeof(size256Bytes) * sample_256_bytes +
+//			sizeof(size2593bytes) * sample_2593_bytes) * 2;
+//
+//	//Get some random values to test.
+//	size_t randomValues[samples]{};
+//	for (size_t i = 0; i < samples; i++)
+//	{
+//		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+//	}
+//
+//	BB::POW_FreeListAllocator_t t_POW_FreeList(allocatorSize);
+//
+//	size32Bytes* size32Array = BB::BBallocArray<size32Bytes>(t_POW_FreeList, sample_32_bytes);
+//	size256Bytes* size256Array = BB::BBallocArray<size256Bytes>(t_POW_FreeList, sample_256_bytes);
+//	size2593bytes* size2593Array = BB::BBallocArray<size2593bytes>(t_POW_FreeList, sample_2593_bytes);
+//
+//	//Checking the arrays
+//	for (size_t i = 0; i < sample_32_bytes; i++)
+//	{
+//		size32Array[i].value = randomValues[i];
+//	}
+//	for (size_t i = 0; i < sample_256_bytes; i++)
+//	{
+//		size256Array[i].value = randomValues[sample_32_bytes + i];
+//	}
+//	for (size_t i = 0; i < sample_2593_bytes; i++)
+//	{
+//		size2593Array[i].value = randomValues[sample_32_bytes + sample_256_bytes + i];
+//	}
+//
+//	//Checking the arrays
+//	for (size_t i = 0; i < sample_32_bytes; i++)
+//	{
+//		ASSERT_EQ(size32Array[i].value, randomValues[i]) << "32 bytes, Value is different in the freelist allocator.";
+//	}
+//	BB::BBFreeArray(t_POW_FreeList, size32Array);
+//	for (size_t i = 0; i < sample_256_bytes; i++)
+//	{
+//		ASSERT_EQ(size256Array[i].value, randomValues[sample_32_bytes + i]) << "256 bytes, Value is different in the freelist allocator.";
+//	}
+//	BB::BBFreeArray(t_POW_FreeList, size256Array);
+//	for (size_t i = 0; i < sample_2593_bytes; i++)
+//	{
+//		ASSERT_EQ(size2593Array[i].value, randomValues[sample_32_bytes + sample_256_bytes + i]) << "2593 bytes, Value is different in the freelist allocator.";
+//	}
+//	BB::BBFreeArray(t_POW_FreeList, size2593Array);
+//	//Clear is not suppoted by freelist, commented just to show this is not a mistake.
+//	//t_FreelistAllocator.Clear();
+//}
 
 #pragma endregion
 

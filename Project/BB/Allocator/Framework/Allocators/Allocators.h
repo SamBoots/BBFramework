@@ -74,17 +74,24 @@ namespace BB
 
 			struct AllocHeader
 			{
-				//Can point to the next AllocHeader or to the Freeblocks struct.
-				void* freelistOrNext;
+				size_t size;
 			};
+
 			struct FreeBlock
 			{
 				size_t size;
-				void* start;
-				AllocHeader* next;
+				FreeBlock* next;
 			};
 
-			FreeBlock* m_FreeBlocks;
+			struct FreeList
+			{
+				size_t allocSize;
+				size_t fullSize;
+				void* start;
+				FreeBlock* freeBlock;
+			};
+
+			FreeList* m_FreeLists;
 			size_t m_FreeBlocksAmount;
 		};
 

@@ -128,12 +128,4 @@ namespace BB
 		BoundsCheckPolicy m_BoundsCheckPolicy;
 		MemoryTrackPolicy m_MemoryTrackPolicy;
 	};
-
-	template <class MemoryArena, class MemoryTaggingPolicy>
-	struct MemoryArenaProxy
-	{
-		MemoryArena m_MemoryArena;
-		MemoryTaggingPolicy m_MemoryTaggingPolicy;
-		
-	};
 }

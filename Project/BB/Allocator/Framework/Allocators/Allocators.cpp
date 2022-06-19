@@ -178,6 +178,89 @@ void BB::allocators::FreelistAllocator::Clear() const
 	BB_ASSERT(false, "Freelist allocator is not meant to be cleared yet.");
 }
 
+BB::allocators::POW_FreelistAllocator::POW_FreelistAllocator(const size_t)
+{
+	constexpr const size_t MIN_FREELIST_SIZE = 32;
+	constexpr const size_t FREELIST_START_SIZE = 12;
+
+	size_t t_Freelist_Buffer_Size = MIN_FREELIST_SIZE;
+	m_FreeBlocksAmount = FREELIST_START_SIZE;
+
+	//Get memory to store the headers for all the freelists.
+	m_FreeLists = reinterpret_cast<FreeList*>(mallocVirtual(nullptr, AppOSDevice().virtualMemoryPageSize));
+
+	//Set the freelists and let the blocks point to the next free ones.
+	for (size_t i = 0; i < m_FreeBlocksAmount; i++)
+	{
+		//Roundup the freelist with the virtual memory page size for the most optimal allocation. 
+		size_t t_UsedMemory = Math::RoundUp(AppOSDevice().virtualMemoryPageSize, t_Freelist_Buffer_Size);
+		m_FreeLists[i].allocSize = t_Freelist_Buffer_Size;
+		m_FreeLists[i].fullSize = t_UsedMemory;
+		m_FreeLists[i].start = mallocVirtual(nullptr, t_UsedMemory);
+		m_FreeLists[i].freeBlock = reinterpret_cast<FreeBlock*>(m_FreeLists[i].start);
+		//Set the first freeblock.
+		m_FreeLists[i].freeBlock->size = m_FreeLists[i].fullSize;
+		m_FreeLists[i].freeBlock->next = nullptr;
+		t_Freelist_Buffer_Size *= 2;
+	}
+}
+
+BB::allocators::POW_FreelistAllocator::~POW_FreelistAllocator()
+{
+	for (size_t i = 0; i < m_FreeBlocksAmount; i++)
+	{
+		//Free all the free lists
+		freeVirtual(m_FreeLists[i].start);
+	}
+
+	//Free the freelist holder.
+	freeVirtual(m_FreeLists);
+}
+
+void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
+{
+	const size_t t_TotalAllocSize = a_Size + sizeof(AllocHeader);
+
+	FreeList* t_FreeList = m_FreeLists;
+	//Get the right freelist for the allocation
+	while (a_Size >= t_FreeList->allocSize)
+	{
+		t_FreeList++;
+	}
+
+	if (t_FreeList->freeBlock != nullptr)
+	{
+		FreeBlock* t_FreeBlock = t_FreeList->freeBlock;
+		if (t_FreeBlock->size >= t_TotalAllocSize)
+		{
+			FreeBlock* t_NewBlock = reinterpret_cast<FreeBlock*>(pointerutils::Add(t_FreeList->freeBlock, t_FreeList->allocSize));
+			t_NewBlock->size = t_FreeBlock->size - t_TotalAllocSize;
+			t_NewBlock->next = t_FreeBlock->next;
+
+			t_FreeList->freeBlock = t_NewBlock;
+		}
+
+		AllocHeader* allocation = reinterpret_cast<AllocHeader*>(t_FreeBlock);
+		allocation->size = a_Size;
+
+		return pointerutils::Add(allocation, sizeof(AllocHeader));
+	}
+
+	return nullptr;
+}
+
+void BB::allocators::POW_FreelistAllocator::Clear() const
+{
+	//Clear all freeblocks again
+	for (size_t i = 0; i < m_FreeBlocksAmount; i++)
+	{
+		//Reset the freeblock to the start
+		m_FreeLists[i].freeBlock = reinterpret_cast<FreeBlock*>(m_FreeLists[i].start);
+		m_FreeLists[i].freeBlock->size = m_FreeLists[i].fullSize;
+		m_FreeLists[i].freeBlock->next = nullptr;
+	}
+}
+
 
 //BB::allocators::PoolAllocator::PoolAllocator(const size_t a_ObjectSize, const size_t a_ObjectCount, const size_t a_Alignment)
 //{
@@ -244,36 +327,3 @@ void BB::allocators::FreelistAllocator::Clear() const
 //{
 //	m_Pool = reinterpret_cast<void**>(m_Start);
 //}
-
-BB::allocators::POW_FreelistAllocator::POW_FreelistAllocator(const size_t)
-{
-	constexpr const size_t MIN_FREELIST_SIZE = 32;
-	constexpr const size_t FREELIST_START_SIZE = 6;
-
-	size_t t_Freelist_Buffer_Size = MIN_FREELIST_SIZE;
-	m_FreeBlocksAmount = FREELIST_START_SIZE;
-
-	//Get memory to store the headers for all the freelists.
-	m_FreeBlocks = reinterpret_cast<FreeBlock*>(mallocVirtual(nullptr, AppOSDevice().virtualMemoryPageSize));
-
-	//Set the freelists and let the blocks point to the next free ones.
-	for (size_t i = 0; i < m_FreeBlocksAmount; i++)
-	{
-		size_t t_UsedMemory = Math::RoundUp(AppOSDevice().virtualMemoryPageSize, t_Freelist_Buffer_Size);
-		AllocHeader* t_StartHeader = reinterpret_cast<AllocHeader*>(mallocVirtual(nullptr, t_UsedMemory));
-
-		AllocHeader* t_PreviousHeader = nullptr;
-		AllocHeader* t_CurrentHeader = t_StartHeader;
-		for (size_t i = 0; i < t_UsedMemory; i += t_Freelist_Buffer_Size)
-		{
-			t_PreviousHeader = t_CurrentHeader;
-			t_CurrentHeader = reinterpret_cast<AllocHeader*>(pointerutils::Add(t_CurrentHeader, t_Freelist_Buffer_Size));
-			t_PreviousHeader->freelistOrNext = t_CurrentHeader;
-		}
-	}
-	
-}
-
-BB::allocators::POW_FreelistAllocator::~POW_FreelistAllocator()
-{
-}
