@@ -86,6 +86,11 @@ namespace BB
 				FreeBlock* freeBlock;
 			};
 
+			struct AllocHeader
+			{
+				FreeList* freeList;
+			};
+
 			FreeList* m_FreeLists;
 			size_t m_FreeBlocksAmount;
 		};

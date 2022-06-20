@@ -220,8 +220,9 @@ BB::allocators::POW_FreelistAllocator::~POW_FreelistAllocator()
 void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
 {
 	FreeList* t_FreeList = m_FreeLists;
+	const size_t t_TotalAlloc = a_Size + sizeof(AllocHeader);
 	//Get the right freelist for the allocation
-	while (a_Size >= t_FreeList->allocSize)
+	while (t_TotalAlloc >= t_FreeList->allocSize)
 	{
 		t_FreeList++;
 	}
@@ -229,29 +230,51 @@ void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
 	if (t_FreeList->freeBlock != nullptr)
 	{
 		FreeBlock* t_FreeBlock = t_FreeList->freeBlock;
-		//If we cannot support enough memory for the next allocation, allocate more memory.
-		//The reasoning behind it is that it commits more memory in virtual alloc, which won't commit it to RAM yet.
-		//So there is no cost yet, until we write to it.
-		if (t_FreeList->freeBlock->size - t_FreeList->allocSize < t_FreeList->allocSize)
-		{
-			//double the size of the freelist, since the block that triggers this condition is always the end we will extend the current block.
-			mallocVirtual(t_FreeList->start, t_FreeList->fullSize);
-			t_FreeList->freeBlock->size += t_FreeList->fullSize;
-			t_FreeList->fullSize += t_FreeList->fullSize;
-		}
 
 		FreeBlock* t_NewBlock = reinterpret_cast<FreeBlock*>(pointerutils::Add(t_FreeList->freeBlock, t_FreeList->allocSize));
 		t_NewBlock->size = t_FreeBlock->size - t_FreeList->allocSize;
 		t_NewBlock->next = t_FreeBlock->next;
 
+		//If we cannot support enough memory for the next allocation, allocate more memory.
+		//The reasoning behind it is that it commits more memory in virtual alloc, which won't commit it to RAM yet.
+		//So there is no cost yet, until we write to it.
+		if (t_FreeBlock->size < t_FreeList->allocSize)
+		{
+			if (t_FreeBlock->next != nullptr && t_FreeList->freeBlock->size == 0)
+			{
+				t_FreeBlock = t_FreeBlock->next;
+			}
+			else
+			{
+				//double the size of the freelist, since the block that triggers this condition is always the end we will extend the current block.
+				mallocVirtual(t_FreeList->start, t_FreeList->fullSize);
+				t_FreeBlock->size += t_FreeList->fullSize;
+				t_FreeList->fullSize += t_FreeList->fullSize;
+			}
+		}
+
 		t_FreeList->freeBlock = t_NewBlock;
 
+		//Place the freelist into the allocation so that it can go back to this.
+		reinterpret_cast<AllocHeader*>(t_FreeBlock)->freeList = t_FreeList;
 
-		return t_FreeBlock;
+		return pointerutils::Add(t_FreeBlock, sizeof(AllocHeader));
 	}
 
 	BB_ASSERT(false, "POW_FreelistAllocator either has not enough memory or it doesn't support a size of this allocation.");
 	return nullptr;
+}
+
+void BB::allocators::POW_FreelistAllocator::Free(void* a_Ptr)
+{
+	AllocHeader* t_Address = static_cast<AllocHeader*>(pointerutils::Subtract(a_Ptr, sizeof(AllocHeader)));
+	FreeList* t_FreeList = t_Address->freeList;
+
+	FreeBlock* t_NewFreeBlock = reinterpret_cast<FreeBlock*>(t_Address);
+	t_NewFreeBlock->size = t_Address->freeList->allocSize;
+	t_NewFreeBlock->next = t_FreeList->freeBlock;
+
+	t_FreeList->freeBlock = t_NewFreeBlock;
 }
 
 void BB::allocators::POW_FreelistAllocator::Clear() const

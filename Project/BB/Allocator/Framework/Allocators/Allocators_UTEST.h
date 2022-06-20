@@ -318,8 +318,8 @@ TEST(MemoryAllocators, POW_FREELIST_SINGLE_ALLOCATIONS)
 
 	{
 		////This address should always be used since it's a free block.
-		//void* repeatAddress32 = BB::BBalloc<size32Bytes>(t_POW_FreelistAllocator);
-		////BB::BBFree(t_POW_FreelistAllocator, repeatAddress32);
+		void* repeatAddress32 = BB::BBalloc<size32Bytes>(t_POW_FreelistAllocator);
+		BB::BBFree(t_POW_FreelistAllocator, repeatAddress32);
 
 		for (size_t i = 0; i < sample_32_bytes; i++)
 		{
@@ -328,14 +328,14 @@ TEST(MemoryAllocators, POW_FREELIST_SINGLE_ALLOCATIONS)
 			//Compare the values.
 			ASSERT_EQ(sample->value, randomValues[i]) << "32 bytes, Value is different in the freelist allocator.";
 			//Compare the addresses.
-			//ASSERT_EQ(sample, repeatAddress32) << "32 bytes, address is different in the freelist allocator.";
-			//BB::BBFree(t_POW_FreelistAllocator, sample);
+			ASSERT_EQ(sample, repeatAddress32) << "32 bytes, address is different in the freelist allocator.";
+			BB::BBFree(t_POW_FreelistAllocator, sample);
 		}
 	}
 	{
 		////This address should always be used since it's a free block.
-		//void* repeatAddress256 = BB::BBalloc<size256Bytes>(t_POW_FreelistAllocator);
-		////BB::BBFree(t_POW_FreelistAllocator, repeatAddress256);
+		void* repeatAddress256 = BB::BBalloc<size256Bytes>(t_POW_FreelistAllocator);
+		BB::BBFree(t_POW_FreelistAllocator, repeatAddress256);
 
 		for (size_t i = 0; i < sample_256_bytes; i++)
 		{
@@ -344,12 +344,27 @@ TEST(MemoryAllocators, POW_FREELIST_SINGLE_ALLOCATIONS)
 			//Compare the values.
 			ASSERT_EQ(sample->value, randomValues[sample_32_bytes + i]) << "256 bytes, Value is different in the freelist allocator.";
 			//Compare the addresses.
-			//ASSERT_EQ(sample, repeatAddress256) << "256 bytes, address is different in the freelist allocator.";
-			//BB::BBFree(t_POW_FreelistAllocator, sample);
+			ASSERT_EQ(sample, repeatAddress256) << "256 bytes, address is different in the freelist allocator.";
+			BB::BBFree(t_POW_FreelistAllocator, sample);
 		}
 	}
-	//Clear the allocator, success if you get no messages about leaks.
-	t_POW_FreelistAllocator.Clear();
+
+	{
+		//This address should always be used since it's a free block.
+		void* repeatAddress2593 = BB::BBalloc<size2593bytes>(t_POW_FreelistAllocator);
+		BB::BBFree(t_POW_FreelistAllocator, repeatAddress2593);
+
+		for (size_t i = 0; i < sample_2593_bytes; i++)
+		{
+			size2593bytes* sample = BB::BBalloc<size2593bytes>(t_POW_FreelistAllocator);
+			sample->value = randomValues[sample_32_bytes + sample_256_bytes + i];
+			//Compare the values.
+			ASSERT_EQ(sample->value, randomValues[sample_32_bytes + sample_256_bytes + i]) << "2593 bytes, Value is different in the freelist allocator.";
+			//Compare the addresses.
+			ASSERT_EQ(sample, repeatAddress2593) << "2593 bytes, address is different in the freelist allocator.";
+			BB::BBFree(t_POW_FreelistAllocator, sample);
+		}
+	}
 }
 
 
