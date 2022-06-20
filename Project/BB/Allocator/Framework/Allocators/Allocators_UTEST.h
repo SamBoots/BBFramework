@@ -305,8 +305,7 @@ TEST(MemoryAllocators, POW_FREELIST_SINGLE_ALLOCATIONS)
 	//allocator size is modified by the allocheader it needs.
 	constexpr const size_t allocatorSize =
 		(sizeof(size32Bytes) * sample_32_bytes +
-			sizeof(size256Bytes) * sample_256_bytes +
-			sizeof(BB::allocators::POW_FreelistAllocator::AllocHeader));
+			sizeof(size256Bytes) * sample_256_bytes);
 
 	//Get some random values to test.
 	size_t randomValues[samples]{};

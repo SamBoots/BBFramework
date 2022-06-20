@@ -219,8 +219,6 @@ BB::allocators::POW_FreelistAllocator::~POW_FreelistAllocator()
 
 void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
 {
-	const size_t t_TotalAllocSize = a_Size + sizeof(AllocHeader);
-
 	FreeList* t_FreeList = m_FreeLists;
 	//Get the right freelist for the allocation
 	while (a_Size >= t_FreeList->allocSize)
@@ -231,21 +229,28 @@ void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
 	if (t_FreeList->freeBlock != nullptr)
 	{
 		FreeBlock* t_FreeBlock = t_FreeList->freeBlock;
-		if (t_FreeBlock->size >= t_TotalAllocSize)
+		//If we cannot support enough memory for the next allocation, allocate more memory.
+		//The reasoning behind it is that it commits more memory in virtual alloc, which won't commit it to RAM yet.
+		//So there is no cost yet, until we write to it.
+		if (t_FreeList->freeBlock->size - t_FreeList->allocSize < t_FreeList->allocSize)
 		{
-			FreeBlock* t_NewBlock = reinterpret_cast<FreeBlock*>(pointerutils::Add(t_FreeList->freeBlock, t_FreeList->allocSize));
-			t_NewBlock->size = t_FreeBlock->size - t_TotalAllocSize;
-			t_NewBlock->next = t_FreeBlock->next;
-
-			t_FreeList->freeBlock = t_NewBlock;
+			//double the size of the freelist, since the block that triggers this condition is always the end we will extend the current block.
+			mallocVirtual(t_FreeList->start, t_FreeList->fullSize);
+			t_FreeList->freeBlock->size += t_FreeList->fullSize;
+			t_FreeList->fullSize += t_FreeList->fullSize;
 		}
 
-		AllocHeader* allocation = reinterpret_cast<AllocHeader*>(t_FreeBlock);
-		allocation->size = a_Size;
+		FreeBlock* t_NewBlock = reinterpret_cast<FreeBlock*>(pointerutils::Add(t_FreeList->freeBlock, t_FreeList->allocSize));
+		t_NewBlock->size = t_FreeBlock->size - t_FreeList->allocSize;
+		t_NewBlock->next = t_FreeBlock->next;
 
-		return pointerutils::Add(allocation, sizeof(AllocHeader));
+		t_FreeList->freeBlock = t_NewBlock;
+
+
+		return t_FreeBlock;
 	}
 
+	BB_ASSERT(false, "POW_FreelistAllocator either has not enough memory or it doesn't support a size of this allocation.");
 	return nullptr;
 }
 

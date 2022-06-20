@@ -72,11 +72,6 @@ namespace BB
 			void Free(void* a_Ptr);
 			void Clear() const;
 
-			struct AllocHeader
-			{
-				size_t size;
-			};
-
 			struct FreeBlock
 			{
 				size_t size;
