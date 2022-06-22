@@ -1,5 +1,5 @@
 #pragma once
-#include "Framework/Allocators/BB_AllocTypes.h"
+#include "Allocators/AllocTypes.h"
 #include "Utils/Hash.h"
 
 namespace BB

@@ -13,8 +13,8 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	//Unaligned big struct with a union to test the value.
 	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
-	//2 MB alloactor.
-	const size_t allocatorSize = BB::gbSize * 2;
+	//32 MB alloactor.
+	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
 	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator);

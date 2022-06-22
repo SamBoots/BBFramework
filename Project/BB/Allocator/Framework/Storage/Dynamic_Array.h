@@ -1,6 +1,6 @@
 #pragma once
 #include "pch.h"
-#include "Framework/Allocators/BB_AllocTypes.h"
+#include "Allocators/AllocTypes.h"
 
 #include "Utils/Math.h"
 

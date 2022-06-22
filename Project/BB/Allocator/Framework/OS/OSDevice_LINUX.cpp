@@ -7,7 +7,7 @@ using namespace BB;
 
 static OSDevice osDevice;
 
-const OSDevice& BB::AppOSDevice()
+OSDevice& BB::AppOSDevice()
 {
 	return osDevice;
 }

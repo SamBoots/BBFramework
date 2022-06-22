@@ -28,14 +28,14 @@ add_executable (Allocator
 "Framework/Allocators/Allocators.cpp" 
 "Framework/Allocators/Allocators.h" 
 "Framework/Allocators/BackingAllocator.h" 
-"Framework/Allocators/BB_AllocTypes.h" 
+"Framework/Allocators/AllocTypes.h" 
 "Framework/Allocators/MemoryArena.h" 
 "Framework/Allocators/MemoryArena.cpp" 
 "Framework/Storage/Dynamic_Array.h" 
 "Framework/Storage/Pool.h" 
 "Framework/Storage/Hashmap.h"
 "Framework/OS/OSDevice.h" 
-"Framework/Utils/PointerUtils"
+"Framework/Utils/PointerUtils.h"
 "Framework/Utils/Math.h"
 "Framework/Utils/Hash.h"
 "Framework/Allocators/BackingAllocator${PLATFORM_NAME}.cpp" 
@@ -53,6 +53,7 @@ target_precompile_headers(Allocator PRIVATE "pch/pch.h")
 include_directories(
 "pch"
 "Framework"
+"Allocator"
 "UnitTests"
 )
 
