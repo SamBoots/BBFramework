@@ -1,25 +1,17 @@
 #include "pch.h"
 #include "BackingAllocator.h"
-#include "pointerUtils.h"
-#include "OSDevice.h"
+#include "Utils/PointerUtils.h"
+#include "OS/OSDevice.h"
 
 #include <sys/mman.h>
 
 using namespace BB;
-
-#ifdef _X64
-constexpr const size_t OVERCOMMIT_MULTIPLIER = 128;
-#endif _X64
-#ifdef _X86
-constexpr const size_t OVERCOMMIT_MULTIPLIER = 64;
-#endif _X86
 
 struct PageHeader
 {
 	size_t bytesCommited;
 	size_t bytesUsed;
 	void* reserveSpot;
-	PageHeader* previous = nullptr;
 };
 
 constexpr const size_t PREALLOC_PAGEHEADERS = 128 * 16;
@@ -60,9 +52,9 @@ PagePool::~PagePool()
 }
 
 
-void* BB::mallocVirtual(void* a_Start, size_t a_Size)
+void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_ReserveSize)
 {
-	size_t t_OverCommitValue = RoundUp(a_Size, AppOSDevice().virtualMemoryPageSize) * OVERCOMMIT_MULTIPLIER;
+	size_t t_OverCommitValue = RoundUp(a_Size, AppOSDevice().virtualMemoryPageSize) * static_cast<size_t>(a_ReserveSize);
 
 	StartPageHeader* t_StartPageHeader = nullptr;
 	PageHeader* t_PageHeader = nullptr;
@@ -98,7 +90,6 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	t_NewHeader->bytesUsed = a_Size + sizeof(StartPageHeader);
 	//Reserve spot is in front of the StartPageHeader.
 	t_NewHeader->reserveSpot = pointerutils::Add(t_VirtualAddress, sizeof(StartPageHeader));
-	t_NewHeader->previous = t_StartPageHeader->head; //Set the previous header, stored for when deletion is called or a resize event.
 	t_StartPageHeader->head = t_NewHeader; // Set the new header as the head.
 
 	//Return the pointer that does not include the StartPageHeader
@@ -108,11 +99,5 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 void BB::freeVirtual(void* a_Ptr)
 {
 	PageHeader* t_PageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Ptr, sizeof(StartPageHeader)))->head;
-	//free the extra pages.
-	while (t_PageHeader)
-	{
-		PageHeader* t_NextHeader = t_PageHeader->previous;
-		BB_ASSERT(munmap(pointerutils::Subtract(t_PageHeader->reserveSpot, sizeof(StartPageHeader)), t_PageHeader->bytesCommited) == 0, "munmap error on freeVirtual function.");
-		t_PageHeader = t_NextHeader;
-	}
+	BB_ASSERT(munmap(pointerutils::Subtract(t_PageHeader->reserveSpot, sizeof(StartPageHeader)), t_PageHeader->bytesCommited) == 0, "munmap error on freeVirtual function.");
 }

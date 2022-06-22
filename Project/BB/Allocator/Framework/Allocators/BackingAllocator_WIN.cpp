@@ -9,12 +9,7 @@
 
 using namespace BB;
 
-#ifdef _X64
-constexpr const size_t RESERVEMULTIPLICATION = 128;
-#endif _X64
-#ifdef _X86
-constexpr const size_t RESERVEMULTIPLICATION = 64;
-#endif _X86
+
 
 struct PageHeader
 {
@@ -22,7 +17,6 @@ struct PageHeader
 	size_t bytesUsed;
 	size_t bytesReserved;
 	void* reserveSpot;
-	PageHeader* previous = nullptr;
 };
 
 constexpr const size_t PREALLOC_PAGEHEADERS = 128 * 16;
@@ -56,7 +50,7 @@ PagePool::~PagePool()
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error releasing page pool memory.");
 }
 
-void* BB::mallocVirtual(void* a_Start, size_t a_Size)
+void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_ReserveSize)
 {
 	//BB_WARNING(a_Size > PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
 
@@ -100,7 +94,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	}
 
 	//When making a new header reserve a lot more then that is requested to support later resizes better.
-	size_t t_AdditionalReserve = t_PageAdjustedSize * RESERVEMULTIPLICATION;
+	size_t t_AdditionalReserve = t_PageAdjustedSize * static_cast<size_t>(a_ReserveSize);
 	void* t_Address = VirtualAlloc(a_Start, t_AdditionalReserve, MEM_RESERVE, PAGE_NOACCESS);
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error reserving VirtualAlloc");
 	VirtualAlloc(t_Address, t_PageAdjustedSize, MEM_COMMIT, PAGE_READWRITE);
@@ -118,7 +112,6 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 	t_NewHeader->bytesUsed = a_Size;
 	t_NewHeader->bytesReserved = t_AdditionalReserve - t_PageAdjustedSize;
 	t_NewHeader->reserveSpot = pointerutils::Add(t_Address, sizeof(StartPageHeader));
-	t_NewHeader->previous = t_StartPageHeader->head; //Set the previous header, stored for when deletion is called or a resize event.
 	t_StartPageHeader->head = t_NewHeader; // Set the new header as the head.
 
 	//Return the pointer that does not include the StartPageHeader
@@ -128,14 +121,8 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size)
 void BB::freeVirtual(void* a_Ptr)
 {
 	PageHeader* t_PageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Ptr, sizeof(StartPageHeader)))->head;
-	//free the extra pages.
-	while (t_PageHeader)
-	{
-		PageHeader* t_NextHeader = t_PageHeader->previous;
-		VirtualFree(t_PageHeader->reserveSpot, 0, MEM_RELEASE);
-		BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error virtualFree");
-		t_PageHeader = t_NextHeader;
-	}
+	VirtualFree(t_PageHeader->reserveSpot, 0, MEM_RELEASE);
+	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error virtualFree");
 }
 
 #pragma region Unit Test
@@ -206,7 +193,7 @@ TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
 
 	EXPECT_EQ(lastHeader.bytesUsed, t_Allocator.maxSize + sizeof(StartPageHeader)) << "Used amount is wrong.";
 	EXPECT_EQ(lastHeader.bytesCommited, AppOSDevice().virtualMemoryPageSize) << "Commited amount is wrong.";
-	EXPECT_EQ(lastHeader.bytesReserved, AppOSDevice().virtualMemoryPageSize * RESERVEMULTIPLICATION - lastHeader.bytesCommited) << "Reserved amount is wrong.";
+	EXPECT_EQ(lastHeader.bytesReserved, AppOSDevice().virtualMemoryPageSize * static_cast<size_t>(virtual_reserve_extra::standard) - lastHeader.bytesCommited) << "Reserved amount is wrong.";
 
 	//Allocate memory equal to half a page, it should NOT reserve/commit more pages, just use more.
 	t_Allocator.Alloc(AppOSDevice().virtualMemoryPageSize / 2);
@@ -304,13 +291,13 @@ TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES_RANDOM)
 		PageHeader* t_NewHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
 		std::cout << "The COMMIT_RESERVE_PAGES_RANDOM test has these pageheaders: \n";
 
-		size_t t_HeaderAmount = 0;
-		while (t_NewHeader->previous)
-		{
-			t_HeaderAmount++;
-			std::cout << "PageHeader number: " << t_HeaderAmount << " it had reserved and/or commited enough memory (in bytes): " << t_NewHeader->bytesCommited + t_NewHeader->bytesReserved << "\n";
-			t_NewHeader = t_NewHeader->previous;
-		}
+		//size_t t_HeaderAmount = 0;
+		//while (t_NewHeader->previous)
+		//{
+		//	t_HeaderAmount++;
+		//	std::cout << "PageHeader number: " << t_HeaderAmount << " it had reserved and/or commited enough memory (in bytes): " << t_NewHeader->bytesCommited + t_NewHeader->bytesReserved << "\n";
+		//	t_NewHeader = t_NewHeader->previous;
+		//}
 	}
 }
 

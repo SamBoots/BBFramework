@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Allocators.h"
-#include "Utils/pointerUtils.h"
+#include "Utils/PointerUtils.h"
 #include "Utils/Math.h"
 
 #include "BackingAllocator.h"
@@ -187,7 +187,8 @@ BB::allocators::POW_FreelistAllocator::POW_FreelistAllocator(const size_t)
 	m_FreeBlocksAmount = FREELIST_START_SIZE;
 
 	//Get memory to store the headers for all the freelists.
-	m_FreeLists = reinterpret_cast<FreeList*>(mallocVirtual(nullptr, AppOSDevice().virtualMemoryPageSize));
+	//reserve none extra since this will never be bigger then the virtual alloc maximum. (If it is then we should get a page fault).
+	m_FreeLists = reinterpret_cast<FreeList*>(mallocVirtual(nullptr, AppOSDevice().virtualMemoryPageSize, virtual_reserve_extra::none));
 
 	//Set the freelists and let the blocks point to the next free ones.
 	for (size_t i = 0; i < m_FreeBlocksAmount; i++)
@@ -196,7 +197,8 @@ BB::allocators::POW_FreelistAllocator::POW_FreelistAllocator(const size_t)
 		size_t t_UsedMemory = Math::RoundUp(AppOSDevice().virtualMemoryPageSize, t_Freelist_Buffer_Size);
 		m_FreeLists[i].allocSize = t_Freelist_Buffer_Size;
 		m_FreeLists[i].fullSize = t_UsedMemory;
-		m_FreeLists[i].start = mallocVirtual(nullptr, t_UsedMemory);
+		//reserve half since we are splitting up the block, otherwise we might use a lot of virtual space.
+		m_FreeLists[i].start = mallocVirtual(nullptr, t_UsedMemory, virtual_reserve_extra::half);
 		m_FreeLists[i].freeBlock = reinterpret_cast<FreeBlock*>(m_FreeLists[i].start);
 		//Set the first freeblock.
 		m_FreeLists[i].freeBlock->size = m_FreeLists[i].fullSize;

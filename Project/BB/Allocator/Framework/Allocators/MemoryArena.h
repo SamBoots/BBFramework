@@ -4,7 +4,7 @@
 
 		//needs replacement by a custom hashmap.
 #include <unordered_map>
-#include "Utils/pointerUtils.h"
+#include "Utils/PointerUtils.h"
 
 namespace BB
 {
