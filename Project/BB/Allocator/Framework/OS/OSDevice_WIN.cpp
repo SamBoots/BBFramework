@@ -95,7 +95,8 @@ OSDevice::OSDevice()
 {
 	SYSTEM_INFO t_SystemInfo;
 	GetSystemInfo(&t_SystemInfo);
-	virtualMemoryPageSize = t_SystemInfo.dwAllocationGranularity;
+	virtual_memory_page_size = t_SystemInfo.dwPageSize;
+	virtual_memory_minimum_allocation = t_SystemInfo.dwAllocationGranularity;
 }
 
 OSDevice::~OSDevice()

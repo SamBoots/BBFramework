@@ -13,19 +13,18 @@ using namespace BB;
 
 struct PageHeader
 {
-	size_t bytesCommited;
-	size_t bytesUsed;
-	size_t bytesReserved;
-	void* reserveSpot;
+	size_t bytes_commited;
+	size_t bytes_reserved;
+	void* reserve_spot;
 };
-
-constexpr const size_t PREALLOC_PAGEHEADERS = 128 * 16;
-constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
 
 struct StartPageHeader
 {
 	PageHeader* head;
 };
+
+constexpr const size_t PREALLOC_PAGEHEADERS = 128 * 16;
+constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
 
 static PagePool pagePool{};
 
@@ -52,9 +51,9 @@ PagePool::~PagePool()
 
 void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_ReserveSize)
 {
-	//BB_WARNING(a_Size > PAGESIZE * 64, "Virtual Alloc is smaller then 4 MB, try to make allocators larger then 4 MB.");
+	size_t t_PageAdjustedSize = Math::Max(a_Size + sizeof(StartPageHeader), AppOSDevice().virtual_memory_minimum_allocation);
+	t_PageAdjustedSize = Math::RoundUp(a_Size, AppOSDevice().virtual_memory_minimum_allocation);
 
-	size_t t_PageAdjustedSize = Math::RoundUp(a_Size + sizeof(PageHeader), AppOSDevice().virtualMemoryPageSize);
 	StartPageHeader* t_StartPageHeader = nullptr;
 	PageHeader* t_PageHeader = nullptr;
 	//Check the pageHeader
@@ -63,34 +62,21 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_Re
 		t_StartPageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Start, sizeof(StartPageHeader)));
 		t_PageHeader = t_StartPageHeader->head;
 		
-		void* t_CurrentEnd = pointerutils::Add(t_PageHeader->reserveSpot, t_PageHeader->bytesUsed);
-
-		//If the amount commited is enough just move the pointer and return it.
-		if ((t_PageHeader->bytesCommited - t_PageHeader->bytesUsed) >= a_Size)
-		{
-			t_PageHeader->bytesUsed += a_Size;
-			return t_CurrentEnd;
-		}
+		void* t_CurrentEnd = pointerutils::Add(t_PageHeader->reserve_spot, t_PageHeader->bytes_commited);
 
 		//If the amount commited is not enough check if there is enough reserved, if not reserve more.
-		if (t_PageHeader->bytesReserved > t_PageAdjustedSize)
+		if (t_PageHeader->bytes_reserved > t_PageAdjustedSize + t_PageHeader->bytes_commited)
 		{
-			t_PageHeader->bytesCommited += t_PageAdjustedSize;
-			t_PageHeader->bytesUsed += a_Size;
-			t_PageHeader->bytesReserved -= t_PageAdjustedSize;
-			VirtualAlloc(t_PageHeader->reserveSpot, t_PageAdjustedSize + t_PageHeader->bytesUsed, MEM_COMMIT, PAGE_READWRITE);
+			t_PageHeader->bytes_commited += t_PageAdjustedSize;
+			VirtualAlloc(t_PageHeader->reserve_spot, 
+				t_PageAdjustedSize + t_PageHeader->bytes_commited, 
+				MEM_COMMIT, 
+				PAGE_READWRITE);
 			BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error commiting VirtualAlloc");
 			return t_CurrentEnd;
 		}
 
-		//Not enough commited memory available to support the size, so just commit the remaining memory and reserve a new header.
-		VirtualAlloc(t_PageHeader->reserveSpot, t_PageHeader->bytesReserved + t_PageHeader->bytesCommited, MEM_COMMIT, PAGE_READWRITE);
-		t_PageHeader->bytesCommited += t_PageHeader->bytesReserved;
-		t_PageHeader->bytesUsed = t_PageHeader->bytesCommited;
-		t_PageHeader->bytesReserved = 0;
-
-		//Adjust the start pointer to be the end pointer of the page header.
-		a_Start = pointerutils::Add(t_PageHeader->reserveSpot, t_PageHeader->bytesCommited);
+		BB_ASSERT(false, "Going over reserved memory!")
 	}
 
 	//When making a new header reserve a lot more then that is requested to support later resizes better.
@@ -100,28 +86,23 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_Re
 	VirtualAlloc(t_Address, t_PageAdjustedSize, MEM_COMMIT, PAGE_READWRITE);
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error commiting right after a reserve VirtualAlloc");
 
-	//StartPageHeader when the allocation is new.
-	if (!t_StartPageHeader)
-	{
-		t_StartPageHeader = reinterpret_cast<StartPageHeader*>(t_Address);
-		t_StartPageHeader->head = nullptr;
-		a_Size += sizeof(StartPageHeader);
-	}
+	//Set the header
+	t_StartPageHeader = reinterpret_cast<StartPageHeader*>(t_Address);
 	PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(pagePool.AllocHeader());
-	t_NewHeader->bytesCommited = t_PageAdjustedSize;
-	t_NewHeader->bytesUsed = a_Size;
-	t_NewHeader->bytesReserved = t_AdditionalReserve - t_PageAdjustedSize;
-	t_NewHeader->reserveSpot = pointerutils::Add(t_Address, sizeof(StartPageHeader));
+	t_NewHeader->bytes_commited = t_PageAdjustedSize;
+	t_NewHeader->bytes_reserved = t_AdditionalReserve;
+	t_NewHeader->reserve_spot = t_Address;
 	t_StartPageHeader->head = t_NewHeader; // Set the new header as the head.
 
 	//Return the pointer that does not include the StartPageHeader
-	return t_StartPageHeader->head->reserveSpot;
+	return pointerutils::Add(t_Address, sizeof(StartPageHeader));
 }
 
 void BB::freeVirtual(void* a_Ptr)
 {
-	PageHeader* t_PageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Ptr, sizeof(StartPageHeader)))->head;
-	VirtualFree(t_PageHeader->reserveSpot, 0, MEM_RELEASE);
+	VirtualFree(pointerutils::Subtract(a_Ptr, sizeof(StartPageHeader)), 
+		0, 
+		MEM_RELEASE);
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error virtualFree");
 }
 
@@ -186,119 +167,19 @@ struct MockAllocator
 TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
 {
 	//Allocator size is equal to half a page, it will allocate an entire page in the background anyway.
-	MockAllocator t_Allocator(AppOSDevice().virtualMemoryPageSize / 4 - sizeof(StartPageHeader));
+	MockAllocator t_Allocator(AppOSDevice().virtual_memory_minimum_allocation - sizeof(StartPageHeader));
 	ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on creating the MockAllocator.";
 
 	PageHeader lastHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
-
-	EXPECT_EQ(lastHeader.bytesUsed, t_Allocator.maxSize + sizeof(StartPageHeader)) << "Used amount is wrong.";
-	EXPECT_EQ(lastHeader.bytesCommited, AppOSDevice().virtualMemoryPageSize) << "Commited amount is wrong.";
-	EXPECT_EQ(lastHeader.bytesReserved, AppOSDevice().virtualMemoryPageSize * static_cast<size_t>(virtual_reserve_extra::standard) - lastHeader.bytesCommited) << "Reserved amount is wrong.";
-
-	//Allocate memory equal to half a page, it should NOT reserve/commit more pages, just use more.
-	t_Allocator.Alloc(AppOSDevice().virtualMemoryPageSize / 2);
-	PageHeader newHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
-	EXPECT_NE(lastHeader.bytesUsed, newHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
-	EXPECT_EQ(lastHeader.bytesCommited, newHeader.bytesCommited) << "Bytes commited is changed, more was allocated while it shouldn't!";
-	EXPECT_EQ(lastHeader.bytesReserved, newHeader.bytesReserved) << "Bytes reserved is changed, more was allocated while it shouldn't!";
-	lastHeader = newHeader;
+	PageHeader newHeader;
 
 	//Allocate memory equal to an entire page, this should increase the commited amount of pages, but not reserved.
-	t_Allocator.Alloc(AppOSDevice().virtualMemoryPageSize);
+	t_Allocator.Alloc(AppOSDevice().virtual_memory_minimum_allocation);
 	ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on commiting more memory.";
 	newHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
-	EXPECT_NE(lastHeader.bytesUsed, newHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
-	EXPECT_NE(lastHeader.bytesCommited, newHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
-	EXPECT_NE(lastHeader.bytesReserved, newHeader.bytesReserved) << "Bytes reserved is not changed, while it should change!";
+	EXPECT_NE(lastHeader.bytes_commited, newHeader.bytes_commited) << "Bytes commited is not changed, while it should change!";
+	//Reserved is now never changed.
+	//EXPECT_NE(lastHeader.bytes_reserved, newHeader.bytes_reserved) << "Bytes reserved is not changed, while it should change!";
 	lastHeader = newHeader;
-
-	//disabled since extending address is very hard 
-	////Allocate memory equal to it's previous reserved memory amount, this should increase the commited and reserved amount of pages.
-	//t_Allocator.Alloc(lastHeader.bytesReserved);
-	//ASSERT_EQ(GetLastError(), 0x0) << "Windows API error on reserving more memory.";
-	//newHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
-	//EXPECT_NE(lastHeader.bytesUsed, newHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
-	//EXPECT_NE(lastHeader.bytesCommited, newHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
-	//EXPECT_LT(lastHeader.bytesReserved, newHeader.bytesReserved) << "Bytes reserved has not been increased, this means that the backend allocator does not reserve more memory as it should.";
-	//lastHeader = newHeader;
 }
-
-TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES_RANDOM)
-{
-	constexpr const size_t RANDOM_ALLOCATORS_AMOUNT = 8;
-	constexpr const size_t RANDOM_SAMPLE_AMOUNT = 128;
-	constexpr const size_t MAX_RANDOM_VALUE = 2097152; //256 KB.
-	constexpr const size_t MIN_RANDOM_VALUE = 8192; //4 KB.
-
-	constexpr const size_t ALLOCATOR_MULTIPLY_PAGE_SIZE = 128;
-
-	for (size_t i = 0; i < RANDOM_ALLOCATORS_AMOUNT; i++)
-	{
-		MockAllocator t_Allocator(AppOSDevice().virtualMemoryPageSize * ALLOCATOR_MULTIPLY_PAGE_SIZE);
-		ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on creating the MockAllocator.";
-
-		struct MockPageHeader
-		{
-			size_t bytesCommited = 0;
-			size_t bytesUsed = 0;
-			size_t bytesReserved = 0;
-
-			MockPageHeader(PageHeader& a_PageHeader) :
-				bytesCommited(a_PageHeader.bytesCommited),
-				bytesUsed(a_PageHeader.bytesUsed),
-				bytesReserved(a_PageHeader.bytesReserved)
-			{}
-
-			void operator+=(PageHeader& a_PageHeader)
-			{
-				bytesCommited += a_PageHeader.bytesCommited;
-				bytesUsed += a_PageHeader.bytesUsed;
-				bytesReserved += a_PageHeader.bytesReserved;
-			}
-		} t_LastMockHeader(*reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head);
-		PageHeader* t_LastHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
-
-
-		for (size_t i = 0; i < RANDOM_SAMPLE_AMOUNT; i++)
-		{
-			const size_t t_RandomAllocAmount = Utils::RandomUintMinMax(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
-			const size_t t_SpaceLeft = t_Allocator.SpaceLeft();
-
-			t_Allocator.Alloc(t_RandomAllocAmount);
-			PageHeader* t_NewHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
-			MockPageHeader t_NewMockHeader(*t_NewHeader);
-
-			//If the buffer had to be resized need to reserve more space record it.
-			if (t_RandomAllocAmount > t_SpaceLeft)
-			{
-				EXPECT_NE(t_LastMockHeader.bytesUsed, t_NewMockHeader.bytesUsed) << "Bytes used is not changed, while it should change!";
-				if (t_LastMockHeader.bytesCommited < t_LastMockHeader.bytesUsed + t_RandomAllocAmount && t_NewHeader == t_LastHeader)
-				{
-					EXPECT_NE(t_LastMockHeader.bytesCommited, t_NewMockHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
-					EXPECT_EQ(t_NewMockHeader.bytesReserved + t_NewMockHeader.bytesCommited, t_LastMockHeader.bytesReserved + t_LastMockHeader.bytesCommited) << "Bytes commited is not changed, while it should change!";
-				}
-
-				if (t_NewHeader != t_LastHeader)
-				{
-					EXPECT_LT(t_LastMockHeader.bytesReserved, t_NewMockHeader.bytesReserved) << "Bytes reserved has not been increased, this means that the backend allocator does not reserve more memory as it should.";
-				}
-
-			}
-
-			t_LastHeader = t_NewHeader;
-			t_LastMockHeader = t_NewMockHeader;
-		}
-		PageHeader* t_NewHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->head;
-		std::cout << "The COMMIT_RESERVE_PAGES_RANDOM test has these pageheaders: \n";
-
-		//size_t t_HeaderAmount = 0;
-		//while (t_NewHeader->previous)
-		//{
-		//	t_HeaderAmount++;
-		//	std::cout << "PageHeader number: " << t_HeaderAmount << " it had reserved and/or commited enough memory (in bytes): " << t_NewHeader->bytesCommited + t_NewHeader->bytesReserved << "\n";
-		//	t_NewHeader = t_NewHeader->previous;
-		//}
-	}
-}
-
 #pragma endregion

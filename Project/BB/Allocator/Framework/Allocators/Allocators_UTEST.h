@@ -9,7 +9,7 @@
 //Bytes samples with different sizes.
 constexpr const size_t sample_32_bytes = 10000;
 constexpr const size_t sample_256_bytes = 2000;
-constexpr const size_t sample_2593_bytes = 1000;
+constexpr const size_t sample_2593_bytes = 500;
 
 //How many samples in total.
 constexpr const size_t samples = sample_32_bytes + sample_256_bytes + sample_2593_bytes;
@@ -24,7 +24,10 @@ struct size2593bytes { union { char data[2593]; size_t value; }; };
 #pragma region LINEAR_ALLOCATOR
 TEST(MemoryAllocators, LINEAR_SINGLE_ALLOCATIONS)
 {
-	std::cout << "Linear allocator with 10000 32 byte samples, 2000 256 byte samples and 1000 2593 bytes samples." << "\n";
+	std::cout << "Linear allocator with " 
+		<< sample_32_bytes << " 32 byte samples, " 
+		<< sample_256_bytes << " 256 byte samples and "
+		<< sample_2593_bytes << " 2593 bytes samples." << "\n";
 
 	constexpr const size_t allocatorSize = 
 		sizeof(size32Bytes) * sample_32_bytes +
@@ -82,7 +85,10 @@ TEST(MemoryAllocators, LINEAR_SINGLE_ALLOCATIONS)
 
 TEST(MemoryAllocators, LINEAR_ARRAY_ALLOCATIONS)
 {
-	std::cout << "Linear allocator with 10000 32 byte samples, 2000 256 byte samples and 1000 2593 bytes samples." << "\n";
+	std::cout << "Linear allocator with "
+		<< sample_32_bytes << " 32 byte samples, "
+		<< sample_256_bytes << " 256 byte samples and "
+		<< sample_2593_bytes << " 2593 bytes samples." << "\n";
 
 	constexpr const size_t allocatorSize =
 		sizeof(size32Bytes) * sample_32_bytes +
@@ -137,8 +143,10 @@ TEST(MemoryAllocators, LINEAR_ARRAY_ALLOCATIONS)
 #pragma region FREELIST_ALLOCATOR
 TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 {
-	std::cout << "Freelist allocator with 10000 32 byte samples, 2000 256 byte samples and 1000 2593 bytes samples." << "\n";
-
+	std::cout << "Freelist allocator with "
+		<< sample_32_bytes << " 32 byte samples, "
+		<< sample_256_bytes << " 256 byte samples and "
+		<< sample_2593_bytes << " 2593 bytes samples." << "\n";
 	//allocator size is modified by the allocheader it needs.
 	constexpr const size_t allocatorSize =
 		(sizeof(size32Bytes) * sample_32_bytes +
@@ -300,7 +308,10 @@ TEST(MemoryAllocators, FREELIST_RESIZE_MEMSET)
 
 TEST(MemoryAllocators, POW_FREELIST_SINGLE_ALLOCATIONS)
 {
-	std::cout << "POW_Freelist allocator with 10000 32 byte samples and 2000 256 byte samples" << "\n";
+	std::cout << "POW Freelist allocator with "
+		<< sample_32_bytes << " 32 byte samples, "
+		<< sample_256_bytes << " 256 byte samples and "
+		<< sample_2593_bytes << " 2593 bytes samples." << "\n";
 
 	//allocator size is modified by the allocheader it needs.
 	constexpr const size_t allocatorSize =

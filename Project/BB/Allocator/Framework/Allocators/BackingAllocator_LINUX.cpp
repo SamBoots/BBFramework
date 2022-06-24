@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "BackingAllocator.h"
 #include "Utils/PointerUtils.h"
+#include "Utils/Math.h"
 #include "OS/OSDevice.h"
 
 #include <sys/mman.h>
@@ -9,24 +10,18 @@ using namespace BB;
 
 struct PageHeader
 {
-	size_t bytesCommited;
-	size_t bytesUsed;
-	void* reserveSpot;
+	size_t bytes_reserved;
+	size_t bytes_commited;
+	void* reserve_spot;
+};
+
+struct StartPageHeader
+{
+	PageHeader* header;
 };
 
 constexpr const size_t PREALLOC_PAGEHEADERS = 128 * 16;
 constexpr const size_t PREALLOC_PAGEHEADERS_COMMIT_SIZE = PREALLOC_PAGEHEADERS * sizeof(PageHeader);
-
-struct StartPageHeader
-{
-	PageHeader* head;
-};
-
-static size_t RoundUp(size_t a_NumToRound, size_t a_Multiple)
-{
-	BB_ASSERT(a_Multiple, "Multiple is 0!");
-	return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
-}
 
 static PagePool pagePool{};
 
@@ -51,10 +46,9 @@ PagePool::~PagePool()
 	BB_ASSERT(munmap(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE) == 0, "munmap error on PagePool deconstructor.");
 }
 
-
 void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_ReserveSize)
 {
-	size_t t_OverCommitValue = RoundUp(a_Size, AppOSDevice().virtualMemoryPageSize) * static_cast<size_t>(a_ReserveSize);
+	size_t t_PageAdjustedSize = Math::RoundUp(a_Size + sizeof(StartPageHeader), AppOSDevice().virtual_memory_minimum_allocation);
 
 	StartPageHeader* t_StartPageHeader = nullptr;
 	PageHeader* t_PageHeader = nullptr;
@@ -63,41 +57,52 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_Re
 	if (a_Start != nullptr)
 	{
 		t_StartPageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Start, sizeof(StartPageHeader)));
-		t_PageHeader = t_StartPageHeader->head;
+		t_PageHeader = t_StartPageHeader->header;
 
-		void* t_CurrentEnd = pointerutils::Add(t_PageHeader->reserveSpot, t_PageHeader->bytesUsed);
+		void* t_CurrentEnd = pointerutils::Add(t_PageHeader->reserve_spot, t_PageHeader->bytes_commited);
 
-
-		//If the amount commited is enough just move the pointer and return it.
-		if ((t_PageHeader->bytesCommited - t_PageHeader->bytesUsed) >= a_Size)
+		//If the amount commited is not enough check if there is enough reserved, if not reserve more.
+		if (t_PageHeader->bytes_reserved > t_PageAdjustedSize + t_PageHeader->bytes_commited)
 		{
-			t_PageHeader->bytesUsed += a_Size;
+			t_PageHeader->bytes_commited += t_PageAdjustedSize;
+			mprotect(t_PageHeader->reserve_spot,
+				t_PageAdjustedSize + t_PageHeader->bytes_commited,
+				PROT_READ | PROT_WRITE);
+			BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error mprotect.");
 			return t_CurrentEnd;
 		}
+
+		BB_ASSERT(false, "Going over reserved memory!")
 	}
 
+	size_t t_AdditionalReserve = t_PageAdjustedSize * static_cast<size_t>(a_ReserveSize);
 	//New allocation so mmap some new memory on that nullptr.
-	void* t_VirtualAddress = mmap(a_Start, t_OverCommitValue,
-		PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-	BB_ASSERT(t_VirtualAddress != nullptr, "mmap returned 0 creating a new startheader mallocVirtual, MAP_FAILED.");
-
+	//The prot is PROT_NONE so that it cannot be accessed, this will reflect reserving memory like the VirtualAlloc call from windows.
+	void* t_Address = mmap(a_Start, t_AdditionalReserve,
+		PROT_NONE, 
+		MAP_PRIVATE | MAP_ANONYMOUS, 
+		0, 
+		0);
+	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error mmap.");
+	//Instead of VirtualAlloc and commiting memory we will just remove the protection.
+	mprotect(t_Address, t_PageAdjustedSize, PROT_READ | PROT_WRITE);
+	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error mprotect.");
 	//Set the header.
-	t_StartPageHeader = reinterpret_cast<StartPageHeader*>(t_VirtualAddress);
-	t_StartPageHeader->head = nullptr;
-
+	t_StartPageHeader = reinterpret_cast<StartPageHeader*>(t_Address);
 	PageHeader* t_NewHeader = reinterpret_cast<PageHeader*>(pagePool.AllocHeader());
-	t_NewHeader->bytesCommited = t_OverCommitValue;
-	t_NewHeader->bytesUsed = a_Size + sizeof(StartPageHeader);
-	//Reserve spot is in front of the StartPageHeader.
-	t_NewHeader->reserveSpot = pointerutils::Add(t_VirtualAddress, sizeof(StartPageHeader));
-	t_StartPageHeader->head = t_NewHeader; // Set the new header as the head.
+	t_NewHeader->bytes_commited = t_PageAdjustedSize;
+	t_NewHeader->bytes_reserved = t_AdditionalReserve;
+	t_NewHeader->reserve_spot = t_Address;
+	t_StartPageHeader->header = t_NewHeader; // Set the new header as the head.
 
 	//Return the pointer that does not include the StartPageHeader
-	return t_StartPageHeader->head->reserveSpot;
+	return pointerutils::Add(t_Address, sizeof(StartPageHeader));
 }
 
 void BB::freeVirtual(void* a_Ptr)
 {
-	PageHeader* t_PageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Ptr, sizeof(StartPageHeader)))->head;
-	BB_ASSERT(munmap(pointerutils::Subtract(t_PageHeader->reserveSpot, sizeof(StartPageHeader)), t_PageHeader->bytesCommited) == 0, "munmap error on freeVirtual function.");
+	PageHeader* t_PageHeader = reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(a_Ptr, sizeof(StartPageHeader)))->header;
+	munmap(t_PageHeader->reserve_spot,
+		t_PageHeader->bytes_reserved);
+	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error munmap.");
 }

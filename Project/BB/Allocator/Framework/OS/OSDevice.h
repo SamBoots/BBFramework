@@ -19,7 +19,8 @@ namespace BB
 		OSDevice& operator =(OSDevice&&) = delete;
 
 		//The size of a virtual memory page on the OS or the ALlocationGranularity.
-		size_t virtualMemoryPageSize;
+		size_t virtual_memory_page_size;
+		size_t virtual_memory_minimum_allocation;
 
 		//Prints the latest OS error and returns the error code, if it has no error code it returns 0.
 		const uint32_t LatestOSError() const;

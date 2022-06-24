@@ -100,7 +100,9 @@ OSDevice& BB::AppOSDevice()
 
 OSDevice::OSDevice()
 {
-	virtualMemoryPageSize = sysconf(_SC_PAGE_SIZE);
+	virtual_memory_page_size = sysconf(_SC_PAGE_SIZE);
+	//For now use this, later args should be send that have the minimum address size.
+	virtual_memory_minimum_allocation = virtual_memory_page_size;
 }
 
 OSDevice::~OSDevice()
