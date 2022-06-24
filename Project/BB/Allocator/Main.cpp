@@ -13,9 +13,9 @@ int main()
 {
 
 	testing::InitGoogleTest();
-	RUN_ALL_TESTS();
+	int t = RUN_ALL_TESTS();
 
-#ifndef _UNIX
+
 	BB::AppOSDevice().CreateOSWindow(200, 200, 640, 480, "Memory Studies window");
 	BB::framework_handle handle = FRAMEWORK_NULL_HANDLE;
 
@@ -23,13 +23,7 @@ int main()
 	{
 
 	}
-#else
 
-	while (true)
-	{
-
-	}
-#endif _UNIX
 	return 0;
 }
 

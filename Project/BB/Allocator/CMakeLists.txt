@@ -8,8 +8,11 @@ set(PLATFORM_NAME "_WIN")
 add_compile_definitions(_WIN32)
 elseif(UNIX)
 set(PLATFORM_NAME "_LINUX")
-add_compile_definitions(_UNIX)
-endif (WIN32)
+add_compile_definitions(_LINUX)
+
+#we use x11 for the window creation and input.
+include_directories(/usr/include/X11)
+endif ()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_compile_definitions(_X64)
@@ -69,10 +72,11 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing ()
 
-target_link_libraries(
-  Allocator
-  gtest_main
-)
+if(UNIX)
+target_link_libraries(Allocator gtest_main X11)
+elseif(WIN32)
+target_link_libraries(Allocator gtest_main)
+endif()
 
 include(GoogleTest)
 #gtest_discover_tests(Allocator)

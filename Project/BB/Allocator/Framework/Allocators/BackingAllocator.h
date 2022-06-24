@@ -11,12 +11,12 @@ namespace BB
 		half = 64, //reserve 64 times more virtual space (32 times more on x86).
 		standard = 128, //reserve 128 times more virtual space (64 times more on x86).
 		extra = 256  //reserve 256 times more virtual space (32 times more on x86).
-#endif _X64
+#endif //_X64
 #ifdef _X86
 		half = 32, //reserve 64 times more virtual space (32 times more on x86).
 		standard = 64, //reserve 128 times more virtual space (64 times more on x86).
 		extra = 128  //reserve 256 times more virtual space (32 times more on x86).
-#endif _X86
+#endif //_X86
 	};
 
 	/// <summary>

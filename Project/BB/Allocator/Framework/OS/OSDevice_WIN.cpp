@@ -25,10 +25,10 @@ LRESULT CALLBACK WindowProc(HWND a_Hwnd, UINT a_Msg, WPARAM a_WParam, LPARAM a_L
 }
 
 //The OS window for Windows.
-class BB::Window
+class BB::OSWindow
 {
 public:
-	Window(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName) 
+	OSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 		: m_WindowName(a_WindowName)
 	{
 		WNDCLASS t_WndClass = {};
@@ -69,7 +69,7 @@ public:
 		ShowWindow(m_Hwnd, SW_SHOW);
 	};
 
-	~Window()
+	~OSWindow()
 	{
 		//Delete the window before you unregister the class.
 		if (!DestroyWindow(m_Hwnd))
@@ -116,7 +116,7 @@ const uint32_t OSDevice::LatestOSError() const
 
 framework_handle OSDevice::CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 {
-	window = new Window(a_X, a_Y, a_Width, a_Height, a_WindowName);
+	window = new OSWindow(a_X, a_Y, a_Width, a_Height, a_WindowName);
 	return FRAMEWORK_NULL_HANDLE;
 }
 
@@ -142,4 +142,3 @@ bool BB::OSDevice::ProcessMessages() const
 
 	return true;
 }
-

@@ -4,8 +4,7 @@
 
 namespace BB
 {
-	struct OSDevice_o;
-	class Window;
+	class OSWindow;
 
 	class OSDevice
 	{
@@ -33,8 +32,7 @@ namespace BB
 		bool ProcessMessages() const;
 
 	private:
-		Window* window;
-
+		OSWindow* window;
 	};
 
 	OSDevice& AppOSDevice();
