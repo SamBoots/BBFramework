@@ -5,17 +5,17 @@ namespace BB
 {
 	namespace pointerutils
 	{
-		static void* Add(void* a_Ptr, size_t a_Add)
+		inline static void* Add(void* a_Ptr, size_t a_Add)
 		{
 			return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(a_Ptr) + a_Add);
 		}
 
-		static void* Subtract(void* a_Ptr, size_t a_Subtract)
+		inline static void* Subtract(void* a_Ptr, size_t a_Subtract)
 		{
 			return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(a_Ptr) - a_Subtract);
 		}
 
-		static size_t alignForwardAdjustment(const void* address, size_t alignment)
+		inline static size_t alignForwardAdjustment(const void* address, size_t alignment)
 		{
 			size_t adjustment = alignment - (reinterpret_cast<uintptr_t>(address) & static_cast<uintptr_t>(alignment - 1));
 
@@ -25,7 +25,7 @@ namespace BB
 			return adjustment;
 		}
 
-		static size_t alignForwardAdjustmentHeader(const void* address, size_t alignment, size_t headerSize)
+		inline static size_t alignForwardAdjustmentHeader(const void* address, size_t alignment, size_t headerSize)
 		{
 			size_t adjustment = alignForwardAdjustment(address, alignment);
 			size_t neededSpace = headerSize;

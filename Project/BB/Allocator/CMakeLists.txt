@@ -3,14 +3,21 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
+if (MSVC)
+    # warning level 4 and all warnings as errors
+    add_compile_options(/W4)
+else()
+    # lots of warnings and all warnings as errors
+    add_compile_options(-Wall -Wextra)
+endif()
+
+#compile Definitions.
 if (WIN32)
 set(PLATFORM_NAME "_WIN")
 add_compile_definitions(_WIN32)
 elseif(UNIX)
 set(PLATFORM_NAME "_LINUX")
 add_compile_definitions(_LINUX)
-
-#we use x11 for the window creation and input.
 include_directories(/usr/include/X11)
 endif ()
 
@@ -20,7 +27,7 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
     add_compile_definitions(_X86)
 endif()
 
-# Add source to this project's executable.
+#Add source to this project's executable.
 add_executable (Allocator 
 "Main.cpp" 
 "pch/pch.h" 

@@ -11,7 +11,7 @@ struct Hash
 	operator const uint64_t() const { return hash; }
 	void operator=(const uint64_t a_Rhs) { hash = a_Rhs; }
 	Hash operator++(int) { return hash++; }
-	void operator*=(size_t a_Multi) { hash *= 2; }
+	void operator*=(size_t a_Multi) { hash *= a_Multi; }
 
 	//Create with uint64_t.
 	template<typename T>

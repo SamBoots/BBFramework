@@ -39,7 +39,7 @@ namespace BB
 		};
 
 		size_t m_Capacity;
-		size_t m_Size;
+		size_t m_Size = 0;
 
 		HashEntry* m_Entries;
 

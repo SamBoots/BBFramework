@@ -13,7 +13,7 @@ int main()
 {
 
 	testing::InitGoogleTest();
-	int t = RUN_ALL_TESTS();
+	RUN_ALL_TESTS();
 
 
 	BB::AppOSDevice().CreateOSWindow(200, 200, 640, 480, "Memory Studies window");
