@@ -46,9 +46,13 @@ PagePool::~PagePool()
 	BB_ASSERT(munmap(bufferStart, PREALLOC_PAGEHEADERS_COMMIT_SIZE) == 0, "munmap error on PagePool deconstructor.");
 }
 
-void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_ReserveSize)
+void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_extra a_ReserveSize)
 {
-	size_t t_PageAdjustedSize = Math::RoundUp(a_Size + sizeof(StartPageHeader), AppOSDevice().virtual_memory_minimum_allocation);
+	size_t t_PageAdjustedSize = Math::Max(a_Size + sizeof(StartPageHeader), AppOSDevice().virtual_memory_minimum_allocation);
+	t_PageAdjustedSize = Math::RoundUp(t_PageAdjustedSize, AppOSDevice().virtual_memory_page_size);
+
+	//Set the reference of a_Size so that the allocator has enough memory until the end of the page.
+	a_Size = t_PageAdjustedSize - sizeof(StartPageHeader);
 
 	StartPageHeader* t_StartPageHeader = nullptr;
 	PageHeader* t_PageHeader = nullptr;
@@ -66,7 +70,7 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_Re
 		{
 			t_PageHeader->bytes_commited += t_PageAdjustedSize;
 			mprotect(t_PageHeader->reserve_spot,
-				t_PageAdjustedSize + t_PageHeader->bytes_commited,
+				t_PageHeader->bytes_commited,
 				PROT_READ | PROT_WRITE);
 			BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error mprotect.");
 			return t_CurrentEnd;
@@ -85,7 +89,9 @@ void* BB::mallocVirtual(void* a_Start, size_t a_Size, virtual_reserve_extra a_Re
 		0);
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error mmap.");
 	//Instead of VirtualAlloc and commiting memory we will just remove the protection.
-	mprotect(t_Address, t_PageAdjustedSize, PROT_READ | PROT_WRITE);
+	mprotect(t_Address, 
+		t_PageAdjustedSize, 
+		PROT_READ | PROT_WRITE);
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error mprotect.");
 	//Set the header.
 	t_StartPageHeader = reinterpret_cast<StartPageHeader*>(t_Address);

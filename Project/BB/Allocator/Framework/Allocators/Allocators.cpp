@@ -11,9 +11,10 @@ using namespace BB::allocators;
 LinearAllocator::LinearAllocator(const size_t a_Size)
 {
 	BB_ASSERT(a_Size != 0, "linear allocator is created with a size of 0!");
-	m_Start = mallocVirtual(nullptr, a_Size);
+	size_t t_Size = a_Size;
+	m_Start = mallocVirtual(nullptr, t_Size);
 	m_Buffer = m_Start;
-	m_End = reinterpret_cast<uintptr_t>(m_Start) + a_Size;
+	m_End = reinterpret_cast<uintptr_t>(m_Start) + t_Size;
 }
 
 LinearAllocator::~LinearAllocator()
@@ -28,7 +29,7 @@ void* LinearAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 	uintptr_t t_Address = reinterpret_cast<uintptr_t>(pointerutils::Add(m_Buffer, t_Adjustment));
 	m_Buffer = reinterpret_cast<void*>(t_Address + a_Size);
 
-	if (t_Address > m_End)
+	if (t_Address + a_Size > m_End)
 	{
 		size_t t_Increase = m_End - reinterpret_cast<uintptr_t>(m_Start);
 		mallocVirtual(m_Start, t_Increase);

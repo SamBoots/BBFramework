@@ -272,36 +272,6 @@ TEST(MemoryAllocators, FREELIST_ARRAY_ALLOCATIONS)
 	//t_FreelistAllocator.Clear();
 }
 
-
-TEST(MemoryAllocators, FREELIST_RESIZE_MEMSET)
-{
-#ifdef _X64
-	//1 GB allocation
-	constexpr const size_t allocatorSize = 1073741824;
-#endif
-#ifdef _X86
-	//64 MB allocation for X86 due to the virtual address limit and a 4 bytes unsigned int limit.
-	constexpr const size_t allocatorSize = 16777216;
-#endif
-
-	struct AlignmentCheckStruct { char data[allocatorSize]; };
-
-
-	BB::allocators::FreelistAllocator t_FreeList(allocatorSize + sizeof(BB::allocators::FreelistAllocator::AllocHeader));
-
-	//Alloc the entire thing, memset to check if the allocation throws errors.
-	void* t_Data = t_FreeList.Alloc(allocatorSize, __alignof(AlignmentCheckStruct));
-	memset(t_Data, 256, allocatorSize);
-
-	ASSERT_EQ(t_FreeList.m_FreeBlocks, nullptr) << "Allocator resized while it shouldn't.";
-
-	t_Data = t_FreeList.Alloc(allocatorSize, __alignof(AlignmentCheckStruct));
-	memset(t_Data, 256, allocatorSize);
-
-	//Clear is not suppoted by freelist, commented just to show this is not a mistake.
-	//t_FreelistAllocator.Clear();
-}
-
 #pragma endregion
 
 #pragma region POW_FreeList_ALLOCATOR
