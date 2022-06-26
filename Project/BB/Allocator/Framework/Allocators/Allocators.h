@@ -135,6 +135,12 @@ namespace BB
 		return new (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T), __alignof(T)))) T(a_T);
 	}
 
+	template <typename T, typename MemoryArena, typename... Args>
+	inline T* BBalloc(MemoryArena& a_Arena, Args&&... a_Args)
+	{
+		return new (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T), __alignof(T)))) T(std::forward<Args>(a_Args)...);
+	}
+
 	template <typename T, typename MemoryArena>
 	inline T* BBallocArray(MemoryArena& a_Arena, size_t a_Length)
 	{

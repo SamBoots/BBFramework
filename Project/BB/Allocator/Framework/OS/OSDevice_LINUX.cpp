@@ -10,7 +10,19 @@
 
 using namespace BB;
 
+typedef FreeListAllocator_t OSAllocator_t;
+typedef LinearAllocator_t OSTempAllocator_t;
+
+OSAllocator_t OSAllocator{ mbSize * 8 };
+OSTempAllocator_t OSTempAllocator{ mbSize * 4 };
+
 static OSDevice osDevice;
+
+struct BB::OSDevice_o
+{
+	//Allocate 64 elements that the OS might keep for the user.
+	Dynamic_Array<void*, FreeListAllocator_t> OSResources{ OSAllocator, 64 };
+};
 
 //The OS window for Windows.
 class BB::OSWindow
@@ -100,14 +112,22 @@ OSDevice& BB::AppOSDevice()
 
 OSDevice::OSDevice()
 {
-	virtual_memory_page_size = sysconf(_SC_PAGE_SIZE);
-	//For now use this, later args should be send that have the minimum address size.
-	virtual_memory_minimum_allocation = virtual_memory_page_size;
+	m_OSDevice = BBalloc<OSDevice_o, OSAllocator_t>(OSAllocator);
 }
 
 OSDevice::~OSDevice()
 {
+	BBFree<OSAllocator_t>(OSAllocator, m_OSDevice);
+}
 
+const size_t BB::OSDevice::VirtualMemoryPageSize() const
+{
+	return sysconf(_SC_PAGE_SIZE);
+}
+
+const size_t BB::OSDevice::VirtualMemoryMinimumAllocation() const
+{
+	return sysconf(_SC_PAGE_SIZE);
 }
 
 const uint32_t OSDevice::LatestOSError() const
@@ -123,8 +143,16 @@ const uint32_t OSDevice::LatestOSError() const
 
 framework_handle OSDevice::CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 {
-	window = new OSWindow(a_X, a_Y, a_Width, a_Height, a_WindowName);
-	return FRAMEWORK_NULL_HANDLE;
+	void* t_OSWindow = BBalloc<OSWindow, OSAllocator_t>(OSAllocator, a_X, a_Y, a_Width, a_Height, a_WindowName);
+	m_OSDevice->OSResources.push_back(t_OSWindow);
+
+	return framework_handle(FRAMEWORK_RESOURCE_TYPE::WINDOW, m_OSDevice->OSResources.size() - 1);
+}
+
+void BB::OSDevice::DestroyOSWindow(framework_handle a_Handle)
+{
+	BB_ASSERT(a_Handle.type == FRAMEWORK_RESOURCE_TYPE::WINDOW, "Framework handle is not of type WINDOW when calling DestroyOSWindow!");
+	BBFree<OSAllocator_t>(OSAllocator, m_OSDevice->OSResources[a_Handle.index]);
 }
 
 void OSDevice::ExitApp() const

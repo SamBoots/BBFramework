@@ -187,15 +187,18 @@ BB::allocators::POW_FreelistAllocator::POW_FreelistAllocator(const size_t)
 	size_t t_Freelist_Buffer_Size = MIN_FREELIST_SIZE;
 	m_FreeBlocksAmount = FREELIST_START_SIZE;
 
+	//This will be resized accordingly by mallocVirtual.
+	size_t t_FreeListAllocSize = sizeof(FreeList) * 12;
+
 	//Get memory to store the headers for all the freelists.
 	//reserve none extra since this will never be bigger then the virtual alloc maximum. (If it is then we should get a page fault).
-	m_FreeLists = reinterpret_cast<FreeList*>(mallocVirtual(nullptr, AppOSDevice().virtual_memory_page_size, virtual_reserve_extra::none));
+	m_FreeLists = reinterpret_cast<FreeList*>(mallocVirtual(nullptr, t_FreeListAllocSize, virtual_reserve_extra::none));
 
 	//Set the freelists and let the blocks point to the next free ones.
 	for (size_t i = 0; i < m_FreeBlocksAmount; i++)
 	{
 		//Roundup the freelist with the virtual memory page size for the most optimal allocation. 
-		size_t t_UsedMemory = Math::RoundUp(AppOSDevice().virtual_memory_page_size, t_Freelist_Buffer_Size);
+		size_t t_UsedMemory = Math::RoundUp(AppOSDevice().VirtualMemoryPageSize(), t_Freelist_Buffer_Size);
 		m_FreeLists[i].allocSize = t_Freelist_Buffer_Size;
 		m_FreeLists[i].fullSize = t_UsedMemory;
 		//reserve half since we are splitting up the block, otherwise we might use a lot of virtual space.

@@ -51,8 +51,8 @@ PagePool::~PagePool()
 
 void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_extra a_ReserveSize)
 {
-	size_t t_PageAdjustedSize = Math::Max(a_Size + sizeof(StartPageHeader), AppOSDevice().virtual_memory_minimum_allocation);
-	t_PageAdjustedSize = Math::RoundUp(t_PageAdjustedSize, AppOSDevice().virtual_memory_page_size);
+	size_t t_PageAdjustedSize = Math::Max(a_Size + sizeof(StartPageHeader), AppOSDevice().VirtualMemoryMinimumAllocation());
+	t_PageAdjustedSize = Math::RoundUp(t_PageAdjustedSize, AppOSDevice().VirtualMemoryPageSize());
 
 	//Set the reference of a_Size so that the allocator has enough memory until the end of the page.
 	a_Size = t_PageAdjustedSize - sizeof(StartPageHeader);
@@ -178,14 +178,14 @@ struct MockAllocator
 TEST(MemoryAllocators_Backend_Windows, COMMIT_RESERVE_PAGES)
 {
 	//Allocator size is equal to half a page, it will allocate an entire page in the background anyway.
-	MockAllocator t_Allocator(AppOSDevice().virtual_memory_minimum_allocation);
+	MockAllocator t_Allocator(AppOSDevice().VirtualMemoryMinimumAllocation());
 	ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on creating the MockAllocator.";
 
 	PageHeader lastHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->header;
 	PageHeader newHeader;
 
 	//Allocate memory equal to an entire page, this should increase the commited amount of pages, but not reserved.
-	t_Allocator.Alloc(AppOSDevice().virtual_memory_minimum_allocation * 3);
+	t_Allocator.Alloc(AppOSDevice().VirtualMemoryMinimumAllocation() * 3);
 	ASSERT_EQ(AppOSDevice().LatestOSError(), 0x0) << "Windows API error on commiting more memory.";
 	newHeader = *reinterpret_cast<StartPageHeader*>(pointerutils::Subtract(t_Allocator.start, sizeof(StartPageHeader)))->header;
 	EXPECT_NE(lastHeader.bytes_commited, newHeader.bytes_commited) << "Bytes commited is not changed, while it should change!";
