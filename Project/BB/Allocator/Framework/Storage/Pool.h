@@ -29,7 +29,7 @@ namespace BB
 	inline BB::Pool<T, Allocator>::Pool(Allocator& a_Allocator, const size_t a_Size)
 		: m_Allocator(a_Allocator), m_Size(a_Size)
 	{
-		BB_ASSERT(sizeof(T) >= sizeof(void*), "Pool object is smaller then the size of a pointer.");
+		BB_STATIC_ASSERT(sizeof(T) >= sizeof(void*), "Pool object is smaller then the size of a pointer.");
 		BB_ASSERT(a_Size != 0, "Pool is created with an object size of 0!");
 
 		m_Start = BBallocArray<T>(m_Allocator, m_Size);

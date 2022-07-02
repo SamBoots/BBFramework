@@ -8,14 +8,14 @@ namespace BB
 	{
 		none = 1, //Don't reserve more virtual space, use this if you will never resize a mallocVirtual address.
 #ifdef _X64
-		half = 64, //reserve 64 times more virtual space (32 times more on x86).
-		standard = 128, //reserve 128 times more virtual space (64 times more on x86).
-		extra = 256  //reserve 256 times more virtual space (32 times more on x86).
+		half = 64, //reserve 64 times more virtual space (16 times more on x86).
+		standard = 128, //reserve 128 times more virtual space (32 times more on x86).
+		extra = 256  //reserve 256 times more virtual space (64 times more on x86).
 #endif //_X64
 #ifdef _X86
-		half = 32, //reserve 64 times more virtual space (32 times more on x86).
-		standard = 64, //reserve 128 times more virtual space (64 times more on x86).
-		extra = 128  //reserve 256 times more virtual space (32 times more on x86).
+		half = 16, //reserve 64 times more virtual space (16 times more on x86).
+		standard = 32, //reserve 128 times more virtual space (32 times more on x86).
+		extra = 64  //reserve 256 times more virtual space (64 times more on x86).
 #endif //_X86
 	};
 

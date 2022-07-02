@@ -51,8 +51,8 @@ PagePool::~PagePool()
 
 void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_extra a_ReserveSize)
 {
-	size_t t_PageAdjustedSize = Math::Max(a_Size + sizeof(StartPageHeader), AppOSDevice().VirtualMemoryMinimumAllocation());
-	t_PageAdjustedSize = Math::RoundUp(t_PageAdjustedSize, AppOSDevice().VirtualMemoryPageSize());
+	size_t t_PageAdjustedSize = Math::RoundUp(a_Size + sizeof(StartPageHeader), AppOSDevice().VirtualMemoryPageSize());
+	t_PageAdjustedSize = Math::Max(t_PageAdjustedSize, AppOSDevice().VirtualMemoryMinimumAllocation());
 
 	//Set the reference of a_Size so that the allocator has enough memory until the end of the page.
 	a_Size = t_PageAdjustedSize - sizeof(StartPageHeader);

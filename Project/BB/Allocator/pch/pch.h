@@ -14,7 +14,7 @@ namespace BB
 				printf("FRAMEWORK ERROR: ");\
 				printf((a_Msg));\
 				printf("\n");\
-				static_assert(false, a_Msg);\
+				static_assert(a_Check, a_Msg);\
 			}
 
 	/*  Check for unintented behaviour at runetime, if a_Check is false the program will stop and post a message.
