@@ -15,9 +15,12 @@ int main()
 	testing::InitGoogleTest();
 	RUN_ALL_TESTS();
 
+	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::MAIN, 250, 200, 250, 200, "Memory Studies Window Main");
 
-	BB::AppOSDevice().CreateOSWindow(200, 200, 640, 480, "Memory Studies window");
-	BB::framework_handle handle = FRAMEWORK_NULL_HANDLE;
+	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 100, 100, 250, 50, "Memory Studies window1");
+
+	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 150, 100, 250, 100, "Memory Studies window2");
+	BB::FrameworkHandle handle = FRAMEWORK_NULL_HANDLE;
 
 	while (BB::AppOSDevice().ProcessMessages())
 	{
@@ -26,4 +29,3 @@ int main()
 
 	return 0;
 }
-

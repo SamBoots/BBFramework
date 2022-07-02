@@ -7,6 +7,14 @@ namespace BB
 {
 	struct OSDevice_o;
 
+
+	enum class OS_WINDOW_STYLE
+	{
+		MAIN, //This window has a menu bar.
+		CHILD //This window does not have a menu bar.
+	};
+
+
 	class OSDevice
 	{
 	public:
@@ -28,8 +36,8 @@ namespace BB
 		//Prints the latest OS error and returns the error code, if it has no error code it returns 0.
 		const uint32_t LatestOSError() const;
 
-		framework_handle CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName);
-		void DestroyOSWindow(framework_handle a_Handle);
+		FrameworkHandle CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName);
+		void DestroyOSWindow(FrameworkHandle a_Handle);
 
 		//Exits the application.
 		void ExitApp() const;

@@ -4,6 +4,9 @@
 
 #include <Windows.h>
 #include "Storage/Dynamic_Array.h"
+#include "HID.h"
+
+#include <hidsdi.h>
 
 using namespace BB;
 
@@ -14,12 +17,6 @@ OSAllocator_t OSAllocator{ mbSize * 8 };
 OSTempAllocator_t OSTempAllocator{ mbSize * 4 };
 
 static OSDevice osDevice;
-
-struct BB::OSDevice_o
-{
-	//Allocate 64 elements that the OS might keep for the user.
-	Dynamic_Array<void*, FreeListAllocator_t> OSResources{ OSAllocator, 64 };
-};
 
 //Custom callback for the Windows proc.
 LRESULT CALLBACK WindowProc(HWND a_Hwnd, UINT a_Msg, WPARAM a_WParam, LPARAM a_LParam)
@@ -41,9 +38,10 @@ LRESULT CALLBACK WindowProc(HWND a_Hwnd, UINT a_Msg, WPARAM a_WParam, LPARAM a_L
 class OSWindow
 {
 public:
-	OSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
-		: m_WindowName(a_WindowName)
+	void Init(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 	{
+		m_WindowName = a_WindowName;
+
 		WNDCLASS t_WndClass = {};
 		t_WndClass.lpszClassName = m_WindowName;
 		t_WndClass.hInstance = m_HInstance;
@@ -54,7 +52,19 @@ public:
 		RegisterClass(&t_WndClass);
 		//DWORD t_Style = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU;
 
-		DWORD t_Style = WS_OVERLAPPEDWINDOW;
+		DWORD t_Style;
+		switch (a_Style)
+		{
+		case BB::OS_WINDOW_STYLE::MAIN:
+			t_Style = WS_OVERLAPPEDWINDOW;
+			break;
+		case BB::OS_WINDOW_STYLE::CHILD:
+			t_Style = WS_OVERLAPPED | WS_THICKFRAME;
+			break;
+		default:
+			BB_ASSERT(false, "Tried to create a window with a OS_WINDOW_STYLE it does not accept.");
+			break;
+		}
 
 		RECT t_Rect{};
 		t_Rect.left = a_X;
@@ -64,7 +74,7 @@ public:
 
 		AdjustWindowRect(&t_Rect, t_Style, false);
 
-		m_Hwnd = CreateWindowEx(
+		hwnd = CreateWindowEx(
 			0,
 			m_WindowName,
 			"Memory Studies",
@@ -79,23 +89,31 @@ public:
 			NULL
 		);
 
-		ShowWindow(m_Hwnd, SW_SHOW);
-	};
+		ShowWindow(hwnd, SW_SHOW);
+	}
 
-	~OSWindow()
+	void Destroy()
 	{
 		//Delete the window before you unregister the class.
-		if (!DestroyWindow(m_Hwnd))
+		if (!DestroyWindow(hwnd))
 			osDevice.LatestOSError();
 
 		if (!UnregisterClassA(m_WindowName, m_HInstance))
 			osDevice.LatestOSError();
 	}
 
+	HWND hwnd;
+
 private:
 	const char* m_WindowName;
 	HINSTANCE m_HInstance = nullptr;
-	HWND m_Hwnd;
+};
+
+
+struct BB::OSDevice_o
+{
+	//Special array for all the windows. Stored seperately 
+	Dynamic_Array<OSWindow, OSAllocator_t> OSWindows{ OSAllocator, 8 };
 };
 
 
@@ -140,18 +158,36 @@ const uint32_t OSDevice::LatestOSError() const
 	return static_cast<uint32_t>(t_LatestError);
 }
 
-framework_handle OSDevice::CreateOSWindow(int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
+FrameworkHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 {
-	void* t_OSWindow = BBalloc<OSWindow, OSAllocator_t>(OSAllocator, a_X, a_Y, a_Width, a_Height, a_WindowName);
-	m_OSDevice->OSResources.push_back(t_OSWindow);
+	OSWindow t_OSWindow;
+	t_OSWindow.Init(a_Style, a_X, a_Y, a_Width, a_Height, a_WindowName);
 
-	return framework_handle(FRAMEWORK_RESOURCE_TYPE::WINDOW, m_OSDevice->OSResources.size() - 1);
+	size_t t_OSWindowsSize = m_OSDevice->OSWindows.size();
+
+	for (size_t i = 0; i < t_OSWindowsSize; i++)
+	{
+		if (m_OSDevice->OSWindows[i].hwnd == nullptr)
+		{
+			m_OSDevice->OSWindows[i] = t_OSWindow;
+			return FrameworkHandle(FRAMEWORK_RESOURCE_TYPE::WINDOW, static_cast<uint32_t>(i));
+		}
+	}
+
+	m_OSDevice->OSWindows.push_back(t_OSWindow);
+
+	return FrameworkHandle(FRAMEWORK_RESOURCE_TYPE::WINDOW, static_cast<uint32_t>(t_OSWindowsSize));
 }
 
-void BB::OSDevice::DestroyOSWindow(framework_handle a_Handle)
+void BB::OSDevice::DestroyOSWindow(FrameworkHandle a_Handle)
 {
 	BB_ASSERT(a_Handle.type == FRAMEWORK_RESOURCE_TYPE::WINDOW, "Framework handle is not of type WINDOW when calling DestroyOSWindow!");
-	BBFree<OSAllocator_t>(OSAllocator, m_OSDevice->OSResources[a_Handle.index]);
+
+	//Don't delete it from the array but call the deconstructor.
+	m_OSDevice->OSWindows[a_Handle.index].Destroy();
+
+	//Instead of deleting the entry mark it as empty, so that it may be used again.
+	m_OSDevice->OSWindows[a_Handle.index].hwnd = nullptr;
 }
 
 void OSDevice::ExitApp() const

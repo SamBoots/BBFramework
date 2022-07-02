@@ -5,13 +5,13 @@ namespace BB
 {
 	enum class FRAMEWORK_RESOURCE_TYPE : uint32_t
 	{
-		EMPTY = 0,
-		WINDOW = EMPTY + 1
+		EMPTY,
+		WINDOW
 	};
 
-	union framework_handle
+	union FrameworkHandle
 	{
-		framework_handle(FRAMEWORK_RESOURCE_TYPE a_Type, uint32_t a_Index)
+		FrameworkHandle(FRAMEWORK_RESOURCE_TYPE a_Type, uint32_t a_Index)
 		{
 			type = a_Type;
 			index = a_Index;
@@ -25,9 +25,9 @@ namespace BB
 
 		uint64_t handle;
 
-		inline bool operator ==(framework_handle a_Rhs) const { return handle == a_Rhs.handle; }
-		inline bool operator !=(framework_handle a_Rhs) const { return handle != a_Rhs.handle; }
+		inline bool operator ==(FrameworkHandle a_Rhs) const { return handle == a_Rhs.handle; }
+		inline bool operator !=(FrameworkHandle a_Rhs) const { return handle != a_Rhs.handle; }
 	};
 
-	#define FRAMEWORK_NULL_HANDLE BB::framework_handle( BB::FRAMEWORK_RESOURCE_TYPE::EMPTY, 0);
+	#define FRAMEWORK_NULL_HANDLE BB::FrameworkHandle( BB::FRAMEWORK_RESOURCE_TYPE::EMPTY, 0);
 }
