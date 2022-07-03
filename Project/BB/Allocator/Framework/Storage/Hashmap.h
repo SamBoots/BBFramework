@@ -14,11 +14,13 @@ namespace BB
 		constexpr const size_t UM_LoadFactorCAP = 1;
 		//Not used, if it's full resize a unordered map.
 		constexpr const size_t UM_LoadFactorSIZE = 1;
+		constexpr const size_t Um_EmptyNode = 0x00;
+
 
 		constexpr const size_t OL_LoadFactorCAP = 2;
 		constexpr const size_t OL_LoadFactorSIZE = 3;
 
-		constexpr const size_t Um_EmptyNode = 0x00;
+		constexpr const uintptr_t OL_TOMBSTONE = 0xDEADBEEFDEADBEEF;
 	};
 
 #pragma region Unordered_Map
@@ -253,7 +255,6 @@ namespace BB
 		size_t m_LoadFactor;
 
 		//All the elements.
-		Hash* m_Hashes;
 		Key* m_Keys;
 		Value* m_Values;
 
@@ -282,20 +283,18 @@ namespace BB
 		m_Size = 0;
 		m_LoadFactor = m_Capacity * Hashmap_Specs::UM_LoadFactorCAP;
 
-		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
+		const size_t t_MemorySize = (sizeof(Key) + sizeof(Value)) * m_Capacity;
 
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
-
-		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
-		memset(m_Hashes, 0, sizeof(Hash) * m_Capacity);
-		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * m_Capacity));
-		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
+		m_Keys = reinterpret_cast<Key*>(t_Buffer);
+		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, sizeof(Key) * m_Capacity));
+		memset(m_Keys, 0, sizeof(Key) * m_Capacity);
 	}
 
 	template<typename Key, typename Value, typename Allocator>
 	inline OL_HashMap<Key, Value, Allocator>::~OL_HashMap()
 	{
-		BBFree(m_Allocator, m_Hashes);
+		BBFree(m_Allocator, m_Keys);
 	}
 
 	template<typename Key, typename Value, typename Allocator>
@@ -309,9 +308,8 @@ namespace BB
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			if (m_Hashes[i] == 0)
+			if (m_Keys[i] == 0)
 			{
-				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
 				m_Values[i] = a_Res;
 				return;
@@ -321,9 +319,8 @@ namespace BB
 		//Loop again but then from the start and stop at the hash. 
 		for (size_t i = 0; i < t_Hash; i++)
 		{
-			if (m_Hashes[i] == 0)
+			if (m_Keys[i] == 0)
 			{
-				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
 				m_Values[i] = a_Res;
 				return;
@@ -367,7 +364,6 @@ namespace BB
 #ifdef _DEBUG
 				memset(&m_Values[i], 0, sizeof(Value));
 #endif // _DEBUG
-				m_Hashes[i] = 0;
 				m_Size--;
 				return;
 			}
@@ -383,7 +379,6 @@ namespace BB
 #ifdef _DEBUG
 				memset(&m_Values[i], 0, sizeof(Value));
 #endif // _DEBUG
-				m_Hashes[i] = 0;
 				m_Size--;
 				return;
 			}
@@ -422,33 +417,30 @@ namespace BB
 		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * a_NewCapacity;
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
 
-		Hash* t_NewHashes = reinterpret_cast<Hash*>(t_Buffer);
-		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * a_NewCapacity));
-		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * a_NewCapacity));
-		memset(t_NewHashes, 0, sizeof(Hash) * a_NewCapacity);
+		Key* t_NewKeys = reinterpret_cast<Key*>(t_Buffer);
+		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, sizeof(Key) * a_NewCapacity));
+		memset(t_NewKeys, 0, sizeof(Key) * a_NewCapacity);
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
-			if (m_Hashes[i] != 0)
+			if (m_Keys[i] != 0)
 			{
 				Key t_Key = m_Keys[i];
 				Hash t_Hash = Hash::MakeHash(t_Key) % a_NewCapacity;
 
-				while (t_NewHashes[t_Hash] != 0)
+				while (m_Keys[t_Hash] != 0)
 				{
 					t_Hash++;
 					if (t_Hash > a_NewCapacity)
 						t_Hash = 0;
 				}
 
-				t_NewHashes[t_Hash] = t_Hash;
 				t_NewKeys[t_Hash] = t_Key;
 				t_NewValues[t_Hash] = m_Values[i];
 			}
 		}
 
-		BBFree(m_Allocator, m_Hashes);
-		m_Hashes = t_NewHashes;
+		BBFree(m_Allocator, m_Keys);
 		m_Keys = t_NewKeys;
 		m_Values = t_NewValues;
 
