@@ -163,6 +163,45 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_push)
 	}
 }
 
+
+TEST(Dynamic_ArrayDataStructure, Dynamic_Array_emplace_back)
+{
+	constexpr const size_t initialSize = 8;
+	constexpr const size_t samples = initialSize;
+	//Unaligned big struct with a union to test the value.
+	struct size2593bytes { 
+		size2593bytes() {}
+		size2593bytes(size_t a_Value) : value(a_Value) {}
+		union { char data[2593]; size_t value; }; 
+	};
+
+	//32 MB alloactor.
+	const size_t allocatorSize = BB::mbSize * 32;
+	BB::FreeListAllocator_t t_Allocator(allocatorSize);
+
+	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator);
+	EXPECT_EQ(t_Array.capacity(), BB::Dynamic_Array_Specs::multipleValue);
+
+	size_t t_RandomValues[samples]{};
+
+	for (size_t i = 0; i < samples; i++)
+	{
+		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	}
+
+	//Cache the current capacity since we will go over it. 
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		t_Array.emplace_back(t_RandomValues[i]);
+	};
+
+	//Test all results before doing a resize event
+	for (size_t i = 0; i < t_Array.size(); i++)
+	{
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic array value is wrong, something went bad before a resize event.";
+	}
+}
+
 TEST(Dynamic_ArrayDataStructure, Dynamic_Array_insert_single)
 {
 	constexpr const size_t initialSize = 8;

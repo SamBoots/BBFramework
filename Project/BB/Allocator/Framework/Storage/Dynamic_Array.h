@@ -59,10 +59,15 @@ namespace BB
 
 		void push_back(T& a_Element);
 		void push_back(const T* a_Elements, size_t a_Count);
-		void reserve(size_t a_Size);
-
 		void insert(size_t a_Position, const T& a_Element);
 		void insert(size_t a_Position, const T* a_Elements, size_t a_Count);
+		template <class... Args>
+		void emplace_back(Args&&... a_Args);
+		template <class... Args>
+		void emplace(size_t a_Position, Args&&... a_Args);
+
+		void reserve(size_t a_Size);
+		void resize(size_t a_Size);
 
 		void pop();
 		void empty();
@@ -125,8 +130,7 @@ namespace BB
 		if (m_Size >= m_Capacity)
 			grow();
 
-		m_Arr[m_Size] = a_Element;
-		m_Size++;
+		emplace_back(a_Element);
 	}
 
 	template<typename T, typename Allocator>
@@ -146,11 +150,7 @@ namespace BB
 		if (m_Size >= m_Capacity)
 			grow();
 
-		//Move all elements after a_Position 1 to the front.
-		memcpy(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
-
-		m_Arr[a_Position] = a_Element;
-		m_Size++;
+		emplace(a_Position, a_Element);
 	}
 
 	template<typename T, typename Allocator>
@@ -169,6 +169,26 @@ namespace BB
 	}
 
 	template<typename T, typename Allocator>
+	template<class ...Args>
+	inline void BB::Dynamic_Array<T, Allocator>::emplace_back(Args&&... a_Args)
+	{
+		new (&m_Arr[m_Size]) T(std::forward<Args>(a_Args)...);
+		m_Size++;
+	}
+
+	template<typename T, typename Allocator>
+	template<class ...Args>
+	inline void BB::Dynamic_Array<T, Allocator>::emplace(size_t a_Position, Args&&... a_Args)
+	{
+		//Move all elements after a_Position 1 to the front.
+		memcpy(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
+
+		new (&m_Arr[a_Position]) T(std::forward<Args>(a_Args)...);
+		m_Size++;
+	}
+
+
+	template<typename T, typename Allocator>
 	inline void Dynamic_Array<T, Allocator>::reserve(size_t a_Size)
 	{
 		if (a_Size > m_Capacity)
@@ -178,6 +198,13 @@ namespace BB
 			reallocate(t_ModifiedCapacity);
 			return;
 		}
+	}
+
+	template<typename T, typename Allocator>
+	inline void BB::Dynamic_Array<T, Allocator>::resize(size_t a_Size)
+	{
+		reserve(a_Size);
+		m_Size = m_Capacity;
 	}
 
 	template<typename T, typename Allocator>
