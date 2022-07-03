@@ -15,6 +15,42 @@ namespace BB
 	template<typename T, typename Allocator>
 	struct Dynamic_Array
 	{
+		struct Iterator
+		{
+			//Iterator idea from:
+			//https://www.internalpointers.com/post/writing-custom-iterators-modern-cpp
+
+			using iterator_category = std::forward_iterator_tag;
+			using difference_type = std::ptrdiff_t;
+			using value_type = T;
+			using pointer = T*;
+			using reference = T&;
+
+			Iterator(pointer a_Ptr) : m_Ptr(a_Ptr) {}
+
+			reference operator*() const { return *m_Ptr; }
+			pointer operator->() { return m_Ptr; }
+
+			Iterator& operator++() 
+			{ 
+				m_Ptr++;  
+				return *this;
+			}
+
+			Iterator operator++(int) 
+			{ 
+				Iterator t_Tmp = *this; 
+				++(*this);
+				return t_Tmp;
+			}
+
+			friend bool operator== (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr == a_Rhs.m_ptr; };
+			friend bool operator!= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr != a_Rhs.m_ptr; };
+
+		private:
+			pointer m_Ptr;
+		};
+
 		Dynamic_Array(Allocator& a_Allocator);
 		Dynamic_Array(Allocator& a_Allocator, size_t a_Size);
 		~Dynamic_Array();
@@ -25,6 +61,9 @@ namespace BB
 		void push_back(const T* a_Elements, size_t a_Count);
 		void reserve(size_t a_Size);
 
+		void insert(size_t a_Position, const T& a_Element);
+		void insert(size_t a_Position, const T* a_Elements, size_t a_Count);
+
 		void pop();
 		void empty();
 
@@ -32,6 +71,9 @@ namespace BB
 		const size_t capacity() const { return m_Capacity; }
 		const void* data() const { return m_Allocator.begin(); };
 
+		Iterator begin() { return Iterator(m_Arr); }
+		Iterator end() { return Iterator(m_Arr(m_Size + 1)); } //Get an out of bounds Iterator.
+			 
 	private:
 
 		void grow(size_t a_MinCapacity = 0);
@@ -93,7 +135,36 @@ namespace BB
 		if (m_Size + a_Count > m_Capacity)
 			grow(a_Count);
 
-		memcpy(m_Arr + m_Size, a_Elements, sizeof(T) * a_Count);
+		memcpy(&m_Arr[m_Size], a_Elements, sizeof(T) * a_Count);
+		m_Size += a_Count;
+	}
+
+	template<typename T, typename Allocator>
+	inline void BB::Dynamic_Array<T, Allocator>::insert(size_t a_Position, const T& a_Element)
+	{
+		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size!");
+		if (m_Size >= m_Capacity)
+			grow();
+
+		//Move all elements after a_Position 1 to the front.
+		memcpy(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
+
+		m_Arr[a_Position] = a_Element;
+		m_Size++;
+	}
+
+	template<typename T, typename Allocator>
+	inline void BB::Dynamic_Array<T, Allocator>::insert(size_t a_Position, const T* a_Elements, size_t a_Count)
+	{
+		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size! Resize the array before ");
+		if (m_Size + a_Count > m_Capacity)
+			grow(a_Count);
+		
+		//Move all elements after a_Position 1 to the front.
+		memcpy(&m_Arr[a_Position + a_Count], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
+
+		//Set all the elements.
+		memcpy(&m_Arr[a_Position], a_Elements, sizeof(T) * a_Count);
 		m_Size += a_Count;
 	}
 
