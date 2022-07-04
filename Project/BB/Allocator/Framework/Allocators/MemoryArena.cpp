@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "MemoryArena.h"
+#ifdef _DEBUG
+using namespace BB::MemoryDebugTools;
 
-using namespace BB;
-
-memorypolicies::BoundsCheck::~BoundsCheck()
+BoundsCheck::~BoundsCheck()
 {
 	for (auto& t_It : m_BoundsList)
 	{
@@ -14,7 +14,7 @@ memorypolicies::BoundsCheck::~BoundsCheck()
 	m_BoundsList.clear();
 }
 
-void memorypolicies::BoundsCheck::AddBoundries(void* a_FrontPtr, size_t a_AllocSize)
+void BoundsCheck::AddBoundries(void* a_FrontPtr, size_t a_AllocSize)
 {
 	//Set the begin bound value
 	*reinterpret_cast<size_t*>(a_FrontPtr) = BoundryCheckValue;
@@ -25,7 +25,7 @@ void memorypolicies::BoundsCheck::AddBoundries(void* a_FrontPtr, size_t a_AllocS
 	m_BoundsList.emplace(a_FrontPtr, a_BackPtr);
 }
 
-void memorypolicies::BoundsCheck::CheckBoundries(void* a_FrontPtr)
+void BoundsCheck::CheckBoundries(void* a_FrontPtr)
 {
 	//Set the begin bound value
 	BB_ASSERT(*reinterpret_cast<size_t*>(a_FrontPtr) == BoundryCheckValue, "Memory boundrycheck failed! Buffer overwritten at the front.");
@@ -34,7 +34,7 @@ void memorypolicies::BoundsCheck::CheckBoundries(void* a_FrontPtr)
 	m_BoundsList.erase(a_FrontPtr);
 }
 
-void memorypolicies::BoundsCheck::Clear()
+void BoundsCheck::Clear()
 {
 	for (auto& t_It : m_BoundsList)
 	{
@@ -45,7 +45,7 @@ void memorypolicies::BoundsCheck::Clear()
 	m_BoundsList.clear();
 }
 
-memorypolicies::Count_MemoryTrack::~Count_MemoryTrack()
+MemoryTrack::~MemoryTrack()
 {
 	for (auto& t_It : m_TrackingList)
 	{
@@ -54,15 +54,16 @@ memorypolicies::Count_MemoryTrack::~Count_MemoryTrack()
 	BB_WARNING(m_TrackingList.size() == 0, "Memory tracker reports a memory leak, Log of leaks have been posted.");
 }
 
-void memorypolicies::Count_MemoryTrack::OnAlloc(void* a_Ptr, size_t a_Size)
+void MemoryTrack::OnAlloc(void* a_Ptr, size_t a_Size)
 {
 	m_TrackingList.emplace(a_Ptr, a_Size);
 }
-void memorypolicies::Count_MemoryTrack::OnDealloc(void* a_Ptr)
+void MemoryTrack::OnDealloc(void* a_Ptr)
 {
 	m_TrackingList.erase(a_Ptr);
 }
-void memorypolicies::Count_MemoryTrack::Clear()
+void MemoryTrack::Clear()
 {
 	m_TrackingList.clear();
 }
+#endif //_DEBUG

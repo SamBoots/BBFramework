@@ -8,31 +8,16 @@
 
 namespace BB
 {
-	namespace memorypolicies
+#ifdef _DEBUG
+	namespace MemoryDebugTools
 	{
-		struct Single_Thread
-		{
-			inline void Enter(void) const {};
-			inline void Leave(void) const {};
-		};
-
-		struct No_BoundsCheck
-		{
-			static const size_t BOUNDRY_FRONT = 0;
-			static const size_t BOUNDRY_BACK = 0;
-
-			inline void AddBoundries(void*, const size_t) const {};
-			inline void CheckBoundries(void*) const {}
-		};
-
-		constexpr const size_t BoundryCheckValue = 128;
+		constexpr const uintptr_t BoundryCheckValue = 0xDEADBEEFDEADBEEF;
+		constexpr const size_t BOUNDRY_FRONT = sizeof(size_t);
+		constexpr const size_t BOUNDRY_BACK = sizeof(size_t);
 
 		struct BoundsCheck
 		{
 			~BoundsCheck();
-
-			static const size_t BOUNDRY_FRONT = sizeof(size_t);
-			static const size_t BOUNDRY_BACK = sizeof(size_t);
 
 			void AddBoundries(void* a_FrontPtr, size_t a_AllocSize);
 			void CheckBoundries(void* a_FrontPtr);
@@ -44,16 +29,9 @@ namespace BB
 			std::unordered_map<void*, void*> m_BoundsList;
 		};
 
-		struct No_MemoryTrack
+		struct MemoryTrack
 		{
-			inline void OnAlloc(void*, size_t) const {}
-			inline void OnDealloc(void*) const {}
-			inline void Clear() const {}
-		};
-
-		struct Count_MemoryTrack
-		{
-			~Count_MemoryTrack();
+			~MemoryTrack();
 			void OnAlloc(void* a_Ptr, size_t a_Size);
 			void OnDealloc(void* a_Ptr);
 			void Clear();
@@ -61,16 +39,20 @@ namespace BB
 			//needs replacement by a custom hashmap.
 			std::unordered_map<void*, size_t> m_TrackingList;
 		};
+	}
+#endif //_DEBUG
 
-		struct No_MemoryTagging
+	namespace ThreadPolicy
+	{
+		struct Single_Thread
 		{
-			inline void TagAlloc(void*, size_t) const {}
-			inline void TagDealloc(void*) const {}
+			inline void Enter(void) const {};
+			inline void Leave(void) const {};
 		};
 	}
 
 
-	template <class Allocator, class ThreadPolicy, class BoundsCheckPolicy, class MemoryTrackPolicy>
+	template <class Allocator, class ThreadPolicy>
 	struct MemoryArena
 	{
 		MemoryArena(const size_t a_Size)
@@ -85,28 +67,31 @@ namespace BB
 		{
 			m_ThreadPolicy.Enter();
 
-			const size_t t_AllocSize = a_Size + BoundsCheckPolicy::BOUNDRY_FRONT + BoundsCheckPolicy::BOUNDRY_BACK;
-
-			uint8_t* allocatedMemory = static_cast<uint8_t*>(m_Allocator.Alloc(t_AllocSize, a_Alignment));
-			m_BoundsCheckPolicy.AddBoundries(allocatedMemory, t_AllocSize);
-
-			//m_MemoryTaggingPolicy.TagAlloc(returnMemory, t_AllocSize);
-			m_MemoryTrackPolicy.OnAlloc(allocatedMemory, t_AllocSize);
-
+#ifdef _DEBUG
+			//Add more room for the boundry checking.
+			a_Size += MemoryDebugTools::BOUNDRY_FRONT + MemoryDebugTools::BOUNDRY_BACK;
+#endif //_DEBUG
+			void* allocatedMemory = m_Allocator.Alloc(a_Size, a_Alignment);
+#ifdef _DEBUG
+			//Do all the debugging tools.
+			m_BoundsCheck.AddBoundries(allocatedMemory, a_Size);
+			m_MemoryTrack.OnAlloc(allocatedMemory, a_Size);
+			allocatedMemory = pointerutils::Add(allocatedMemory, MemoryDebugTools::BOUNDRY_FRONT);
+#endif //_DEBUG
 			m_ThreadPolicy.Leave();
 
-			return pointerutils::Add(allocatedMemory, BoundsCheckPolicy::BOUNDRY_FRONT);
+			return allocatedMemory;
 		}
 		void Free(void* a_Ptr)
 		{
 			m_ThreadPolicy.Enter();
-
-			void* originalMemory = pointerutils::Subtract(a_Ptr, BoundsCheckPolicy::BOUNDRY_FRONT);
-			m_BoundsCheckPolicy.CheckBoundries(originalMemory);
-			//m_MemoryTaggingPolicy.TagDealloc(originalMemory);
-			m_MemoryTrackPolicy.OnDealloc(originalMemory);
-
-			m_Allocator.Free(originalMemory);
+#ifdef _DEBUG
+			//Adjust the pointer to the boundry that was being set.
+			a_Ptr = pointerutils::Subtract(a_Ptr, MemoryDebugTools::BOUNDRY_FRONT);
+			m_BoundsCheck.CheckBoundries(a_Ptr);
+			m_MemoryTrack.OnDealloc(a_Ptr);
+#endif //_DEBUG
+			m_Allocator.Free(a_Ptr);
 
 			m_ThreadPolicy.Leave();
 		}
@@ -114,9 +99,10 @@ namespace BB
 		void Clear()
 		{
 			m_ThreadPolicy.Enter();
-
-			m_BoundsCheckPolicy.Clear();
-			m_MemoryTrackPolicy.Clear();
+#ifdef _DEBUG
+			m_BoundsCheck.Clear();
+			m_MemoryTrack.Clear();
+#endif //_DEBUG
 			m_Allocator.Clear();
 
 			m_ThreadPolicy.Leave();
@@ -125,7 +111,10 @@ namespace BB
 	protected:
 		Allocator m_Allocator;
 		ThreadPolicy m_ThreadPolicy;
-		BoundsCheckPolicy m_BoundsCheckPolicy;
-		MemoryTrackPolicy m_MemoryTrackPolicy;
+
+#ifdef _DEBUG
+		MemoryDebugTools::BoundsCheck m_BoundsCheck;
+		MemoryDebugTools::MemoryTrack m_MemoryTrack;
+#endif //_DEBUG
 	};
 }

@@ -5,10 +5,13 @@
 #pragma warning (pop)
 #include "Utils/Math.h"
 
+#include "Utils/PointerUtils.h"
+
+#ifdef _DEBUG
+
 TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 {
 	//We use a freelist for the test since it allows for easy allocations and deallocations.
-	typedef BB::MemoryArena<BB::allocators::FreelistAllocator, BB::memorypolicies::Single_Thread, BB::memorypolicies::No_BoundsCheck, BB::memorypolicies::Count_MemoryTrack> LinearAllocatorWithTracking;
 	constexpr const size_t ALLOCATORSIZE = 41943040;
 
 	constexpr const size_t TRACKAMOUNT = 512;
@@ -21,26 +24,25 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 		size_t size;
 	};
 
-	struct MockMemoryArena : LinearAllocatorWithTracking
+	struct MockMemoryArena : BB::FreeListAllocator_t
 	{
-		MockMemoryArena() : LinearAllocatorWithTracking(ALLOCATORSIZE) {}
+		MockMemoryArena() : BB::FreeListAllocator_t(ALLOCATORSIZE) {}
 
 		void CheckAllocExists(const MemoryTrackInstance& a_Instance)
 		{
-			ASSERT_EQ(allocationsDone, m_MemoryTrackPolicy.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
+			ASSERT_EQ(allocationsDone, m_MemoryTrack.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
 
+			auto t_It = m_MemoryTrack.m_TrackingList.find(BB::pointerutils::Subtract(a_Instance.ptr, BB::MemoryDebugTools::BOUNDRY_FRONT));
+			ASSERT_NE(t_It, m_MemoryTrack.m_TrackingList.end()) << "Memory allocation doesn't exist on the tracking list.";
 
-			auto t_It = m_MemoryTrackPolicy.m_TrackingList.find(a_Instance.ptr);
-			ASSERT_NE(t_It, m_MemoryTrackPolicy.m_TrackingList.end()) << "Memory allocation doesn't exist on the tracking list.";
-
-			ASSERT_EQ(a_Instance.size, t_It->second) << "Memory allocation doesn't share the size.";
+			ASSERT_EQ(a_Instance.size + BB::MemoryDebugTools::BOUNDRY_BACK + BB::MemoryDebugTools::BOUNDRY_FRONT, t_It->second) << "Memory allocation doesn't share the size.";
 		};
 
 		void CheckAllocDoesntExists(const MemoryTrackInstance& a_Instance)
 		{
-			ASSERT_EQ(allocationsDone, m_MemoryTrackPolicy.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
+			ASSERT_EQ(allocationsDone, m_MemoryTrack.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
 
-			ASSERT_EQ(m_MemoryTrackPolicy.m_TrackingList.find(a_Instance.ptr), m_MemoryTrackPolicy.m_TrackingList.end()) << "Memory allocation exist on the tracking list while it shouldn't.";
+			ASSERT_EQ(m_MemoryTrack.m_TrackingList.find(BB::pointerutils::Subtract(a_Instance.ptr, BB::MemoryDebugTools::BOUNDRY_FRONT)), m_MemoryTrack.m_TrackingList.end()) << "Memory allocation exist on the tracking list while it shouldn't.";
 		};
 
 		void* MockAlloc(size_t a_Size, size_t a_Alignment)
@@ -82,3 +84,5 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 		t_MockArena.CheckAllocDoesntExists(t_TrackInstances[i]);
 	}
 }
+
+#endif //_DEBUG
