@@ -22,9 +22,9 @@ include_directories(/usr/include/X11)
 endif ()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    add_compile_definitions(_X64)
+    add_compile_definitions(_64BIT)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    add_compile_definitions(_X86)
+    add_compile_definitions(_32BIT)
 endif()
 
 #Add source to this project's executable.
@@ -37,7 +37,7 @@ add_executable (Allocator
 "Framework/Framework.cpp"
 "Framework/Allocators/Allocators.cpp" 
 "Framework/Allocators/Allocators.h" 
-"Framework/Allocators/BackingAllocator.h" 
+"Framework/Allocators/BackingAllocator/BackingAllocator.h" 
 "Framework/Allocators/AllocTypes.h" 
 "Framework/Allocators/MemoryArena.h" 
 "Framework/Allocators/MemoryArena.cpp" 
@@ -48,15 +48,14 @@ add_executable (Allocator
 "Framework/Utils/PointerUtils.h"
 "Framework/Utils/Math.h"
 "Framework/Utils/Hash.h"
-"Framework/Allocators/BackingAllocator${PLATFORM_NAME}.cpp" 
-"Framework/OS/OSDevice${PLATFORM_NAME}.cpp" 
+"Framework/Allocators/BackingAllocator/BackingAllocator${PLATFORM_NAME}.cpp" 
+"Framework/OS/OSDevice${PLATFORM_NAME}.cpp"
 
 "Framework/Allocators/Allocators_UTEST.h"
 "Framework/Storage/Dynamic_Array_UTEST.h"
 "Framework/Storage/Pool_UTEST.h" 
 "Framework/Storage/Hashmap_UTEST.h"
-"Framework/Allocators/MemoryArena_UTEST.h" 
-)
+"Framework/Allocators/MemoryArena_UTEST.h")
 
 #Include library
 target_precompile_headers(Allocator PRIVATE "pch/pch.h")

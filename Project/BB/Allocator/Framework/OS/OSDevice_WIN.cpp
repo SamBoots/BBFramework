@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "OSDevice.h"
-#define WIN32_LEAN_AND_MEAN
 
 #include <Windows.h>
 #include "Storage/Dynamic_Array.h"
@@ -62,6 +61,7 @@ public:
 			t_Style = WS_OVERLAPPED | WS_THICKFRAME;
 			break;
 		default:
+			t_Style = 0;
 			BB_ASSERT(false, "Tried to create a window with a OS_WINDOW_STYLE it does not accept.");
 			break;
 		}
@@ -102,10 +102,10 @@ public:
 			osDevice.LatestOSError();
 	}
 
-	HWND hwnd;
+	HWND hwnd = nullptr;
 
 private:
-	const char* m_WindowName;
+	const char* m_WindowName = nullptr;
 	HINSTANCE m_HInstance = nullptr;
 };
 
