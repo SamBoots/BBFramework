@@ -161,7 +161,8 @@ namespace BB
 			grow(a_Count);
 		
 		//Move all elements after a_Position 1 to the front.
-		memcpy(&m_Arr[a_Position + a_Count], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
+		//Using memmove for more safety.
+		memmove(&m_Arr[a_Position + a_Count], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
 
 		//Set all the elements.
 		memcpy(&m_Arr[a_Position], a_Elements, sizeof(T) * a_Count);
@@ -181,7 +182,7 @@ namespace BB
 	inline void BB::Dynamic_Array<T, Allocator>::emplace(size_t a_Position, Args&&... a_Args)
 	{
 		//Move all elements after a_Position 1 to the front.
-		memcpy(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
+		memmove(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
 
 		new (&m_Arr[a_Position]) T(std::forward<Args>(a_Args)...);
 		m_Size++;
