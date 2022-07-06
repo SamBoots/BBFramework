@@ -1,7 +1,5 @@
 # memory_studies
-Memory studies in context of the future BuildingBlock engine.
-
-Just me toying around with memory allocators for preperation of the framework on a larger game engine.
+Memory studies scaled up to allow for cross-platform virtual memory allocation and a small framework to have memory & OS operation abstractions for a later game engine project.
 
 ## Memory
 ### Virtual Memory Backing Allocator
