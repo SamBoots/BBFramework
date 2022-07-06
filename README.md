@@ -1,6 +1,8 @@
 # memory_studies
 Memory studies scaled up to allow for cross-platform virtual memory allocation and a small framework to have memory & OS operation abstractions for a later game engine project.
 
+Most code is unit tested using google test as the testing library. These unit tests are found as _UTEST.h files.
+
 ## Memory
 ### Virtual Memory Backing Allocator
 All the allocators and dynamic memory allocators come from a Backing Allocator. The backing allocator allocates virtual address space using the virtual allocation API's from specific OS's. **VirtualAlloc(WIN32) & MMAP(Linux)** This way the memory is always page bound, the allocators are end of page and resizing allocators can be done cheaply since the backing allocator will reserve more memory for when a resize event happens. 
