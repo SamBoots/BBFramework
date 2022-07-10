@@ -17,7 +17,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator);
+	BB::Dynamic_Array<size2593bytes> t_Array(t_Allocator);
 	EXPECT_EQ(t_Array.capacity(), BB::Dynamic_Array_Specs::multipleValue);
 
 	//Allocate an object without having allocated memory, this must be valid.
@@ -108,7 +108,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_push)
 	//2 MB alloactor.
 	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator, initialSize);
+	BB::Dynamic_Array<size2593bytes> t_Array(t_Allocator, initialSize);
 
 	size_t t_RandomValues[pushSize]{};
 	size2593bytes t_SizeArray[initialSize]{};
@@ -179,7 +179,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_emplace_back)
 	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator);
+	BB::Dynamic_Array<size2593bytes> t_Array(t_Allocator);
 	EXPECT_EQ(t_Array.capacity(), BB::Dynamic_Array_Specs::multipleValue);
 
 	size_t t_RandomValues[samples]{};
@@ -212,7 +212,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_insert_single)
 	//2 MB alloactor.
 	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator, initialSize);
+	BB::Dynamic_Array<size2593bytes> t_Array(t_Allocator, initialSize);
 
 	size_t t_RandomValues[randomNumberSize]{};
 
@@ -271,7 +271,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_insert_multiple)
 	//2 MB alloactor.
 	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Dynamic_Array<size2593bytes, BB::FreeListAllocator_t> t_Array(t_Allocator, initialSize);
+	BB::Dynamic_Array<size2593bytes> t_Array(t_Allocator, initialSize);
 
 	size_t t_RandomValues[randomNumberSize]{};
 

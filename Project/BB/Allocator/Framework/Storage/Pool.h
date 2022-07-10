@@ -4,29 +4,29 @@
 
 namespace BB
 {
-	template<typename T, typename Allocator>
+	template<typename T>
 	class Pool
 	{
 	public:
-		Pool(Allocator& a_Allocator, const size_t a_Size);
+		Pool(Allocator a_Allocator, const size_t a_Size);
 		~Pool();
 
 		T* Get();
 		void Free(T* a_Ptr);
 
 		const size_t size() const { return m_Size; };
-		const void* data() const { return m_Allocator.begin(); };
+		const void* data() const { return m_Start; };
 
 	private:
-		Allocator& m_Allocator;
+		Allocator m_Allocator;
 
 		size_t m_Size;
 		T* m_Start;
 		T** m_Pool;
 	};
 
-	template<typename T, typename Allocator>
-	inline BB::Pool<T, Allocator>::Pool(Allocator& a_Allocator, const size_t a_Size)
+	template<typename T>
+	inline BB::Pool<T>::Pool(Allocator a_Allocator, const size_t a_Size)
 		: m_Allocator(a_Allocator), m_Size(a_Size)
 	{
 		BB_STATIC_ASSERT(sizeof(T) >= sizeof(void*), "Pool object is smaller then the size of a pointer.");
@@ -45,14 +45,14 @@ namespace BB
 		*t_Pool = nullptr;
 	}
 
-	template<typename T, typename Allocator>
-	inline Pool<T, Allocator>::~Pool()
+	template<typename T>
+	inline Pool<T>::~Pool()
 	{
-		BBFreeArray<T>(m_Allocator, m_Start);
+		BBdestroyArray<T>(m_Allocator, m_Start);
 	}
 
-	template<class T, typename Allocator>
-	inline T* Pool<T, Allocator>::Get()
+	template<class T>
+	inline T* Pool<T>::Get()
 	{
 		if (m_Pool == nullptr)
 		{
@@ -66,8 +66,8 @@ namespace BB
 		return t_Ptr;
 	}
 
-	template<typename T, typename Allocator>
-	inline void BB::Pool<T, Allocator>::Free(T* a_Ptr)
+	template<typename T>
+	inline void BB::Pool<T>::Free(T* a_Ptr)
 	{
 		BB_ASSERT((a_Ptr >= m_Start && a_Ptr < m_Start + m_Size), "Trying to free an pool object that is not part of this pool!");
 		(*reinterpret_cast<T**>(a_Ptr)) = reinterpret_cast<T*>(m_Pool);

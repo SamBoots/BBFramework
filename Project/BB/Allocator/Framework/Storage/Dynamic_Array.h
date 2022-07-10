@@ -12,7 +12,7 @@ namespace BB
 		constexpr const size_t multipleValue = 8;
 	};
 
-	template<typename T, typename Allocator>
+	template<typename T>
 	struct Dynamic_Array
 	{
 		struct Iterator
@@ -51,8 +51,8 @@ namespace BB
 			pointer m_Ptr;
 		};
 
-		Dynamic_Array(Allocator& a_Allocator);
-		Dynamic_Array(Allocator& a_Allocator, size_t a_Size);
+		Dynamic_Array(Allocator a_Allocator);
+		Dynamic_Array(Allocator a_Allocator, size_t a_Size);
 		~Dynamic_Array();
 
 		T& operator[](const size_t a_Index) const;
@@ -74,26 +74,25 @@ namespace BB
 
 		const size_t size() const { return m_Size; };
 		const size_t capacity() const { return m_Capacity; }
-		const void* data() const { return m_Allocator.begin(); };
+		const void* data() const { return m_Arr; };
 
 		Iterator begin() { return Iterator(m_Arr); }
 		Iterator end() { return Iterator(m_Arr(m_Size + 1)); } //Get an out of bounds Iterator.
 			 
 	private:
-
 		void grow(size_t a_MinCapacity = 0);
 		//This function also changes the m_Capacity value.
 		void reallocate(size_t a_NewCapacity);
 
-		Allocator& m_Allocator;
+		Allocator m_Allocator;
 
 		T* m_Arr;
 		size_t m_Size = 0;
 		size_t m_Capacity;
 	};
 
-	template<typename T, typename Allocator>
-	inline BB::Dynamic_Array<T, Allocator>::Dynamic_Array(Allocator& a_Allocator)
+	template<typename T>
+	inline BB::Dynamic_Array<T>::Dynamic_Array(Allocator a_Allocator)
 		: m_Allocator(a_Allocator)
 	{
 		m_Capacity = Dynamic_Array_Specs::multipleValue;
@@ -101,8 +100,8 @@ namespace BB
 		m_Arr = BBallocArray<T>(m_Allocator, m_Capacity);
 	}
 
-	template<typename T, typename Allocator>
-	inline Dynamic_Array<T, Allocator>::Dynamic_Array(Allocator& a_Allocator, size_t a_Size)
+	template<typename T>
+	inline Dynamic_Array<T>::Dynamic_Array(Allocator a_Allocator, size_t a_Size)
 		: m_Allocator(a_Allocator)
 	{
 		BB_EXCEPTION(a_Size != 0, "Dynamic_array size is specified to be 0, use constructor without size!");
@@ -111,30 +110,27 @@ namespace BB
 		m_Arr = BBallocArray<T>(m_Allocator, m_Capacity);
 	}
 
-	template<typename T, typename Allocator>
-	inline Dynamic_Array<T, Allocator>::~Dynamic_Array()
+	template<typename T>
+	inline Dynamic_Array<T>::~Dynamic_Array()
 	{
-		BBFreeArray<T>(m_Allocator, m_Arr);
+		BBfreeArray<T>(m_Allocator, m_Arr);
 	}
 
-	template<typename T, typename Allocator>
-	inline T& Dynamic_Array<T, Allocator>::operator[](const size_t a_Index) const
+	template<typename T>
+	inline T& Dynamic_Array<T>::operator[](const size_t a_Index) const
 	{
 		BB_EXCEPTION(a_Index <= m_Size, "Dynamic_Array, trying to get an element using the [] operator but that element is not there.");
 		return m_Arr[a_Index];
 	}
 
-	template<typename T, typename Allocator>
-	inline void Dynamic_Array<T, Allocator>::push_back(T& a_Element)
+	template<typename T>
+	inline void Dynamic_Array<T>::push_back(T& a_Element)
 	{
-		if (m_Size >= m_Capacity)
-			grow();
-
 		emplace_back(a_Element);
 	}
 
-	template<typename T, typename Allocator>
-	inline void Dynamic_Array<T, Allocator>::push_back(const T* a_Elements, size_t a_Count)
+	template<typename T>
+	inline void Dynamic_Array<T>::push_back(const T* a_Elements, size_t a_Count)
 	{
 		if (m_Size + a_Count > m_Capacity)
 			grow(a_Count);
@@ -143,8 +139,8 @@ namespace BB
 		m_Size += a_Count;
 	}
 
-	template<typename T, typename Allocator>
-	inline void BB::Dynamic_Array<T, Allocator>::insert(size_t a_Position, const T& a_Element)
+	template<typename T>
+	inline void BB::Dynamic_Array<T>::insert(size_t a_Position, const T& a_Element)
 	{
 		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size!");
 		if (m_Size >= m_Capacity)
@@ -153,8 +149,8 @@ namespace BB
 		emplace(a_Position, a_Element);
 	}
 
-	template<typename T, typename Allocator>
-	inline void BB::Dynamic_Array<T, Allocator>::insert(size_t a_Position, const T* a_Elements, size_t a_Count)
+	template<typename T>
+	inline void BB::Dynamic_Array<T>::insert(size_t a_Position, const T* a_Elements, size_t a_Count)
 	{
 		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size! Resize the array before ");
 		if (m_Size + a_Count > m_Capacity)
@@ -169,17 +165,20 @@ namespace BB
 		m_Size += a_Count;
 	}
 
-	template<typename T, typename Allocator>
+	template<typename T>
 	template<class ...Args>
-	inline void BB::Dynamic_Array<T, Allocator>::emplace_back(Args&&... a_Args)
+	inline void BB::Dynamic_Array<T>::emplace_back(Args&&... a_Args)
 	{
+		if (m_Size >= m_Capacity)
+			grow();
+
 		new (&m_Arr[m_Size]) T(std::forward<Args>(a_Args)...);
 		m_Size++;
 	}
 
-	template<typename T, typename Allocator>
+	template<typename T>
 	template<class ...Args>
-	inline void BB::Dynamic_Array<T, Allocator>::emplace(size_t a_Position, Args&&... a_Args)
+	inline void BB::Dynamic_Array<T>::emplace(size_t a_Position, Args&&... a_Args)
 	{
 		//Move all elements after a_Position 1 to the front.
 		memmove(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
@@ -189,8 +188,8 @@ namespace BB
 	}
 
 
-	template<typename T, typename Allocator>
-	inline void Dynamic_Array<T, Allocator>::reserve(size_t a_Size)
+	template<typename T>
+	inline void Dynamic_Array<T>::reserve(size_t a_Size)
 	{
 		if (a_Size > m_Capacity)
 		{
@@ -201,27 +200,27 @@ namespace BB
 		}
 	}
 
-	template<typename T, typename Allocator>
-	inline void BB::Dynamic_Array<T, Allocator>::resize(size_t a_Size)
+	template<typename T>
+	inline void BB::Dynamic_Array<T>::resize(size_t a_Size)
 	{
 		reserve(a_Size);
 		m_Size = m_Capacity;
 	}
 
-	template<typename T, typename Allocator>
-	inline void BB::Dynamic_Array<T, Allocator>::pop()
+	template<typename T>
+	inline void BB::Dynamic_Array<T>::pop()
 	{
 		m_Size--;
 	}
 
-	template<typename T, typename Allocator>
-	inline void BB::Dynamic_Array<T, Allocator>::empty()
+	template<typename T>
+	inline void BB::Dynamic_Array<T>::empty()
 	{
 		m_Size = 0;
 	}
 
-	template<typename T, typename Allocator>
-	inline void Dynamic_Array<T, Allocator>::grow(size_t a_MinCapacity)
+	template<typename T>
+	inline void Dynamic_Array<T>::grow(size_t a_MinCapacity)
 	{
 		size_t t_ModifiedCapacity = m_Capacity * 2;
 
@@ -231,13 +230,13 @@ namespace BB
 		reallocate(t_ModifiedCapacity);
 	}
 
-	template<typename T, typename Allocator>
-	inline void Dynamic_Array<T, Allocator>::reallocate(size_t a_NewCapacity)
+	template<typename T>
+	inline void Dynamic_Array<T>::reallocate(size_t a_NewCapacity)
 	{
 		T* t_NewArr = BBallocArray<T>(m_Allocator, a_NewCapacity);
 		memcpy(t_NewArr, m_Arr, sizeof(T) * m_Capacity);
 
-		BBFreeArray(m_Allocator, m_Arr);
+		BBfreeArray(m_Allocator, m_Arr);
 
 		m_Arr = t_NewArr;
 

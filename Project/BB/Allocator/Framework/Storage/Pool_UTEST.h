@@ -15,7 +15,7 @@ TEST(PoolDataStructure, Pool_Create_Get_Free)
 	//2 MB alloactor.
 	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Pool<size2593bytes, BB::FreeListAllocator_t> t_Pool(t_Allocator, samples);
+	BB::Pool<size2593bytes> t_Pool(t_Allocator, samples);
 
 	size_t t_RandomValues[samples]{};
 	size2593bytes* t_Array[samples]{};

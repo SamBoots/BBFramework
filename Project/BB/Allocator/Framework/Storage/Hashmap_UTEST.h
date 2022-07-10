@@ -16,7 +16,7 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::UM_HashMap<uint32_t, size2593bytes, BB::FreeListAllocator_t> t_Map(t_Allocator);
+	BB::UM_HashMap<uint32_t, size2593bytes> t_Map(t_Allocator);
 
 	{
 		size2593bytes t_Value{};
@@ -62,7 +62,7 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::OL_HashMap<size_t, size2593bytes, BB::FreeListAllocator_t> t_Map(t_Allocator);
+	BB::OL_HashMap<size_t, size2593bytes> t_Map(t_Allocator);
 	t_Map.reserve(samples);
 	{
 		size2593bytes t_Value{};
@@ -139,8 +139,8 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 
 	//all the maps
 	std::unordered_map<size_t, size2593bytes> t_UnorderedMap;
-	BB::UM_HashMap<size_t, size2593bytes, BB::FreeListAllocator_t> t_UM_Map(t_Allocator);
-	BB::OL_HashMap<size_t, size2593bytes, BB::FreeListAllocator_t> t_OL_Map(t_Allocator);
+	BB::UM_HashMap<size_t, size2593bytes> t_UM_Map(t_Allocator);
+	BB::OL_HashMap<size_t, size2593bytes> t_OL_Map(t_Allocator);
 
 	t_UnorderedMap.reserve(4096);
 	t_UM_Map.reserve(4096);

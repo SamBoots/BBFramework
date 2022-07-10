@@ -3,7 +3,7 @@
 #include <cstdint>
 
 namespace BB
-{
+{	
 	namespace allocators
 	{
 		struct LinearAllocator
@@ -52,6 +52,8 @@ namespace BB
 				size_t size;
 				FreeBlock* next;
 			};
+
+
 			uint8_t* m_Start = nullptr;
 			FreeBlock* m_FreeBlocks;
 			size_t m_TotalAllocSize;
@@ -116,78 +118,9 @@ namespace BB
 		//	void** m_Pool;
 		//};
 	}
-
-	template <typename MemoryArena>
-	inline void* BBalloc(MemoryArena& a_Arena, const size_t a_Size)
-	{
-		return a_Arena.Alloc(a_Size, 1);
-	}
-
-	template <typename T, typename MemoryArena>
-	inline T* BBalloc(MemoryArena& a_Arena)
-	{
-		return new (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T), __alignof(T)))) T();
-	}
-
-	template <typename T, typename MemoryArena>
-	inline T* BBalloc(MemoryArena& a_Arena, const T& a_T)
-	{
-		return new (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T), __alignof(T)))) T(a_T);
-	}
-
-	template <typename T, typename MemoryArena, typename... Args>
-	inline T* BBalloc(MemoryArena& a_Arena, Args&&... a_Args)
-	{
-		return new (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T), __alignof(T)))) T(std::forward<Args>(a_Args)...);
-	}
-
-	template <typename T, typename MemoryArena>
-	inline T* BBallocArray(MemoryArena& a_Arena, size_t a_Length)
-	{
-		BB_ASSERT(a_Length != 0, "Trying to allocate an array with a length of 0.");
-
-		uint8_t t_HeaderSize = sizeof(size_t) / sizeof(T);
-
-		if (sizeof(size_t) % sizeof(T) > 0) t_HeaderSize += 1;
-
-		//Allocate the array, but shift it by sizeof(size_t) bytes forward to allow the size of the header to be put in as well.
-		T* ptr = (reinterpret_cast<T*>(a_Arena.Alloc(sizeof(T) * (a_Length + t_HeaderSize), __alignof(T)))) + t_HeaderSize;
-
-		//Store the size of the array inside the first element of the pointer.
-		*(reinterpret_cast<size_t*>(ptr) - 1) = a_Length;
-
-		//Create the elements.
-		for (size_t i = 0; i < a_Length; i++)
-			new (&ptr[i]) T();
-
-		return ptr;
-	}
-
-	template <typename MemoryArena>
-	inline void BBFree(MemoryArena& a_Arena, void* a_Ptr)
-	{
-		BB_ASSERT(a_Ptr != nullptr, "Trying to free a nullptr");
-		a_Arena.Free(a_Ptr);
-	}
-
-	template <typename T, typename MemoryArena>
-	inline void BBFreeArray(MemoryArena& a_Arena, T* a_Ptr)
-	{
-		BB_ASSERT(a_Ptr != nullptr, "Trying to freeArray a nullptr");
-
-		//get the array size
-		size_t t_Length = *(reinterpret_cast<size_t*>(a_Ptr) - 1);
-
-		for (size_t i = 0; i < t_Length; i++)
-			a_Ptr[i].~T();
-
-		size_t t_HeaderSize = sizeof(size_t) / sizeof(T);
-
-		if (sizeof(size_t) % sizeof(T) > 0) t_HeaderSize += 1;
-
-		a_Arena.Free(a_Ptr - t_HeaderSize);
-	}
 }
+
+
 
 //inline void* operator new(size_t a_Bytes, BB::memory::LinearAllocator* a_Allocator)
 //{

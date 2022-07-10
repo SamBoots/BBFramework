@@ -113,7 +113,7 @@ private:
 struct BB::OSDevice_o
 {
 	//Special array for all the windows. Stored seperately 
-	Dynamic_Array<OSWindow, OSAllocator_t> OSWindows{ OSAllocator, 8 };
+	Dynamic_Array<OSWindow> OSWindows{ OSAllocator, 8 };
 };
 
 
@@ -124,12 +124,12 @@ OSDevice& BB::AppOSDevice()
 
 OSDevice::OSDevice()
 {
-	m_OSDevice = BBalloc<OSDevice_o, OSAllocator_t>(OSAllocator);
+	m_OSDevice = BBalloc<OSDevice_o>(OSAllocator);
 }
 
 OSDevice::~OSDevice()
 {
-	BBFree<OSAllocator_t>(OSAllocator, m_OSDevice);
+	BBfree(OSAllocator, m_OSDevice);
 }
 
 const size_t BB::OSDevice::VirtualMemoryPageSize() const
