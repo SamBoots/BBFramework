@@ -39,8 +39,8 @@ namespace BB
 		//Prints the latest OS error and returns the error code, if it has no error code it returns 0.
 		const uint32_t LatestOSError() const;
 
-		FrameworkHandle CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName);
-		void DestroyOSWindow(FrameworkHandle a_Handle);
+		WindowHandle CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName);
+		void DestroyOSWindow(WindowHandle a_Handle);
 
 		//Exits the application.
 		void ExitApp() const;

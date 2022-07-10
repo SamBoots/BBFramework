@@ -159,7 +159,7 @@ const uint32_t OSDevice::LatestOSError() const
 	return static_cast<uint32_t>(t_LatestError);
 }
 
-FrameworkHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
+WindowHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 {
 	OSWindow t_OSWindow;
 	t_OSWindow.Init(a_Style, a_X, a_Y, a_Width, a_Height, a_WindowName);
@@ -171,19 +171,17 @@ FrameworkHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a
 		if (m_OSDevice->OSWindows[i].display == nullptr)
 		{
 			m_OSDevice->OSWindows[i] = t_OSWindow;
-			return FrameworkHandle(FRAMEWORK_RESOURCE_TYPE::WINDOW, static_cast<uint32_t>(i));
+			return WindowHandle(static_cast<uint32_t>(t_OSWindowsSize));
 		}
 	}
 
 	m_OSDevice->OSWindows.push_back(t_OSWindow);
 
-	return FrameworkHandle(FRAMEWORK_RESOURCE_TYPE::WINDOW, static_cast<uint32_t>(t_OSWindowsSize));
+	return WindowHandle(static_cast<uint32_t>(t_OSWindowsSize));
 }
 
-void BB::OSDevice::DestroyOSWindow(FrameworkHandle a_Handle)
+void BB::OSDevice::DestroyOSWindow(WindowHandle a_Handle)
 {
-	BB_ASSERT(a_Handle.type == FRAMEWORK_RESOURCE_TYPE::WINDOW, "Framework handle is not of type WINDOW when calling DestroyOSWindow!");
-	
 	//Don't delete it from the array but call the deconstructor.
 	m_OSDevice->OSWindows[a_Handle.index].Destroy();
 

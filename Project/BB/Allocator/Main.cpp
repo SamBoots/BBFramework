@@ -20,7 +20,6 @@ int main()
 	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 100, 100, 250, 50, "Memory Studies window1");
 
 	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 150, 100, 250, 100, "Memory Studies window2");
-	BB::FrameworkHandle handle = FRAMEWORK_NULL_HANDLE;
 
 	while (BB::AppOSDevice().ProcessMessages())
 	{

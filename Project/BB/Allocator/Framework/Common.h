@@ -3,24 +3,20 @@
 
 namespace BB
 {
-	enum class FRAMEWORK_RESOURCE_TYPE : uint32_t
-	{
-		EMPTY,
-		WINDOW
-	};
-
+	template<typename Tag>
 	union FrameworkHandle
 	{
-		FrameworkHandle(FRAMEWORK_RESOURCE_TYPE a_Type, uint32_t a_Index)
+		FrameworkHandle(uint32_t a_Index, uint32_t a_ExtraIndex = 0)
 		{
-			type = a_Type;
 			index = a_Index;
+			extraIndex = a_ExtraIndex;
 		};
 		struct
 		{
-			FRAMEWORK_RESOURCE_TYPE type;
-			//The handle index, the index is tracked by the resource_type system.
+			//The handle's main index. Always used and is the main handle.
 			uint32_t index;
+			//A extra handle index, can be used to track something else. Usually this value is 0.
+			uint32_t extraIndex;
 		};
 
 		uint64_t handle;
@@ -29,5 +25,5 @@ namespace BB
 		inline bool operator !=(FrameworkHandle a_Rhs) const { return handle != a_Rhs.handle; }
 	};
 
-	#define FRAMEWORK_NULL_HANDLE BB::FrameworkHandle( BB::FRAMEWORK_RESOURCE_TYPE::EMPTY, 0);
+	using WindowHandle = FrameworkHandle<struct WindowHandleTag>;
 }
