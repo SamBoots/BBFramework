@@ -24,7 +24,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	{
 		constexpr const size_t testvalue = 123456;
 
-		size2593bytes t_Object;
+		size2593bytes t_Object{};
 		t_Object.value = testvalue;
 		t_Array.push_back(t_Object);
 		EXPECT_EQ(t_Array[0].value, testvalue);
@@ -49,7 +49,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	t_OldCapacity = t_Array.capacity();
 	for (size_t i = 0; i <  initialSize; i++)
 	{
-		size2593bytes t_Object;
+		size2593bytes t_Object{};
 		t_Object.value = t_RandomValues[i];
 		t_Array.push_back(t_Object);
 	};
@@ -64,7 +64,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	EXPECT_EQ(t_OldCapacity, t_Array.capacity()) << "Dynamic array resized while it shouldn't!";
 	
 	//add a single object to go over the limit and test the resize.
-	size2593bytes t_LimitObject;
+	size2593bytes t_LimitObject{};
 	t_LimitObject.value = t_RandomValues[t_Array.size()];
 	t_Array.push_back(t_LimitObject);
 
@@ -85,7 +85,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	//now just fill the entire thing up.
 	for (size_t i = 0; i < samples; i++)
 	{
-		size2593bytes t_Object;
+		size2593bytes t_Object{};
 		t_Object.value = t_RandomValues[i];
 		t_Array.push_back(t_Object);
 	};

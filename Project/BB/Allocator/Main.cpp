@@ -8,6 +8,7 @@
 #include "Storage/Hashmap_UTEST.h"
 #include "Allocators/MemoryArena_UTEST.h"
 #include "Allocators/Allocators_UTEST.h"
+#include "Utils/Slice_UTEST.h"
 
 int main()
 {

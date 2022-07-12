@@ -48,6 +48,7 @@ add_executable (Allocator
 "Framework/Utils/PointerUtils.h"
 "Framework/Utils/Math.h"
 "Framework/Utils/Hash.h"
+"Framework/Utils/Slice.h"
 "Framework/Allocators/BackingAllocator/BackingAllocator${PLATFORM_NAME}.cpp" 
 "Framework/OS/OSDevice${PLATFORM_NAME}.cpp"
 
@@ -55,7 +56,8 @@ add_executable (Allocator
 "Framework/Storage/Dynamic_Array_UTEST.h"
 "Framework/Storage/Pool_UTEST.h" 
 "Framework/Storage/Hashmap_UTEST.h"
-"Framework/Allocators/MemoryArena_UTEST.h")
+"Framework/Allocators/MemoryArena_UTEST.h"
+"Framework/Utils/Slice_UTEST.h")
 
 #Include library
 target_precompile_headers(Allocator PRIVATE "pch/pch.h")
