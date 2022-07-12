@@ -10,6 +10,7 @@ namespace BB
 	{
 		constexpr const size_t overAllocateMultiplier = 16;
 		constexpr const size_t multipleValue = 8;
+		constexpr const size_t standardSize = 8;
 	};
 
 	template<typename T>
@@ -93,27 +94,30 @@ namespace BB
 
 	template<typename T>
 	inline BB::Dynamic_Array<T>::Dynamic_Array(Allocator a_Allocator)
-		: m_Allocator(a_Allocator)
-	{
-		m_Capacity = Dynamic_Array_Specs::multipleValue;
-
-		m_Arr = BBallocArray<T>(m_Allocator, m_Capacity);
-	}
+		: Dynamic_Array(a_Allocator, Dynamic_Array_Specs::standardSize) {}
 
 	template<typename T>
 	inline Dynamic_Array<T>::Dynamic_Array(Allocator a_Allocator, size_t a_Size)
 		: m_Allocator(a_Allocator)
 	{
-		BB_EXCEPTION(a_Size != 0, "Dynamic_array size is specified to be 0, use constructor without size!");
+		BB_EXCEPTION(a_Size != 0, "Dynamic_array size is specified to be 0");
 		m_Capacity = Math::RoundUp(a_Size, Dynamic_Array_Specs::multipleValue);
 
-		m_Arr = BBallocArray<T>(m_Allocator, m_Capacity);
+		m_Arr = reinterpret_cast<T*>(BBalloc(m_Allocator, m_Capacity * sizeof(T)));
 	}
 
 	template<typename T>
 	inline Dynamic_Array<T>::~Dynamic_Array()
 	{
-		BBfreeArray<T>(m_Allocator, m_Arr);
+		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		{
+			for (size_t i = 0; i < m_Size; i++)
+			{
+				m_Arr[i].~T();
+			}
+		}
+
+		BBfree(m_Allocator, m_Arr);
 	}
 
 	template<typename T>
@@ -135,17 +139,24 @@ namespace BB
 		if (m_Size + a_Count > m_Capacity)
 			grow(a_Count);
 
-		memcpy(&m_Arr[m_Size], a_Elements, sizeof(T) * a_Count);
+		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		{
+			for (size_t i = 0; i < a_Count; i++)
+			{
+				new (&m_Arr[m_Size + i]) T(a_Elements[i]);
+			}
+		}
+		else
+		{
+			memcpy(&m_Arr[m_Size], a_Elements, sizeof(T) * a_Count);
+		}
+
 		m_Size += a_Count;
 	}
 
 	template<typename T>
 	inline void BB::Dynamic_Array<T>::insert(size_t a_Position, const T& a_Element)
 	{
-		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size!");
-		if (m_Size >= m_Capacity)
-			grow();
-
 		emplace(a_Position, a_Element);
 	}
 
@@ -155,13 +166,13 @@ namespace BB
 		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size! Resize the array before ");
 		if (m_Size + a_Count > m_Capacity)
 			grow(a_Count);
-		
-		//Move all elements after a_Position 1 to the front.
+
+		//Move all elements after a_Position to the front to an equal amount of a_Count.
 		//Using memmove for more safety.
 		memmove(&m_Arr[a_Position + a_Count], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
-
 		//Set all the elements.
 		memcpy(&m_Arr[a_Position], a_Elements, sizeof(T) * a_Count);
+
 		m_Size += a_Count;
 	}
 
@@ -180,8 +191,25 @@ namespace BB
 	template<class ...Args>
 	inline void BB::Dynamic_Array<T>::emplace(size_t a_Position, Args&&... a_Args)
 	{
-		//Move all elements after a_Position 1 to the front.
-		memmove(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
+		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size!");
+		if (m_Size >= m_Capacity)
+			grow();
+
+		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		{
+			//Move all elements after a_Position 1 to the front.
+			for (size_t i = m_Size; i > a_Position; i--)
+			{
+				new (&m_Arr[i]) T(m_Arr[i - 1]);
+				m_Arr[i - 1].~T();
+			}
+		}
+		else
+		{
+			//Move all elements after a_Position 1 to the front.
+			//Using memmove for more safety.
+			memmove(&m_Arr[a_Position + 1], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
+		}
 
 		new (&m_Arr[a_Position]) T(std::forward<Args>(a_Args)...);
 		m_Size++;
@@ -233,10 +261,23 @@ namespace BB
 	template<typename T>
 	inline void Dynamic_Array<T>::reallocate(size_t a_NewCapacity)
 	{
-		T* t_NewArr = BBallocArray<T>(m_Allocator, a_NewCapacity);
-		memcpy(t_NewArr, m_Arr, sizeof(T) * m_Capacity);
+		T* t_NewArr = reinterpret_cast<T*>(BBalloc(m_Allocator, a_NewCapacity * sizeof(T)));
 
-		BBfreeArray(m_Allocator, m_Arr);
+		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		{
+			for (size_t i = 0; i < m_Size; i++)
+			{
+				new (&t_NewArr[i]) T(m_Arr[i]);
+				m_Arr[i].~T();
+			}
+		}
+		else 
+		{
+			memcpy(t_NewArr, m_Arr, sizeof(T) * m_Capacity);
+		}
+
+
+		BBfree(m_Allocator, m_Arr);
 
 		m_Arr = t_NewArr;
 

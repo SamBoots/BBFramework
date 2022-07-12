@@ -313,3 +313,161 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_insert_multiple)
 		EXPECT_EQ(t_Array[i + initialSize].value, t_RandomValues[i]) << "Dynamic Array, back 8 array test has wrong values.";
 	}
 }
+
+TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Object_Test)
+{
+	constexpr const size_t initialSize = 8;
+	constexpr const size_t randomNumberSize = 16; //Get double to test insertion
+	//Unaligned big struct with a union to test the value.
+	struct size2593bytesObj
+	{ 
+		size2593bytesObj() {};
+		size2593bytesObj(const size2593bytesObj& a_Rhs)
+		{
+			value = a_Rhs.value;
+			memcpy(data, a_Rhs.data, sizeof(data));
+		};
+		size2593bytesObj(size2593bytesObj& a_Rhs)
+		{
+			value = a_Rhs.value;
+			memcpy(data, a_Rhs.data, sizeof(data));
+		};
+		size2593bytesObj& operator=(const size2593bytesObj& a_Rhs)
+		{
+			value = a_Rhs.value;
+			memcpy(data, a_Rhs.data, sizeof(data));
+
+			return *this;
+		};
+		~size2593bytesObj() { value = 0; };
+
+		union { char data[2593]; size_t value; }; 
+	};
+
+	//2 MB alloactor.
+	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
+
+	BB::Dynamic_Array<size2593bytesObj> t_Array(t_Allocator, initialSize);
+
+	size_t t_RandomValues[randomNumberSize]{};
+
+	size2593bytesObj t_SizeArray[randomNumberSize]{};
+
+	for (size_t i = 0; i < randomNumberSize; i++)
+	{
+		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	}
+
+	for (size_t i = 0; i < randomNumberSize; i++)
+	{
+		t_SizeArray[i].value = t_RandomValues[i];
+	}
+
+	//Cache the current capacity since need to check that we do not go over it. 
+	size_t t_OldCapacity = t_Array.capacity();
+
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		t_Array.insert(i, t_SizeArray[i]);
+	}
+
+	EXPECT_EQ(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity has been resized while enough should've been reserved.";
+
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic Array, first array test has wrong values.";
+	}
+
+	//Now insert from the buttom again. But take the next 8 random numbers
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		t_Array.insert(i, t_SizeArray[i + initialSize]);
+	}
+	//Now check the begin 8 values that we just placed.
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i + initialSize]) << "Dynamic Array, begin 8 array test has wrong values.";
+	}
+
+	//Now check the back 8.
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		EXPECT_EQ(t_Array[i + initialSize].value, t_RandomValues[i]) << "Dynamic Array, back 8 array test has wrong values.";
+	}
+}
+
+TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Object_Test_multiple)
+{
+	constexpr const size_t initialSize = 8;
+	constexpr const size_t randomNumberSize = 16; //Get double to test insertion
+	//Unaligned big struct with a union to test the value.
+	struct size2593bytesObj
+	{
+		size2593bytesObj() {};
+		size2593bytesObj(const size2593bytesObj& a_Rhs)
+		{
+			value = a_Rhs.value;
+			memcpy(data, a_Rhs.data, sizeof(data));
+		};
+		size2593bytesObj(size2593bytesObj& a_Rhs)
+		{
+			value = a_Rhs.value;
+			memcpy(data, a_Rhs.data, sizeof(data));
+		};
+		size2593bytesObj& operator=(const size2593bytesObj& a_Rhs)
+		{
+			value = a_Rhs.value;
+			memcpy(data, a_Rhs.data, sizeof(data));
+
+			return *this;
+		};
+		~size2593bytesObj() { value = 0; };
+
+		union { char data[2593]; size_t value; };
+	};
+
+	//2 MB alloactor.
+	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
+
+	BB::Dynamic_Array<size2593bytesObj> t_Array(t_Allocator, initialSize);
+
+	size_t t_RandomValues[randomNumberSize]{};
+
+	size2593bytesObj t_SizeArray[randomNumberSize]{};
+
+	for (size_t i = 0; i < randomNumberSize; i++)
+	{
+		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	}
+
+	for (size_t i = 0; i < randomNumberSize; i++)
+	{
+		t_SizeArray[i].value = t_RandomValues[i];
+	}
+
+	//Cache the current capacity since need to check that we do not go over it. 
+	size_t t_OldCapacity = t_Array.capacity();
+
+	t_Array.insert(0, &t_SizeArray[0], initialSize);
+
+	EXPECT_EQ(t_OldCapacity, t_Array.capacity()) << "Dynamic array capacity has been resized while enough should've been reserved.";
+
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i]) << "Dynamic Array, first array test has wrong values.";
+	}
+
+	t_Array.insert(0, &t_SizeArray[initialSize], initialSize);
+
+	//Now check the begin 8 values that we just placed.
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		EXPECT_EQ(t_Array[i].value, t_RandomValues[i + initialSize]) << "Dynamic Array, begin 8 array test has wrong values.";
+	}
+
+	//Now check the back 8.
+	for (size_t i = 0; i < initialSize; i++)
+	{
+		EXPECT_EQ(t_Array[i + initialSize].value, t_RandomValues[i]) << "Dynamic Array, back 8 array test has wrong values.";
+	}
+}
