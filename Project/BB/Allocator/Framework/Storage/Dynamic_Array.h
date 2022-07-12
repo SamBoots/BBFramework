@@ -161,22 +161,6 @@ namespace BB
 	}
 
 	template<typename T>
-	inline void BB::Dynamic_Array<T>::insert(size_t a_Position, const T* a_Elements, size_t a_Count)
-	{
-		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size! Resize the array before ");
-		if (m_Size + a_Count > m_Capacity)
-			grow(a_Count);
-
-		//Move all elements after a_Position to the front to an equal amount of a_Count.
-		//Using memmove for more safety.
-		memmove(&m_Arr[a_Position + a_Count], &m_Arr[a_Position], sizeof(T) * (m_Size - a_Position));
-		//Set all the elements.
-		memcpy(&m_Arr[a_Position], a_Elements, sizeof(T) * a_Count);
-
-		m_Size += a_Count;
-	}
-
-	template<typename T>
 	template<class ...Args>
 	inline void BB::Dynamic_Array<T>::emplace_back(Args&&... a_Args)
 	{
