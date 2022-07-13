@@ -6,7 +6,7 @@ namespace BB
 {
 	namespace Hashmap_Specs
 	{
-		constexpr uint32_t Standard_Hashmap_Size = 1024;
+		constexpr uint32_t Standard_Hashmap_Size = 64;
 
 		constexpr const size_t multipleValue = 8;
 
@@ -30,6 +30,9 @@ namespace BB
 	template<typename Key, typename Value>
 	class UM_HashMap
 	{
+		static constexpr bool trivalDestructableKey = std::is_trivially_destructible_v<Key>;
+		static constexpr bool trivalDestructableValue = std::is_trivially_destructible_v<Value>;
+
 		struct HashEntry
 		{
 			HashEntry* next_Entry;
@@ -43,10 +46,13 @@ namespace BB
 		};
 
 	public:
-		UM_HashMap(Allocator a_Allocator, const size_t a_Size = Hashmap_Specs::Standard_Hashmap_Size);
+		UM_HashMap(Allocator a_Allocator);
+		UM_HashMap(Allocator a_Allocator, const size_t a_Size);
 		~UM_HashMap();
 
 		void insert(Key& a_Key, Value& a_Res);
+		template <class... Args>
+		void emplace(Key& a_Key, Args&&... a_ValueArgs);
 		Value* find(const Key& a_Key) const;
 		void remove(const Key& a_Key);
 
@@ -72,6 +78,11 @@ namespace BB
 			return false;
 		}
 	};
+
+	template<typename Key, typename Value>
+	inline UM_HashMap<Key, Value>::UM_HashMap(Allocator a_Allocator)
+		: UM_HashMap(a_Allocator, Hashmap_Specs::Standard_Hashmap_Size)
+	{}
 
 	template<typename Key, typename Value>
 	inline UM_HashMap<Key, Value>::UM_HashMap(Allocator a_Allocator, const size_t a_Size)
@@ -107,12 +118,12 @@ namespace BB
 			}
 		}
 		//Call the destructor if it has one for the value.
-		if constexpr (__has_user_destructor(Value))
+		if constexpr (!trivalDestructableValue)
 			for (size_t i = 0; i < m_Capacity; i++)
 				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
 					m_Entries[i].value.~Value();
 		//Call the destructor if it has one for the key.
-		if constexpr (__has_user_destructor(Key))
+		if constexpr (!trivalDestructableKey)
 			for (size_t i = 0; i < m_Capacity; i++)
 				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
 					m_Entries[i].key.~Key();
@@ -123,13 +134,20 @@ namespace BB
 	template<typename Key, typename Value>
 	inline void UM_HashMap<Key, Value>::insert(Key& a_Key, Value& a_Res)
 	{
+		emplace(a_Key, a_Res);
+	}
+
+	template<typename Key, typename Value>
+	template <class... Args>
+	inline void UM_HashMap<Key, Value>::emplace(Key& a_Key, Args&&... a_ValueArgs)
+	{
 		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		HashEntry* t_Entry = &m_Entries[t_Hash.hash];
 		if (t_Entry->state == Hashmap_Specs::Um_EmptyNode)
 		{
 			t_Entry->key = a_Key;
-			t_Entry->value = a_Res;
+			new (&t_Entry->value) Value(std::forward<Args>(a_ValueArgs)...);
 			t_Entry->next_Entry = nullptr;
 			return;
 		}
@@ -141,7 +159,7 @@ namespace BB
 			{
 				HashEntry* t_NewEntry = BBalloc<HashEntry>(m_Allocator);
 				t_NewEntry->key = a_Key;
-				t_NewEntry->value = a_Res;
+				new (&t_NewEntry->value) Value(std::forward<Args>(a_ValueArgs)...);
 				t_NewEntry->next_Entry = nullptr;
 				t_Entry->next_Entry = t_NewEntry;
 				return;
@@ -180,10 +198,10 @@ namespace BB
 		if (Match(t_Entry, a_Key))
 		{
 			//Call the destructor if it has one for the value.
-			if constexpr (__has_user_destructor(Value))
+			if constexpr (!trivalDestructableValue)
 				t_Entry->value.~Value();
 			//Call the destructor if it has one for the key.
-			if constexpr (__has_user_destructor(Key))
+			if constexpr (!trivalDestructableKey)
 				t_Entry->key.~Key();
 
 			if (t_Entry->next_Entry != nullptr)
@@ -271,6 +289,27 @@ namespace BB
 	template<typename Key, typename Value>
 	class OL_HashMap
 	{
+		static constexpr bool trivalDestructableValue = std::is_trivially_destructible_v<Value>;
+		static constexpr bool trivalDestructableKey = std::is_trivially_destructible_v<Key>;
+
+	public:
+		OL_HashMap(Allocator a_Allocator);
+		OL_HashMap(Allocator a_Allocator, const size_t a_Size);
+		~OL_HashMap();
+
+		void insert(Key& a_Key, Value& a_Res);
+		template <class... Args>
+		void emplace(Key& a_Key, Args&&... a_ValueArgs);
+		Value* find(const Key& a_Key) const;
+		void remove(const Key& a_Key);
+
+		void reserve(const size_t a_Size);
+
+	private:
+		void grow(size_t a_MinCapacity = 1);
+		void reallocate(const size_t a_NewLoadFactor);
+
+	private:
 		size_t m_Capacity;
 		size_t m_Size;
 		size_t m_LoadFactor;
@@ -281,21 +320,12 @@ namespace BB
 		Value* m_Values;
 
 		Allocator m_Allocator;
-
-	public:
-		OL_HashMap(Allocator a_Allocator, const size_t a_Size = Hashmap_Specs::Standard_Hashmap_Size);
-		~OL_HashMap();
-
-		void insert(Key& a_Key, Value& a_Res);
-		Value* find(const Key& a_Key) const;
-		void remove(const Key& a_Key);
-
-		void reserve(const size_t a_Size);
-
-	private:
-		void grow(size_t a_MinCapacity = 1);
-		void reallocate(const size_t a_NewLoadFactor);
 	};
+
+	template<typename Key, typename Value>
+	inline OL_HashMap<Key, Value>::OL_HashMap(Allocator a_Allocator)
+		: OL_HashMap(a_Allocator, Hashmap_Specs::Standard_Hashmap_Size)
+	{}
 
 	template<typename Key, typename Value>
 	inline OL_HashMap<Key, Value>::OL_HashMap(Allocator a_Allocator, const size_t a_Size)
@@ -318,12 +348,12 @@ namespace BB
 	inline OL_HashMap<Key, Value>::~OL_HashMap()
 	{
 		//Call the destructor if it has one for the value.
-		if constexpr (__has_user_destructor(Value))
+		if constexpr (!trivalDestructableValue)
 			for (size_t i = 0; i < m_Capacity; i++)
 				if (m_Hashes[i] != 0)
 					m_Values[i].~Value();
 		//Call the destructor if it has one for the key.
-		if constexpr (__has_user_destructor(Key))
+		if constexpr (!trivalDestructableKey)
 			for (size_t i = 0; i < m_Capacity; i++)
 				if (m_Hashes[i] != 0)
 					m_Keys[i].~Key();
@@ -333,6 +363,13 @@ namespace BB
 
 	template<typename Key, typename Value>
 	inline void OL_HashMap<Key, Value>::insert(Key& a_Key, Value& a_Res)
+	{
+		emplace(a_Key, a_Res);
+	}
+
+	template<typename Key, typename Value>
+	template <class... Args>
+	inline void OL_HashMap<Key, Value>::emplace(Key& a_Key, Args&&... a_ValueArgs)
 	{
 		if (m_Size > m_LoadFactor)
 			grow();
@@ -346,7 +383,7 @@ namespace BB
 			{
 				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
-				m_Values[i] = a_Res;
+				new (&m_Values[i]) Value(std::forward<Args>(a_ValueArgs)...);
 				return;
 			}
 		}
@@ -358,7 +395,7 @@ namespace BB
 			{
 				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
-				m_Values[i] = a_Res;
+				new (&m_Values[i]) Value(std::forward<Args>(a_ValueArgs)...);
 				return;
 			}
 		}
@@ -397,10 +434,10 @@ namespace BB
 			{
 				m_Hashes[i] = Hashmap_Specs::OL_EMPTY;
 				//Call the destructor if it has one for the value.
-				if constexpr (__has_user_destructor(Value))
+				if constexpr (!trivalDestructableValue)
 					m_Values[i].~Value();
 				//Call the destructor if it has one for the key.
-				if constexpr (__has_user_destructor(Key))
+				if constexpr (!trivalDestructableKey)
 					m_Keys[i].~Key();
 				m_Keys[i] = 0;
 
@@ -416,10 +453,10 @@ namespace BB
 			{
 				m_Hashes[i] = Hashmap_Specs::OL_EMPTY;
 				//Call the destructor if it has one for the value.
-				if constexpr (__has_user_destructor(Value))
+				if constexpr (!trivalDestructableValue)
 					m_Values[i].~Value();
 				//Call the destructor if it has one for the key.
-				if constexpr (__has_user_destructor(Key))
+				if constexpr (!trivalDestructableKey)
 					m_Keys[i].~Key();
 				m_Keys[i] = 0;
 
@@ -486,18 +523,10 @@ namespace BB
 				t_NewValues[t_Hash] = m_Values[i];
 			}
 		}
-		//Call the destructor if it has one for the value.
-		if constexpr (__has_user_destructor(Value))
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Hashes[i] != 0)
-					m_Values[i].~Value();
-		//Call the destructor if it has one for the key.
-		if constexpr (__has_user_destructor(Key))
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Hashes[i] != 0)
-					m_Keys[i].~Key();
 
-		BBfree(m_Allocator, m_Hashes);
+		//Remove all the elements and free the memory.
+		this->~OL_HashMap();
+
 		m_Hashes = t_NewHashes;
 		m_Keys = t_NewKeys;
 		m_Values = t_NewValues;

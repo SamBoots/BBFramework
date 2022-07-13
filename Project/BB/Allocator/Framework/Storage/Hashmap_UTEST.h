@@ -10,6 +10,7 @@
 struct size2593bytesObj
 {
 	size2593bytesObj() {};
+	size2593bytesObj(const size_t a_Value) : value(a_Value) {};
 	size2593bytesObj(const size2593bytesObj& a_Rhs)
 	{
 		value = a_Rhs.value;
@@ -176,7 +177,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		{
 			size2593bytesObj t_Insert{};
 			t_Insert.value = i;
-			t_UnorderedMap.insert(std::make_pair(t_RandomKeys[i], t_Insert));
+			t_UnorderedMap.emplace(std::make_pair(t_RandomKeys[i], t_Insert));
 		}
 		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "Unordered map emplace speed with: " << samples <<
@@ -190,7 +191,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		{
 			size2593bytesObj t_Insert{};
 			t_Insert.value = i;
-			t_UM_Map.insert(t_RandomKeys[i], t_Insert);
+			t_UM_Map.emplace(t_RandomKeys[i], t_Insert);
 		}
 		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map emplace speed with: " << samples <<
@@ -205,7 +206,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		{
 			size2593bytesObj t_Insert{};
 			t_Insert.value = i;
-			t_OL_Map.insert(t_RandomKeys[i], t_Insert);
+			t_OL_Map.emplace(t_RandomKeys[i], t_Insert.value);
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map emplace speed with: " << samples <<
