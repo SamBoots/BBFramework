@@ -264,7 +264,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//Unordered Map speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			EXPECT_EQ(t_UnorderedMap.find(EMPTY_KEY), t_UnorderedMap.end()) << "std unordered Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
+			EXPECT_EQ(t_UnorderedMap.find(EMPTY_KEY + i), t_UnorderedMap.end()) << "std unordered Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
 		}
 		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "Unordered map lookup null speed with: " << samples <<
@@ -276,7 +276,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::UM speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			EXPECT_EQ(t_UM_Map.find(EMPTY_KEY), nullptr) << "UM Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
+			EXPECT_EQ(t_UM_Map.find(EMPTY_KEY + i), nullptr) << "UM Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
 		}
 		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map lookup null speed with: " << samples <<
@@ -289,7 +289,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::OL speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			EXPECT_EQ(t_OL_Map.find(EMPTY_KEY), nullptr) << "OL Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
+			EXPECT_EQ(t_OL_Map.find(EMPTY_KEY + i), nullptr) << "OL Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map lookup null speed with: " << samples <<

@@ -414,7 +414,7 @@ namespace BB
 				return &m_Values[i];
 			}
 			//If you hit an empty return a nullptr.
-			if (m_Hashes[t_Hash] == Hashmap_Specs::OL_EMPTY)
+			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY)
 			{
 				return nullptr;
 			}
@@ -428,7 +428,7 @@ namespace BB
 				return &m_Values[i];
 			}
 			//If you hit an empty return a nullptr.
-			if (m_Hashes[t_Hash] == Hashmap_Specs::OL_EMPTY)
+			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY)
 			{
 				return nullptr;
 			}
