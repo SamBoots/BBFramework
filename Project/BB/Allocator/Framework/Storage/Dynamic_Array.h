@@ -16,6 +16,9 @@ namespace BB
 	template<typename T>
 	struct Dynamic_Array
 	{
+		static constexpr bool trivalDestructableT = std::is_trivially_destructible_v<T>;
+		static constexpr bool trivialConstructableT = std::is_trivially_constructible_v<T>;
+
 		struct Iterator
 		{
 			//Iterator idea from:
@@ -109,7 +112,7 @@ namespace BB
 	template<typename T>
 	inline Dynamic_Array<T>::~Dynamic_Array()
 	{
-		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		if constexpr (!trivalDestructableT)
 		{
 			for (size_t i = 0; i < m_Size; i++)
 			{
@@ -139,7 +142,7 @@ namespace BB
 		if (m_Size + a_Count > m_Capacity)
 			grow(a_Count);
 
-		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		if constexpr (!trivialConstructableT)
 		{
 			for (size_t i = 0; i < a_Count; i++)
 			{
@@ -179,7 +182,7 @@ namespace BB
 		if (m_Size >= m_Capacity)
 			grow();
 
-		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		if constexpr (!trivialConstructableT || !trivalDestructableT)
 		{
 			//Move all elements after a_Position 1 to the front.
 			for (size_t i = m_Size; i > a_Position; i--)
@@ -247,7 +250,7 @@ namespace BB
 	{
 		T* t_NewArr = reinterpret_cast<T*>(BBalloc(m_Allocator, a_NewCapacity * sizeof(T)));
 
-		if constexpr (__has_assign(T) || __has_copy(T) || __has_user_destructor(T))
+		if constexpr (!trivialConstructableT || !trivalDestructableT)
 		{
 			for (size_t i = 0; i < m_Size; i++)
 			{

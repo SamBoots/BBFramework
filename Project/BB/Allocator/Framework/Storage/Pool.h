@@ -4,6 +4,7 @@
 
 namespace BB
 {
+	//This class is outdated and needs updating.
 	template<typename T>
 	class Pool
 	{
