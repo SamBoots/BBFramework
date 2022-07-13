@@ -10,18 +10,20 @@ namespace BB
 
 		constexpr const size_t multipleValue = 8;
 
-		//Not used, if it's full resize a unordered map.
-		constexpr const size_t UM_LoadFactorCAP = 1;
-		//Not used, if it's full resize a unordered map.
-		constexpr const size_t UM_LoadFactorSIZE = 1;
+		constexpr const float UM_LoadFactor = 1.f;
 		constexpr const size_t Um_EmptyNode = 0x00;
 
 
-		constexpr const size_t OL_LoadFactorCAP = 2;
-		constexpr const size_t OL_LoadFactorSIZE = 3;
-
+		constexpr const float OL_LoadFactor = 1.3f;
 		constexpr const uintptr_t OL_TOMBSTONE = 0xDEADBEEFDEADBEEF;
+		constexpr const size_t OL_EMPTY = 0xAABBCCDD;
 	};
+
+	//Calculate the load factor.
+	static size_t LFCalculation(size_t a_Size, float a_LoadFactor)
+	{
+		return static_cast<size_t>(static_cast<float>(a_Size) * (1.f / a_LoadFactor + 1));
+	}
 
 #pragma region Unordered_Map
 	//Unordered Map, uses linked list for collision.
@@ -76,7 +78,7 @@ namespace BB
 		: m_Allocator(a_Allocator)
 	{
 		m_Capacity = a_Size;
-		m_Entries = BBallocArray<HashEntry>(m_Allocator, m_Capacity);
+		m_Entries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, m_Capacity * sizeof(HashEntry)));
 	}
 
 	template<typename Key, typename Value>
@@ -93,13 +95,29 @@ namespace BB
 				{
 					HashEntry* t_DeleteEntry = t_NextEntry;
 					t_NextEntry = t_NextEntry->next_Entry;
+					//Call the destructor if it has one for the value.
+					if constexpr (__has_user_destructor(Value))
+						t_DeleteEntry->value.~Value();
+					//Call the destructor if it has one for the key.
+					if constexpr (__has_user_destructor(Key))
+						t_DeleteEntry->key.~Key();
 
 					BBfree(m_Allocator, t_DeleteEntry);
 				}
 			}
 		}
+		//Call the destructor if it has one for the value.
+		if constexpr (__has_user_destructor(Value))
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
+					m_Entries[i].value.~Value();
+		//Call the destructor if it has one for the key.
+		if constexpr (__has_user_destructor(Key))
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
+					m_Entries[i].key.~Key();
 
-		BBdestroyArray(m_Allocator, m_Entries);
+		BBfree(m_Allocator, m_Entries);
 	}
 
 	template<typename Key, typename Value>
@@ -161,10 +179,13 @@ namespace BB
 		HashEntry* t_Entry = &m_Entries[t_Hash];
 		if (Match(t_Entry, a_Key))
 		{
-			t_Entry->value.~Value();
-#ifdef _DEBUG
-			memset(&t_Entry->value, 0, sizeof(Value));
-#endif // _DEBUG
+			//Call the destructor if it has one for the value.
+			if constexpr (__has_user_destructor(Value))
+				t_Entry->value.~Value();
+			//Call the destructor if it has one for the key.
+			if constexpr (__has_user_destructor(Key))
+				t_Entry->key.~Key();
+
 			if (t_Entry->next_Entry != nullptr)
 			{
 				HashEntry* t_NextEntry = t_Entry->next_Entry;
@@ -197,7 +218,7 @@ namespace BB
 	{
 		if (a_Size > m_Capacity)
 		{
-			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactorCAP, Hashmap_Specs::multipleValue);
+			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactor, Hashmap_Specs::multipleValue);
 
 			reallocate(t_ModifiedCapacity);
 		}
@@ -207,7 +228,7 @@ namespace BB
 	inline void BB::UM_HashMap<Key, Value>::reallocate(const size_t a_NewCapacity)
 	{
 		//Allocate the new buffer.
-		HashEntry* t_NewEntries = BBallocArray<HashEntry>(m_Allocator, a_NewCapacity);
+		HashEntry* t_NewEntries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, a_NewCapacity * sizeof(HashEntry)));
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
@@ -255,6 +276,7 @@ namespace BB
 		size_t m_LoadFactor;
 
 		//All the elements.
+		Hash* m_Hashes;
 		Key* m_Keys;
 		Value* m_Values;
 
@@ -272,35 +294,47 @@ namespace BB
 
 	private:
 		void grow(size_t a_MinCapacity = 1);
-		void reallocate(const size_t a_NewCapacity);
+		void reallocate(const size_t a_NewLoadFactor);
 	};
 
 	template<typename Key, typename Value>
 	inline OL_HashMap<Key, Value>::OL_HashMap(Allocator a_Allocator, const size_t a_Size)
 		: m_Allocator(a_Allocator)
 	{
-		m_Capacity = a_Size;
+		m_Capacity = LFCalculation(a_Size, Hashmap_Specs::OL_LoadFactor);
 		m_Size = 0;
-		m_LoadFactor = m_Capacity * Hashmap_Specs::UM_LoadFactorCAP;
+		m_LoadFactor = a_Size;
 
-		const size_t t_MemorySize = (sizeof(Key) + sizeof(Value)) * m_Capacity;
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
 
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
-		m_Keys = reinterpret_cast<Key*>(t_Buffer);
-		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, sizeof(Key) * m_Capacity));
-		memset(m_Keys, 0, sizeof(Key) * m_Capacity);
+		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
+		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * m_Capacity));
+		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
+		std::fill(m_Hashes, m_Hashes + m_Capacity, Hashmap_Specs::OL_EMPTY);
 	}
 
 	template<typename Key, typename Value>
 	inline OL_HashMap<Key, Value>::~OL_HashMap()
 	{
-		BBfree(m_Allocator, m_Keys);
+		//Call the destructor if it has one for the value.
+		if constexpr (__has_user_destructor(Value))
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Hashes[i] != 0)
+					m_Values[i].~Value();
+		//Call the destructor if it has one for the key.
+		if constexpr (__has_user_destructor(Key))
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Hashes[i] != 0)
+					m_Keys[i].~Key();
+
+		BBfree(m_Allocator, m_Hashes);
 	}
 
 	template<typename Key, typename Value>
 	inline void OL_HashMap<Key, Value>::insert(Key& a_Key, Value& a_Res)
 	{
-		if (m_Size * Hashmap_Specs::OL_LoadFactorSIZE > m_LoadFactor)
+		if (m_Size > m_LoadFactor)
 			grow();
 
 		m_Size++;
@@ -308,8 +342,9 @@ namespace BB
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			if (m_Keys[i] == 0)
+			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY)
 			{
+				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
 				m_Values[i] = a_Res;
 				return;
@@ -319,8 +354,9 @@ namespace BB
 		//Loop again but then from the start and stop at the hash. 
 		for (size_t i = 0; i < t_Hash; i++)
 		{
-			if (m_Keys[i] == 0)
+			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY)
 			{
+				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
 				m_Values[i] = a_Res;
 				return;
@@ -359,11 +395,15 @@ namespace BB
 		{
 			if (m_Keys[i] == a_Key)
 			{
+				m_Hashes[i] = Hashmap_Specs::OL_EMPTY;
+				//Call the destructor if it has one for the value.
+				if constexpr (__has_user_destructor(Value))
+					m_Values[i].~Value();
+				//Call the destructor if it has one for the key.
+				if constexpr (__has_user_destructor(Key))
+					m_Keys[i].~Key();
 				m_Keys[i] = 0;
-				m_Values[i].~Value();
-#ifdef _DEBUG
-				memset(&m_Values[i], 0, sizeof(Value));
-#endif // _DEBUG
+
 				m_Size--;
 				return;
 			}
@@ -374,11 +414,15 @@ namespace BB
 		{
 			if (m_Keys[i] == a_Key)
 			{
+				m_Hashes[i] = Hashmap_Specs::OL_EMPTY;
+				//Call the destructor if it has one for the value.
+				if constexpr (__has_user_destructor(Value))
+					m_Values[i].~Value();
+				//Call the destructor if it has one for the key.
+				if constexpr (__has_user_destructor(Key))
+					m_Keys[i].~Key();
 				m_Keys[i] = 0;
-				m_Values[i].~Value();
-#ifdef _DEBUG
-				memset(&m_Values[i], 0, sizeof(Value));
-#endif // _DEBUG
+
 				m_Size--;
 				return;
 			}
@@ -391,7 +435,7 @@ namespace BB
 	{
 		if (a_Size > m_Capacity)
 		{
-			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactorSIZE, Hashmap_Specs::multipleValue);
+			size_t t_ModifiedCapacity = Math::RoundUp(a_Size, Hashmap_Specs::multipleValue);
 
 			reallocate(t_ModifiedCapacity);
 		}
@@ -411,41 +455,55 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline void OL_HashMap<Key, Value>::reallocate(const size_t a_NewCapacity)
+	inline void OL_HashMap<Key, Value>::reallocate(const size_t a_NewLoadFactor)
 	{
+		const size_t t_NewCapacity = LFCalculation(a_NewLoadFactor, Hashmap_Specs::OL_LoadFactor);
+
 		//Allocate the new buffer.
-		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * a_NewCapacity;
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * t_NewCapacity;
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
 
-		Key* t_NewKeys = reinterpret_cast<Key*>(t_Buffer);
-		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, sizeof(Key) * a_NewCapacity));
-		memset(t_NewKeys, 0, sizeof(Key) * a_NewCapacity);
+		Hash* t_NewHashes = reinterpret_cast<Hash*>(t_Buffer);
+		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * t_NewCapacity));
+		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * t_NewCapacity));
+		std::fill(t_NewHashes, t_NewHashes + t_NewCapacity, Hashmap_Specs::OL_EMPTY);
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
-			if (m_Keys[i] != 0)
+			if (m_Hashes[i] != 0)
 			{
 				Key t_Key = m_Keys[i];
-				Hash t_Hash = Hash::MakeHash(t_Key) % a_NewCapacity;
+				Hash t_Hash = Hash::MakeHash(t_Key) % t_NewCapacity;
 
-				while (m_Keys[t_Hash] != 0)
+				while (t_NewHashes[t_Hash] != Hashmap_Specs::OL_EMPTY)
 				{
 					t_Hash++;
-					if (t_Hash > a_NewCapacity)
+					if (t_Hash > t_NewCapacity)
 						t_Hash = 0;
 				}
-
+				t_NewHashes[t_Hash] = t_Hash;
 				t_NewKeys[t_Hash] = t_Key;
 				t_NewValues[t_Hash] = m_Values[i];
 			}
 		}
+		//Call the destructor if it has one for the value.
+		if constexpr (__has_user_destructor(Value))
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Hashes[i] != 0)
+					m_Values[i].~Value();
+		//Call the destructor if it has one for the key.
+		if constexpr (__has_user_destructor(Key))
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Hashes[i] != 0)
+					m_Keys[i].~Key();
 
-		BBfree(m_Allocator, m_Keys);
+		BBfree(m_Allocator, m_Hashes);
+		m_Hashes = t_NewHashes;
 		m_Keys = t_NewKeys;
 		m_Values = t_NewValues;
 
-		m_Capacity = a_NewCapacity;
-		m_LoadFactor = m_Capacity * Hashmap_Specs::UM_LoadFactorCAP;
+		m_Capacity = t_NewCapacity;
+		m_LoadFactor = a_NewLoadFactor;
 	}
 }
 

@@ -6,22 +6,46 @@
 #include "Hashmap.h"
 #include "Utils/Math.h"
 
+//Unaligned big struct with a union to test the value.
+struct size2593bytesObj
+{
+	size2593bytesObj() {};
+	size2593bytesObj(const size2593bytesObj& a_Rhs)
+	{
+		value = a_Rhs.value;
+		memcpy(data, a_Rhs.data, sizeof(data));
+	};
+	size2593bytesObj(size2593bytesObj& a_Rhs)
+	{
+		value = a_Rhs.value;
+		memcpy(data, a_Rhs.data, sizeof(data));
+	};
+	size2593bytesObj& operator=(const size2593bytesObj& a_Rhs)
+	{
+		value = a_Rhs.value;
+		memcpy(data, a_Rhs.data, sizeof(data));
+
+		return *this;
+	};
+	~size2593bytesObj() { value = 0; };
+
+	union { char data[2593]; size_t value; };
+};
+
 TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 {
-	constexpr const uint32_t samples = 256;
-	//Unaligned big struct with a union to test the value.
-	struct size2593bytes { union { char data[2593]; size_t value; }; };
+	constexpr const size_t samples = 256;
 
 	//32 MB alloactor.
 	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::UM_HashMap<uint32_t, size2593bytes> t_Map(t_Allocator);
+	BB::UM_HashMap<size_t, size2593bytesObj> t_Map(t_Allocator);
 
 	{
-		size2593bytes t_Value{};
+		size2593bytesObj t_Value{};
 		t_Value.value = 500;
-		uint32_t t_Key = 124;
+		size_t t_Key = 124;
 		t_Map.insert(t_Key, t_Value);
 
 		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
@@ -39,33 +63,28 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 	
 	for (uint32_t i = 0; i < samples; i++)
 	{
-		size2593bytes t_Value{};
+		size2593bytesObj t_Value{};
 		t_Value.value = 500;
-		uint32_t t_Key = t_RandomKeys[i];
+		size_t t_Key = t_RandomKeys[i];
 		t_Map.insert(t_Key, t_Value);
 
 		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
-
-		t_Map.remove(t_Key);
-		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 }
 
 TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 {
 	constexpr const uint32_t samples = 4096;
-	//Unaligned big struct with a union to test the value.
-	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
 	//32 MB alloactor.
 	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
-	BB::OL_HashMap<size_t, size2593bytes> t_Map(t_Allocator);
+	BB::OL_HashMap<size_t, size2593bytesObj> t_Map(t_Allocator);
 	t_Map.reserve(samples);
 	{
-		size2593bytes t_Value{};
+		size2593bytesObj t_Value{};
 		t_Value.value = 500;
 		size_t t_Key = 124;
 		t_Map.insert(t_Key, t_Value);
@@ -86,7 +105,7 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 	//Only test a quarter of the samples for just inserting and removing.
 	for (size_t i = 0; i < samples / 4; i++)
 	{
-		size2593bytes t_Value{};
+		size2593bytesObj t_Value{};
 		t_Value.value = 500;
 		size_t t_Key = t_RandomKeys[i];
 		t_Map.insert(t_Key, t_Value);
@@ -101,7 +120,7 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 	//FIll the map to double it's size and test if a resize works.
 	for (size_t i = 0; i < samples; i++)
 	{
-		size2593bytes t_Value{};
+		size2593bytesObj t_Value{};
 		t_Value.value = t_RandomKeys[i] + 2;
 		size_t t_Key = t_RandomKeys[i];
 		t_Map.insert(t_Key, t_Value);
@@ -114,9 +133,6 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		EXPECT_NE(t_Map.find(t_Key), nullptr) << " Cannot find the element while it was added!";
 		if (t_Map.find(t_Key) != nullptr)
 			EXPECT_EQ(t_Map.find(t_Key)->value, t_Key + 2) << "element: " << i << " Wrong element was likely grabbed.";
-
-		t_Map.remove(t_RandomKeys[i]);
-		//EXPECT_EQ(t_Map.Find(t_RandomKeys[i]), nullptr) << "element: " << i << " Element was found while it should've been deleted.";
 	}
 }
 
@@ -130,21 +146,19 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	constexpr const float MILLITIMEDIVIDE = 1 / 1000.f;
 
 	constexpr const size_t samples = 4096;
-	//Unaligned big struct with a union to test the value.
-	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
 	//32 MB alloactor.
 	const size_t allocatorSize = BB::mbSize * 32;
 	BB::FreeListAllocator_t t_Allocator(allocatorSize);
 
 	//all the maps
-	std::unordered_map<size_t, size2593bytes> t_UnorderedMap;
-	BB::UM_HashMap<size_t, size2593bytes> t_UM_Map(t_Allocator);
-	BB::OL_HashMap<size_t, size2593bytes> t_OL_Map(t_Allocator);
+	std::unordered_map<size_t, size2593bytesObj> t_UnorderedMap;
+	BB::UM_HashMap<size_t, size2593bytesObj> t_UM_Map(t_Allocator);
+	BB::OL_HashMap<size_t, size2593bytesObj> t_OL_Map(t_Allocator);
 
-	t_UnorderedMap.reserve(4096);
-	t_UM_Map.reserve(4096);
-	t_OL_Map.reserve(4096);
+	t_UnorderedMap.reserve(samples);
+	t_UM_Map.reserve(samples);
+	t_OL_Map.reserve(samples);
 
 	//The samples we will use as an example.
 	size_t t_RandomKeys[samples]{};
@@ -160,7 +174,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//Unordered Map speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			size2593bytes t_Insert;
+			size2593bytesObj t_Insert{};
 			t_Insert.value = i;
 			t_UnorderedMap.insert(std::make_pair(t_RandomKeys[i], t_Insert));
 		}
@@ -174,7 +188,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::UM speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			size2593bytes t_Insert;
+			size2593bytesObj t_Insert{};
 			t_Insert.value = i;
 			t_UM_Map.insert(t_RandomKeys[i], t_Insert);
 		}
@@ -189,7 +203,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::OL speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			size2593bytes t_Insert;
+			size2593bytesObj t_Insert{};
 			t_Insert.value = i;
 			t_OL_Map.insert(t_RandomKeys[i], t_Insert);
 		}
