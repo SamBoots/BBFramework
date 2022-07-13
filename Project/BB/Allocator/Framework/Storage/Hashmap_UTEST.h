@@ -146,7 +146,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	typedef std::chrono::duration<float, std::milli> ms;
 	constexpr const float MILLITIMEDIVIDE = 1 / 1000.f;
 
-	constexpr const size_t samples = 4096;
+	constexpr const size_t samples = 8192;
 
 	//32 MB alloactor.
 	const size_t allocatorSize = BB::mbSize * 32;
@@ -168,7 +168,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		t_RandomKeys[i] = static_cast<size_t>(BB::Utils::RandomUInt());
 	}
 	
-
+	std::cout << "/-----------------------------------------/" << "\n";
 #pragma region Insert_Test
 	{	
 		auto t_Timer = std::chrono::high_resolution_clock::now();
@@ -214,7 +214,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	}
 
 #pragma endregion
-
+	std::cout << "/-----------------------------------------/" << "\n";
 #pragma region Lookup_Test
 
 	{
@@ -255,7 +255,49 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	}
 
 #pragma endregion
+	std::cout << "/-----------------------------------------/" << "\n";
+#pragma region Lookup_Empty_Test
 
+	constexpr const size_t EMPTY_KEY = 414141414141;
+	{
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//Unordered Map speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			EXPECT_EQ(t_UnorderedMap.find(EMPTY_KEY), t_UnorderedMap.end()) << "std unordered Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
+		}
+		auto t_Unordered_MapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "Unordered map lookup null speed with: " << samples <<
+			" took this much MS: " << t_Unordered_MapSpeed << "\n";
+	}
+
+	{
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//BB::UM speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			EXPECT_EQ(t_UM_Map.find(EMPTY_KEY), nullptr) << "UM Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
+		}
+		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "UM map lookup null speed with: " << samples <<
+			" took this much MS: " << t_UMMapSpeed << "\n";
+	}
+
+	{
+
+		auto t_Timer = std::chrono::high_resolution_clock::now();
+		//BB::OL speed.
+		for (size_t i = 0; i < samples; i++)
+		{
+			EXPECT_EQ(t_OL_Map.find(EMPTY_KEY), nullptr) << "OL Hashmap found a key while it shouldn't exist." << t_RandomKeys[i];
+		}
+		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
+		std::cout << "OL map lookup null speed with: " << samples <<
+			" took this much MS: " << t_OLMapSpeed << "\n";
+	}
+
+#pragma endregion
+	std::cout << "/-----------------------------------------/" << "\n";
 #pragma region Removal_Test
 	{
 		auto t_Timer = std::chrono::high_resolution_clock::now();
@@ -293,4 +335,5 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 			" 2593 byte elements took this much MS: " << t_OLMapSpeed << "\n";
 	}
 #pragma endregion
+	std::cout << "/-----------------------------------------/" << "\n";
 }

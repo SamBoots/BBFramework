@@ -377,9 +377,10 @@ namespace BB
 		m_Size++;
 		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
+
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY)
+			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY || m_Hashes[i] == Hashmap_Specs::OL_TOMBSTONE)
 			{
 				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
@@ -391,7 +392,7 @@ namespace BB
 		//Loop again but then from the start and stop at the hash. 
 		for (size_t i = 0; i < t_Hash; i++)
 		{
-			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY)
+			if (m_Hashes[i] == Hashmap_Specs::OL_EMPTY || m_Hashes[i] == Hashmap_Specs::OL_TOMBSTONE)
 			{
 				m_Hashes[i] = t_Hash;
 				m_Keys[i] = a_Key;
@@ -409,14 +410,28 @@ namespace BB
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
 			if (m_Keys[i] == a_Key)
+			{
 				return &m_Values[i];
+			}
+			//If you hit an empty return a nullptr.
+			if (m_Hashes[t_Hash] == Hashmap_Specs::OL_EMPTY)
+			{
+				return nullptr;
+			}
 		}
 
 		//Loop again but then from the start and stop at the hash. 
 		for (size_t i = 0; i < t_Hash; i++)
 		{
 			if (m_Keys[i] == a_Key)
+			{
 				return &m_Values[i];
+			}
+			//If you hit an empty return a nullptr.
+			if (m_Hashes[t_Hash] == Hashmap_Specs::OL_EMPTY)
+			{
+				return nullptr;
+			}
 		}
 
 		//Key does not exist.
@@ -432,7 +447,7 @@ namespace BB
 		{
 			if (m_Keys[i] == a_Key)
 			{
-				m_Hashes[i] = Hashmap_Specs::OL_EMPTY;
+				m_Hashes[i] = Hashmap_Specs::OL_TOMBSTONE;
 				//Call the destructor if it has one for the value.
 				if constexpr (!trivalDestructableValue)
 					m_Values[i].~Value();
@@ -451,7 +466,7 @@ namespace BB
 		{
 			if (m_Keys[i] == a_Key)
 			{
-				m_Hashes[i] = Hashmap_Specs::OL_EMPTY;
+				m_Hashes[i] = Hashmap_Specs::OL_TOMBSTONE;
 				//Call the destructor if it has one for the value.
 				if constexpr (!trivalDestructableValue)
 					m_Values[i].~Value();
