@@ -4,7 +4,7 @@
 #pragma warning (pop)
 
 #include "Hashmap.h"
-#include "Utils/Math.h"
+#include "Utils/Utils.h"
 
 //Unaligned big struct with a union to test the value.
 struct size2593bytesObj
@@ -59,7 +59,7 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 	uint32_t t_RandomKeys[samples]{};
 	for (uint32_t i = 0; i < samples; i++)
 	{
-		t_RandomKeys[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomKeys[i] = static_cast<size_t>(BB::Random::Random());
 	}
 	
 	for (uint32_t i = 0; i < samples; i++)
@@ -165,7 +165,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 	size_t t_RandomKeys[samples]{};
 	for (uint32_t i = 0; i < samples; i++)
 	{
-		t_RandomKeys[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomKeys[i] = static_cast<size_t>(BB::Random::Random());
 	}
 	
 	std::cout << "/-----------------------------------------/" << "\n";

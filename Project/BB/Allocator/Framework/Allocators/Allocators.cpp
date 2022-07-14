@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Allocators.h"
-#include "Utils/PointerUtils.h"
-#include "Utils/Math.h"
+#include "Utils/Utils.h"
 
 #include "BackingAllocator/BackingAllocator.h"
 #include "OS/OSDevice.h"
@@ -24,9 +23,9 @@ LinearAllocator::~LinearAllocator()
 
 void* LinearAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 {
-	size_t t_Adjustment = pointerutils::alignForwardAdjustment(m_Buffer, a_Alignment);
+	size_t t_Adjustment = Pointer::AlignForwardAdjustment(m_Buffer, a_Alignment);
 
-	uintptr_t t_Address = reinterpret_cast<uintptr_t>(pointerutils::Add(m_Buffer, t_Adjustment));
+	uintptr_t t_Address = reinterpret_cast<uintptr_t>(Pointer::Add(m_Buffer, t_Adjustment));
 	m_Buffer = reinterpret_cast<void*>(t_Address + a_Size);
 
 	if (t_Address + a_Size > m_End)
@@ -73,7 +72,7 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 
 	while (t_FreeBlock != nullptr)
 	{
-		size_t t_Adjustment = pointerutils::alignForwardAdjustmentHeader(t_FreeBlock, a_Alignment, sizeof(AllocHeader));
+		size_t t_Adjustment = Pointer::AlignForwardAdjustmentHeader(t_FreeBlock, a_Alignment, sizeof(AllocHeader));
 		size_t t_TotalSize = a_Size + t_Adjustment;
 
 		if (t_FreeBlock->size < t_TotalSize)
@@ -94,7 +93,7 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 		}
 		else
 		{
-			FreeBlock* t_NextBlock = reinterpret_cast<FreeBlock*>(pointerutils::Add(t_FreeBlock, t_TotalSize));
+			FreeBlock* t_NextBlock = reinterpret_cast<FreeBlock*>(Pointer::Add(t_FreeBlock, t_TotalSize));
 
 			t_NextBlock->size = t_FreeBlock->size - t_TotalSize;
 			t_NextBlock->next = t_FreeBlock->next;
@@ -130,7 +129,7 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 void FreelistAllocator::Free(void* a_Ptr)
 {
 	BB_ASSERT(a_Ptr != nullptr, "Nullptr send to FreelistAllocator::Free!.");
-	AllocHeader* t_Header = reinterpret_cast<AllocHeader*>(pointerutils::Subtract(a_Ptr, sizeof(AllocHeader)));
+	AllocHeader* t_Header = reinterpret_cast<AllocHeader*>(Pointer::Subtract(a_Ptr, sizeof(AllocHeader)));
 	size_t t_BlockSize = t_Header->size;
 	uintptr_t t_BlockStart = reinterpret_cast<uintptr_t>(a_Ptr) - t_Header->adjustment;
 	uintptr_t t_BlockEnd = t_BlockStart + t_BlockSize;
@@ -237,7 +236,7 @@ void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
 	{
 		FreeBlock* t_FreeBlock = t_FreeList->freeBlock;
 
-		FreeBlock* t_NewBlock = reinterpret_cast<FreeBlock*>(pointerutils::Add(t_FreeList->freeBlock, t_FreeList->allocSize));
+		FreeBlock* t_NewBlock = reinterpret_cast<FreeBlock*>(Pointer::Add(t_FreeList->freeBlock, t_FreeList->allocSize));
 		t_NewBlock->size = t_FreeBlock->size - t_FreeList->allocSize;
 		t_NewBlock->next = t_FreeBlock->next;
 
@@ -264,7 +263,7 @@ void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
 		//Place the freelist into the allocation so that it can go back to this.
 		reinterpret_cast<AllocHeader*>(t_FreeBlock)->freeList = t_FreeList;
 
-		return pointerutils::Add(t_FreeBlock, sizeof(AllocHeader));
+		return Pointer::Add(t_FreeBlock, sizeof(AllocHeader));
 	}
 
 	BB_ASSERT(false, "POW_FreelistAllocator either has not enough memory or it doesn't support a size of this allocation.");
@@ -273,7 +272,7 @@ void* BB::allocators::POW_FreelistAllocator::Alloc(size_t a_Size, size_t)
 
 void BB::allocators::POW_FreelistAllocator::Free(void* a_Ptr)
 {
-	AllocHeader* t_Address = static_cast<AllocHeader*>(pointerutils::Subtract(a_Ptr, sizeof(AllocHeader)));
+	AllocHeader* t_Address = static_cast<AllocHeader*>(Pointer::Subtract(a_Ptr, sizeof(AllocHeader)));
 	FreeList* t_FreeList = t_Address->freeList;
 
 	FreeBlock* t_NewFreeBlock = reinterpret_cast<FreeBlock*>(t_Address);

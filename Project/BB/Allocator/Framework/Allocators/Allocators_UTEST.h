@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #pragma warning (pop)
 #include "AllocTypes.h"
-#include "Utils/Math.h"
+#include "Utils/Utils.h"
 
 //Bytes samples with different sizes.
 constexpr const size_t sample_32_bytes = 10000;
@@ -38,7 +38,7 @@ TEST(MemoryAllocators, LINEAR_SINGLE_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	BB::LinearAllocator_t t_LinearAllocator(allocatorSize);
@@ -99,7 +99,7 @@ TEST(MemoryAllocators, LINEAR_ARRAY_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	BB::LinearAllocator_t t_LinearAllocator(allocatorSize);
@@ -158,7 +158,7 @@ TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	BB::FreeListAllocator_t t_FreelistAllocator(allocatorSize);
@@ -229,7 +229,7 @@ TEST(MemoryAllocators, FREELIST_ARRAY_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	BB::FreeListAllocator_t t_FreeList(allocatorSize);
@@ -292,7 +292,7 @@ TEST(MemoryAllocators, POW_FREELIST_SINGLE_ALLOCATIONS)
 	size_t randomValues[samples]{};
 	for (size_t i = 0; i < samples; i++)
 	{
-		randomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		randomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	BB::POW_FreeListAllocator_t t_POW_FreelistAllocator(allocatorSize);

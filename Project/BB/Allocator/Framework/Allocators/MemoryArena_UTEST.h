@@ -3,9 +3,7 @@
 #pragma warning (push, 0)
 #include <gtest/gtest.h>
 #pragma warning (pop)
-#include "Utils/Math.h"
-
-#include "Utils/PointerUtils.h"
+#include "Utils/Utils.h"
 
 #ifdef _DEBUG
 
@@ -32,7 +30,7 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 		{
 			ASSERT_EQ(allocationsDone, m_MemoryTrack.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
 
-			auto t_It = m_MemoryTrack.m_TrackingList.find(BB::pointerutils::Subtract(a_Instance.ptr, BB::MemoryDebugTools::BOUNDRY_FRONT));
+			auto t_It = m_MemoryTrack.m_TrackingList.find(BB::Pointer::Subtract(a_Instance.ptr, BB::MemoryDebugTools::BOUNDRY_FRONT));
 			ASSERT_NE(t_It, m_MemoryTrack.m_TrackingList.end()) << "Memory allocation doesn't exist on the tracking list.";
 
 			ASSERT_EQ(a_Instance.size + BB::MemoryDebugTools::BOUNDRY_BACK + BB::MemoryDebugTools::BOUNDRY_FRONT, t_It->second) << "Memory allocation doesn't share the size.";
@@ -42,7 +40,7 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 		{
 			ASSERT_EQ(allocationsDone, m_MemoryTrack.m_TrackingList.size()) << "Memory not correctly tracked, allocations done is not equal to the trackinglist.";
 
-			ASSERT_EQ(m_MemoryTrack.m_TrackingList.find(BB::pointerutils::Subtract(a_Instance.ptr, BB::MemoryDebugTools::BOUNDRY_FRONT)), m_MemoryTrack.m_TrackingList.end()) << "Memory allocation exist on the tracking list while it shouldn't.";
+			ASSERT_EQ(m_MemoryTrack.m_TrackingList.find(BB::Pointer::Subtract(a_Instance.ptr, BB::MemoryDebugTools::BOUNDRY_FRONT)), m_MemoryTrack.m_TrackingList.end()) << "Memory allocation exist on the tracking list while it shouldn't.";
 		};
 
 		void* MockAlloc(size_t a_Size, size_t a_Alignment)
@@ -65,7 +63,7 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 
 	for (size_t i = 0; i < TRACKAMOUNT; i++)
 	{
-		const size_t t_RandomAllocSize = BB::Utils::RandomUintMinMax(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
+		const size_t t_RandomAllocSize = BB::Random::Random(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE);
 
 		t_TrackInstances[i].size = t_RandomAllocSize;
 		t_TrackInstances[i].ptr = t_MockArena.MockAlloc(t_RandomAllocSize, __alignof(t_RandomAllocSize));

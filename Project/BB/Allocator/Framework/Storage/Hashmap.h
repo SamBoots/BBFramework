@@ -1,6 +1,7 @@
 #pragma once
 #include "Allocators/AllocTypes.h"
 #include "Utils/Hash.h"
+#include "Utils/Utils.h"
 
 namespace BB
 {
@@ -107,10 +108,10 @@ namespace BB
 					HashEntry* t_DeleteEntry = t_NextEntry;
 					t_NextEntry = t_NextEntry->next_Entry;
 					//Call the destructor if it has one for the value.
-					if constexpr (__has_user_destructor(Value))
+					if constexpr (!trivalDestructableValue)
 						t_DeleteEntry->value.~Value();
 					//Call the destructor if it has one for the key.
-					if constexpr (__has_user_destructor(Key))
+					if constexpr (!trivalDestructableKey)
 						t_DeleteEntry->key.~Key();
 
 					BBfree(m_Allocator, t_DeleteEntry);
@@ -339,8 +340,8 @@ namespace BB
 
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
 		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
-		m_Keys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * m_Capacity));
-		m_Values = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
+		m_Keys = reinterpret_cast<Key*>(Pointer::Add(t_Buffer, sizeof(Hash) * m_Capacity));
+		m_Values = reinterpret_cast<Value*>(Pointer::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
 		std::fill(m_Hashes, m_Hashes + m_Capacity, Hashmap_Specs::OL_EMPTY);
 	}
 
@@ -516,8 +517,8 @@ namespace BB
 		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
 
 		Hash* t_NewHashes = reinterpret_cast<Hash*>(t_Buffer);
-		Key* t_NewKeys = reinterpret_cast<Key*>(pointerutils::Add(t_Buffer, sizeof(Hash) * t_NewCapacity));
-		Value* t_NewValues = reinterpret_cast<Value*>(pointerutils::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * t_NewCapacity));
+		Key* t_NewKeys = reinterpret_cast<Key*>(Pointer::Add(t_Buffer, sizeof(Hash) * t_NewCapacity));
+		Value* t_NewValues = reinterpret_cast<Value*>(Pointer::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * t_NewCapacity));
 		std::fill(t_NewHashes, t_NewHashes + t_NewCapacity, Hashmap_Specs::OL_EMPTY);
 
 		for (size_t i = 0; i < m_Capacity; i++)

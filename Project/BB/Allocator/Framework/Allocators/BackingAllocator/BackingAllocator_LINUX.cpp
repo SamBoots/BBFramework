@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "BackingAllocator.h"
-#include "Utils/PointerUtils.h"
-#include "Utils/Math.h"
+#include "Utils/Utils.h"
 #include "OS/OSDevice.h"
 
 #include <sys/mman.h>
@@ -27,12 +26,12 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_ext
 	if (a_Start != nullptr)
 	{
 		//Get the header for preperation to resize it.
-		VirtualHeader* t_PageHeader = reinterpret_cast<VirtualHeader*>(pointerutils::Subtract(a_Start, sizeof(VirtualHeader)));
+		VirtualHeader* t_PageHeader = reinterpret_cast<VirtualHeader*>(Pointer::Subtract(a_Start, sizeof(VirtualHeader)));
 
 		//Commit more memory if there is enough reserved.
 		if (t_PageHeader->bytesReserved > t_PageAdjustedSize + t_PageHeader->bytesCommited)
 		{
-			void* t_NewCommitRange = pointerutils::Add(t_PageHeader, t_PageHeader->bytesCommited);
+			void* t_NewCommitRange = Pointer::Add(t_PageHeader, t_PageHeader->bytesCommited);
 
 			t_PageHeader->bytesCommited += t_PageAdjustedSize;
 			mprotect(t_PageHeader, t_PageHeader->bytesCommited, PROT_READ | PROT_WRITE);
@@ -59,12 +58,12 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_ext
 	reinterpret_cast<VirtualHeader*>(t_Address)->bytesReserved = t_AdditionalReserve;
 
 	//Return the pointer that does not include the StartPageHeader
-	return pointerutils::Add(t_Address, sizeof(VirtualHeader));
+	return Pointer::Add(t_Address, sizeof(VirtualHeader));
 }
 
 void BB::freeVirtual(void* a_Ptr)
 {
-	VirtualHeader* t_Header = reinterpret_cast<VirtualHeader*>(pointerutils::Subtract(a_Ptr, sizeof(VirtualHeader)));
+	VirtualHeader* t_Header = reinterpret_cast<VirtualHeader*>(Pointer::Subtract(a_Ptr, sizeof(VirtualHeader)));
 	munmap(t_Header, t_Header->bytesReserved);
 	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Linux API error munmap.");
 }

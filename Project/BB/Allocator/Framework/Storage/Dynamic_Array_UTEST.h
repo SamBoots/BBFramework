@@ -4,7 +4,7 @@
 #pragma warning (pop)
 
 #include "Dynamic_Array.h"
-#include "Utils/Math.h"
+#include "Utils/Utils.h"
 
 TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 {
@@ -42,7 +42,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 
 	for (size_t i = 0; i < samples; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	//Cache the current capacity since we will go over it. 
@@ -115,7 +115,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_push)
 
 	for (size_t i = 0; i < pushSize; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	for (size_t i = 0; i < initialSize; i++)
@@ -186,7 +186,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_emplace_back)
 
 	for (size_t i = 0; i < samples; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	//Cache the current capacity since we will go over it. 
@@ -220,7 +220,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_insert_single)
 
 	for (size_t i = 0; i < randomNumberSize; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	for (size_t i = 0; i < randomNumberSize; i++)
@@ -302,7 +302,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Object_Test)
 
 	for (size_t i = 0; i < randomNumberSize; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	for (size_t i = 0; i < randomNumberSize; i++)
@@ -360,7 +360,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Copy)
 
 	for (size_t i = 0; i < testSize; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	for (size_t i = 0; i < testSize; i++)
@@ -404,7 +404,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Assignment)
 
 	for (size_t i = 0; i < testSize; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 	}
 
 	for (size_t i = 0; i < testSize; i++)

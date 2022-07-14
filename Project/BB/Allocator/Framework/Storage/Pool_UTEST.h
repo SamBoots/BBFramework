@@ -4,7 +4,7 @@
 #pragma warning (pop)
 
 #include "Pool.h"
-#include "Utils/Math.h"
+#include "Utils/Utils.h"
 
 TEST(PoolDataStructure, Pool_Create_Get_Free)
 {
@@ -22,7 +22,7 @@ TEST(PoolDataStructure, Pool_Create_Get_Free)
 
 	for (size_t i = 0; i < samples; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 		t_Array[i] = t_Pool.Get();
 
 		//If the pool is empty it returns a nullptr, so it must not return a nullptr here.
@@ -46,7 +46,7 @@ TEST(PoolDataStructure, Pool_Create_Get_Free)
 
 	for (size_t i = 0; i < samples; i++)
 	{
-		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+		t_RandomValues[i] = static_cast<size_t>(BB::Random::Random());
 		t_Array[i] = t_Pool.Get();
 
 		//If the pool is empty it returns a nullptr, so it must not return a nullptr here.

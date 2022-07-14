@@ -19,7 +19,7 @@ void BoundsCheck::AddBoundries(void* a_FrontPtr, size_t a_AllocSize)
 	//Set the begin bound value
 	*reinterpret_cast<size_t*>(a_FrontPtr) = BoundryCheckValue;
 
-	void* a_BackPtr = pointerutils::Add(a_FrontPtr, a_AllocSize - BOUNDRY_BACK);
+	void* a_BackPtr = Pointer::Add(a_FrontPtr, a_AllocSize - BOUNDRY_BACK);
 	*reinterpret_cast<size_t*>(a_BackPtr) = BoundryCheckValue;
 
 	m_BoundsList.emplace(a_FrontPtr, a_BackPtr);

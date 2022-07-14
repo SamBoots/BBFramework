@@ -4,7 +4,7 @@
 
 		//needs replacement by a custom hashmap.
 #include <unordered_map>
-#include "Utils/PointerUtils.h"
+#include "Utils/Utils.h"
 
 namespace BB
 {
@@ -104,7 +104,7 @@ namespace BB
 			//Do all the debugging tools.
 			m_BoundsCheck.AddBoundries(allocatedMemory, a_Size);
 			m_MemoryTrack.OnAlloc(allocatedMemory, a_Size);
-			allocatedMemory = pointerutils::Add(allocatedMemory, MemoryDebugTools::BOUNDRY_FRONT);
+			allocatedMemory = Pointer::Add(allocatedMemory, MemoryDebugTools::BOUNDRY_FRONT);
 #endif //_DEBUG
 			m_ThreadPolicy.Leave();
 
@@ -115,7 +115,7 @@ namespace BB
 			m_ThreadPolicy.Enter();
 #ifdef _DEBUG
 			//Adjust the pointer to the boundry that was being set.
-			a_Ptr = pointerutils::Subtract(a_Ptr, MemoryDebugTools::BOUNDRY_FRONT);
+			a_Ptr = Pointer::Subtract(a_Ptr, MemoryDebugTools::BOUNDRY_FRONT);
 			m_BoundsCheck.CheckBoundries(a_Ptr);
 			m_MemoryTrack.OnDealloc(a_Ptr);
 #endif //_DEBUG
