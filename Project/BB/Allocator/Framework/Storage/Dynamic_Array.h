@@ -121,17 +121,7 @@ namespace BB
 		m_Capacity = a_Array.m_Capacity;
 		m_Arr = reinterpret_cast<T*>(BBalloc(m_Allocator, m_Capacity * sizeof(T)));
 
-		if constexpr (!trivalDestructableT)
-		{
-			for (size_t i = 0; i < m_Size; i++)
-			{
-				new (m_Arr[i]) T(a_Array.m_Arr[i]);
-			}
-		}
-		else
-		{
-			memcpy(m_Arr, a_Array.m_Arr, sizeof(T) * m_Size);
-		}
+		Memory::Copy<T>(m_Arr, a_Array.m_Arr, m_Size);
 	}
 
 	template<typename T>
@@ -174,17 +164,7 @@ namespace BB
 		m_Capacity = a_Rhs.m_Capacity;
 		m_Arr = reinterpret_cast<T*>(BBalloc(m_Allocator, m_Capacity * sizeof(T)));
 
-		if constexpr (!trivalDestructableT)
-		{
-			for (size_t i = 0; i < m_Size; i++)
-			{
-				new (m_Arr[i]) T(a_Rhs.m_Arr[i]);
-			}
-		}
-		else
-		{
-			memcpy(m_Arr, a_Rhs.m_Arr, sizeof(T) * m_Size);
-		}
+		Memory::Copy<T>(m_Arr, a_Rhs.m_Arr, m_Size);
 		
 		return *this;
 	}
@@ -225,17 +205,7 @@ namespace BB
 		if (m_Size + a_Count > m_Capacity)
 			grow(a_Count);
 
-		if constexpr (!trivialConstructableT)
-		{
-			for (size_t i = 0; i < a_Count; i++)
-			{
-				new (&m_Arr[m_Size + i]) T(a_Elements[i]);
-			}
-		}
-		else
-		{
-			memcpy(&m_Arr[m_Size], a_Elements, sizeof(T) * a_Count);
-		}
+		Memory::Copy<T>(m_Arr, a_Elements, a_Count);
 
 		m_Size += a_Count;
 	}
@@ -308,12 +278,24 @@ namespace BB
 	template<typename T>
 	inline void BB::Dynamic_Array<T>::pop()
 	{
-		m_Size--;
+		BB_ASSERT(m_Size == 0, "Dynamic_Array, Popping while m_Size is 0!");
+		--m_Size;
+		if constexpr (!trivalDestructableT)
+		{
+			m_Arr[m_Size].~T();
+		}
 	}
 
 	template<typename T>
 	inline void BB::Dynamic_Array<T>::empty()
 	{
+		if constexpr (!trivalDestructableT)
+		{
+			for (size_t i = 0; i < m_Size; i++)
+			{
+				m_Arr[i].~T();
+			}
+		}
 		m_Size = 0;
 	}
 
@@ -333,24 +315,10 @@ namespace BB
 	{
 		T* t_NewArr = reinterpret_cast<T*>(BBalloc(m_Allocator, a_NewCapacity * sizeof(T)));
 
-		if constexpr (!trivialConstructableT || !trivalDestructableT)
-		{
-			for (size_t i = 0; i < m_Size; i++)
-			{
-				new (&t_NewArr[i]) T(m_Arr[i]);
-				m_Arr[i].~T();
-			}
-		}
-		else 
-		{
-			memcpy(t_NewArr, m_Arr, sizeof(T) * m_Capacity);
-		}
-
-
+		Memory::Move(t_NewArr, m_Arr, m_Size);
 		BBfree(m_Allocator, m_Arr);
 
 		m_Arr = t_NewArr;
-
 		m_Capacity = a_NewCapacity;
 	}
 }
