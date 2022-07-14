@@ -57,8 +57,12 @@ namespace BB
 
 		Dynamic_Array(Allocator a_Allocator);
 		Dynamic_Array(Allocator a_Allocator, size_t a_Size);
+		Dynamic_Array(const Dynamic_Array<T>& a_Array);
+		Dynamic_Array(Dynamic_Array<T>&& a_Array) noexcept;
 		~Dynamic_Array();
 
+		Dynamic_Array<T>& operator=(const Dynamic_Array<T>& a_Rhs);
+		Dynamic_Array<T>& operator=(Dynamic_Array<T>&& a_Rhs);
 		T& operator[](const size_t a_Index) const;
 
 		void push_back(T& a_Element);
@@ -78,7 +82,7 @@ namespace BB
 
 		const size_t size() const { return m_Size; };
 		const size_t capacity() const { return m_Capacity; }
-		const void* data() const { return m_Arr; };
+		void* data() const { return m_Arr; };
 
 		Iterator begin() { return Iterator(m_Arr); }
 		Iterator end() { return Iterator(m_Arr(m_Size + 1)); } //Get an out of bounds Iterator.
@@ -110,17 +114,96 @@ namespace BB
 	}
 
 	template<typename T>
-	inline Dynamic_Array<T>::~Dynamic_Array()
+	inline BB::Dynamic_Array<T>::Dynamic_Array(const Dynamic_Array<T>& a_Array)
 	{
+		m_Allocator = a_Array.m_Allocator;
+		m_Size = a_Array.m_Size;
+		m_Capacity = a_Array.m_Capacity;
+		m_Arr = reinterpret_cast<T*>(BBalloc(m_Allocator, m_Capacity * sizeof(T)));
+
 		if constexpr (!trivalDestructableT)
 		{
 			for (size_t i = 0; i < m_Size; i++)
 			{
-				m_Arr[i].~T();
+				new (m_Arr[i]) T(a_Array.m_Arr[i]);
 			}
 		}
+		else
+		{
+			memcpy(m_Arr, a_Array.m_Arr, sizeof(T) * m_Size);
+		}
+	}
 
-		BBfree(m_Allocator, m_Arr);
+	template<typename T>
+	inline BB::Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T>&& a_Array) noexcept
+	{
+		m_Allocator = a_Array.m_Allocator;
+		m_Size = a_Array.m_Size;
+		m_Capacity = a_Array.m_Capacity;
+		m_Arr = a_Array.m_Arr;
+
+		a_Array.m_Size = 0;
+		a_Array.m_Capacity = 0;
+		a_Array.m_Arr = nullptr;
+		a_Array.m_Allocator.allocator = nullptr;
+		a_Array.m_Allocator.func = nullptr;
+	}
+
+	template<typename T>
+	inline Dynamic_Array<T>::~Dynamic_Array()
+	{
+		if (m_Arr != nullptr)
+		{
+			if constexpr (!trivalDestructableT)
+			{
+				for (size_t i = 0; i < m_Size; i++)
+				{
+					m_Arr[i].~T();
+				}
+			}
+
+			BBfree(m_Allocator, m_Arr);
+		}
+	}
+
+	template<typename T>
+	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(const Dynamic_Array<T>& a_Rhs)
+	{
+		m_Allocator = a_Rhs.m_Allocator;
+		m_Size = a_Rhs.m_Size;
+		m_Capacity = a_Rhs.m_Capacity;
+		m_Arr = reinterpret_cast<T*>(BBalloc(m_Allocator, m_Capacity * sizeof(T)));
+
+		if constexpr (!trivalDestructableT)
+		{
+			for (size_t i = 0; i < m_Size; i++)
+			{
+				new (m_Arr[i]) T(a_Rhs.m_Arr[i]);
+			}
+		}
+		else
+		{
+			memcpy(m_Arr, a_Rhs.m_Arr, sizeof(T) * m_Size);
+		}
+		
+		return *this;
+	}
+
+	template<typename T>
+	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(Dynamic_Array<T>&& a_Rhs)
+	{
+		m_Allocator = a_Rhs.m_Allocator;
+		m_Size = a_Rhs.m_Size;
+		m_Capacity = a_Rhs.m_Capacity;
+		m_Arr = a_Rhs.m_Arr;
+
+		a_Rhs.m_Size = 0;
+		a_Rhs.m_Capacity = 0;
+		a_Rhs.m_Arr = nullptr;
+		a_Rhs.m_Allocator.allocator = nullptr;
+		a_Rhs.m_Allocator.func = nullptr;
+
+		return *this;
 	}
 
 	template<typename T>

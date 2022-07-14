@@ -342,3 +342,94 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Object_Test)
 		EXPECT_EQ(t_Array[i + initialSize].value, t_RandomValues[i]) << "Dynamic Array, back 8 array test has wrong values.";
 	}
 }
+
+TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Copy)
+{
+	constexpr const size_t testSize = 18;
+	//Unaligned big struct with a union to test the value.
+	struct size2593bytes { union { char data[2593]; size_t value; }; };
+
+	//2 MB alloactor.
+	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
+
+	BB::Dynamic_Array<size2593bytes> t_Array(t_Allocator, testSize);
+
+	size_t t_RandomValues[testSize]{};
+
+	size2593bytes t_SizeArray[testSize]{};
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	}
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		t_SizeArray[i].value = t_RandomValues[i];
+	}
+
+	t_Array.push_back(t_SizeArray, testSize);
+
+	BB::Dynamic_Array<size2593bytes> t_CopyArray(t_Array);
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		EXPECT_EQ(t_CopyArray[i].value, t_RandomValues[i]) << "Dynamic Array, copy array test has wrong values.";
+	}
+
+	BB::Dynamic_Array<size2593bytes> t_CopyOperatorArray(t_Allocator);
+	t_CopyOperatorArray = t_Array;
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		EXPECT_EQ(t_CopyOperatorArray[i].value, t_Array[i].value) << "Dynamic Array, copy operator array test has wrong values.";
+	}
+}
+
+
+TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Assignment)
+{
+	constexpr const size_t testSize = 18;
+	//Unaligned big struct with a union to test the value.
+	struct size2593bytes { union { char data[2593]; size_t value; }; };
+
+	//2 MB alloactor.
+	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
+
+	BB::Dynamic_Array<size2593bytes> t_Array(t_Allocator, testSize);
+
+	size_t t_RandomValues[testSize]{};
+
+	size2593bytes t_SizeArray[testSize]{};
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		t_RandomValues[i] = static_cast<size_t>(BB::Utils::RandomUInt());
+	}
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		t_SizeArray[i].value = t_RandomValues[i];
+	}
+
+	t_Array.push_back(t_SizeArray, testSize);
+
+	BB::Dynamic_Array<size2593bytes> t_AssignmentArray(std::move(t_Array));
+
+	EXPECT_EQ(t_Array.data(), nullptr) << "Dynamic Array, old array that was used in assignment operator still has data.";
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		EXPECT_EQ(t_AssignmentArray[i].value, t_RandomValues[i]) << "Dynamic Array, copy array test has wrong values.";
+	}
+
+	BB::Dynamic_Array<size2593bytes> t_AssignmentOperatorArray(t_Allocator);
+	t_AssignmentOperatorArray = std::move(t_AssignmentArray);
+
+	EXPECT_EQ(t_AssignmentArray.data(), nullptr) << "Dynamic Array, old array that was used in assignment operator still has data.";
+
+	for (size_t i = 0; i < testSize; i++)
+	{
+		EXPECT_EQ(t_AssignmentOperatorArray[i].value, t_RandomValues[i]) << "Dynamic Array, copy operator array test has wrong values.";
+	}
+}
