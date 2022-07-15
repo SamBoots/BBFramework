@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #pragma warning (pop)
 
-#include "Slice.h"
+#include "Utils/Slice.h"
 
 TEST(Slice_Utils, Slice_Utils_Boundry_Check)
 {

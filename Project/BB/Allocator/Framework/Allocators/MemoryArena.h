@@ -5,6 +5,7 @@
 		//needs replacement by a custom hashmap.
 #include <unordered_map>
 #include "Utils/Utils.h"
+#include "pch.h"
 
 namespace BB
 {

@@ -278,7 +278,7 @@ namespace BB
 	template<typename T>
 	inline void BB::Dynamic_Array<T>::pop()
 	{
-		BB_ASSERT(m_Size == 0, "Dynamic_Array, Popping while m_Size is 0!");
+		BB_ASSERT(m_Size != 0, "Dynamic_Array, Popping while m_Size is 0!");
 		--m_Size;
 		if constexpr (!trivalDestructableT)
 		{

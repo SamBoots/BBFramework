@@ -3,9 +3,6 @@
 
 #include <Windows.h>
 #include "Storage/Dynamic_Array.h"
-#include "HID.h"
-
-#include <hidsdi.h>
 
 using namespace BB;
 

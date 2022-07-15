@@ -3,7 +3,7 @@
 #pragma warning (push, 0)
 #include <gtest/gtest.h>
 #pragma warning (pop)
-#include "AllocTypes.h"
+#include "Allocators/AllocTypes.h"
 #include "Utils/Utils.h"
 
 //Bytes samples with different sizes.

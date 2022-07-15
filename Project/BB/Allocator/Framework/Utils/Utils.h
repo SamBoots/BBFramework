@@ -1,6 +1,6 @@
 #pragma once
 #include <cmath>
-
+#include "pch.h"
 namespace BB
 {
 	namespace Memory

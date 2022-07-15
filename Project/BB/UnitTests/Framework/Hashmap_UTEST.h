@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #pragma warning (pop)
 
-#include "Hashmap.h"
+#include "Storage/Hashmap.h"
 #include "Utils/Utils.h"
 
 //Unaligned big struct with a union to test the value.

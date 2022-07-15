@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #pragma warning (pop)
 
-#include "Dynamic_Array.h"
+#include "Storage/Dynamic_Array.h"
 #include "Utils/Utils.h"
 
 TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)

@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #pragma warning (pop)
 
-#include "Pool.h"
+#include "Storage/Pool.h"
 #include "Utils/Utils.h"
 
 TEST(PoolDataStructure, Pool_Create_Get_Free)
