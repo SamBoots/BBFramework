@@ -1,12 +1,12 @@
-#include "pch.h"
+#include "Utils/Logger.h"
 #include "OSDevice.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
 
-#include <cstdint>
 #include <unistd.h>
+#include <errno.h>
 
 #include "Storage/Dynamic_Array.h"
 #include "Storage/Pool.h"
@@ -150,13 +150,7 @@ const size_t BB::OSDevice::VirtualMemoryMinimumAllocation() const
 
 const uint32_t OSDevice::LatestOSError() const
 {
-	int t_LatestError = errno;
-	if (errno != 0)
-	{
-		printf("OSDevice Error:");
-		printf("%i", t_LatestError);
-	}
-	return static_cast<uint32_t>(t_LatestError);
+	return static_cast<uint32_t>(errno);
 }
 
 WindowHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)

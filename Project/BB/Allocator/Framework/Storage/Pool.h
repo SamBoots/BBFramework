@@ -1,5 +1,5 @@
 #pragma once
-#include "pch.h"
+#include "Utils/Logger.h"
 #include "Allocators/AllocTypes.h"
 
 namespace BB
@@ -57,7 +57,7 @@ namespace BB
 	{
 		if (m_Pool == nullptr)
 		{
-			BB_WARNING(false, "Trying to get an pool object while there are none left!");
+			BB_WARNING(false, "Trying to get an pool object while there are none left!", WarningType::LOW);
 			return nullptr;
 		}
 

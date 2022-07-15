@@ -1,5 +1,8 @@
-#include "pch.h"
+#include "Utils/Logger.h"
 #include "MemoryArena.h"
+
+#include <iostream>
+
 #ifdef _DEBUG
 using namespace BB::MemoryDebugTools;
 
@@ -51,7 +54,7 @@ MemoryTrack::~MemoryTrack()
 	{
 		std::cout << "Address: " << t_It.first << " Leak size: " << t_It.second << "\n";
 	}
-	BB_WARNING(m_TrackingList.size() == 0, "Memory tracker reports a memory leak, Log of leaks have been posted.");
+	BB_WARNING(m_TrackingList.size() == 0, "Memory tracker reports a memory leak, Log of leaks have been posted.", WarningType::HIGH);
 }
 
 void MemoryTrack::OnAlloc(void* a_Ptr, size_t a_Size)

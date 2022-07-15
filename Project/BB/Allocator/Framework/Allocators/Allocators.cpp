@@ -1,6 +1,6 @@
-#include "pch.h"
 #include "Allocators.h"
 #include "Utils/Utils.h"
+#include "Utils/Logger.h"
 
 #include "BackingAllocator/BackingAllocator.h"
 #include "OS/OSDevice.h"
@@ -52,7 +52,7 @@ void LinearAllocator::Clear()
 FreelistAllocator::FreelistAllocator(const size_t a_Size)
 {
 	BB_ASSERT(a_Size != 0, "Freelist allocator is created with a size of 0!");
-	BB_WARNING(a_Size > 10240, "Freelist allocator is smaller then 10 kb, you generally want a bigger freelist.");
+	BB_WARNING(a_Size > 10240, "Freelist allocator is smaller then 10 kb, you generally want a bigger freelist.", WarningType::OPTIMALIZATION);
 	m_TotalAllocSize = a_Size;
 	m_Start = reinterpret_cast<uint8_t*>(mallocVirtual(nullptr, m_TotalAllocSize));
 	m_FreeBlocks = reinterpret_cast<FreeBlock*>(m_Start);
@@ -111,7 +111,7 @@ void* FreelistAllocator::Alloc(size_t a_Size, size_t a_Alignment)
 
 		return reinterpret_cast<void*>(t_Address);
 	}
-	BB_WARNING(false, "Increasing the size of a freelist allocator, risk of fragmented memory.");
+	BB_WARNING(false, "Increasing the size of a freelist allocator, risk of fragmented memory.", WarningType::OPTIMALIZATION);
 	//Double the size of the freelist.
 	FreeBlock* t_NewAllocBlock = reinterpret_cast<FreeBlock*>(mallocVirtual(m_Start, m_TotalAllocSize));
 	t_NewAllocBlock->size = m_TotalAllocSize;

@@ -1,5 +1,5 @@
 #pragma once
-#include "pch.h"
+#include "Utils/Logger.h"
 #include <type_traits>
 
 struct Hash

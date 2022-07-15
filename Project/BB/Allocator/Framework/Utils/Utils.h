@@ -1,6 +1,8 @@
 #pragma once
+#include "Utils/Logger.h"
+#include <cstdint>
+#include <stdint.h>
 #include <cmath>
-#include "pch.h"
 namespace BB
 {
 	namespace Memory

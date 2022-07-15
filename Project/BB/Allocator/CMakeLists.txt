@@ -13,8 +13,6 @@ endif ()
 
 #Add source to this project's executable.
 add_library (Allocator 
-"pch/pch.h" 
-"pch/pch.cpp" 
 "Framework/Common.h"
 "Framework/Framework.h"
 "Framework/Framework.cpp"
@@ -31,13 +29,13 @@ add_library (Allocator
 "Framework/Utils/Utils.h"
 "Framework/Utils/Hash.h"
 "Framework/Utils/Slice.h"
+"Framework/Utils/Logger.h"
+"Framework/Utils/Logger.cpp"
 "Framework/Allocators/BackingAllocator/BackingAllocator${PLATFORM_NAME}.cpp" 
 "Framework/OS/OSDevice${PLATFORM_NAME}.cpp" )
 
 #Include library
-target_precompile_headers(Allocator PRIVATE "pch/pch.h")
 include_directories(
-"pch"
 "Framework"
 "Allocator"
 "UnitTests"

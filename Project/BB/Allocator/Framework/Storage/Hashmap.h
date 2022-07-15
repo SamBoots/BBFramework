@@ -497,7 +497,7 @@ namespace BB
 	template<typename Key, typename Value>
 	inline void OL_HashMap<Key, Value>::grow(size_t a_MinCapacity)
 	{
-		BB_WARNING(false, "Resizing an OL_HashMap, this might be a bit slow. Possibly reserve more.");
+		BB_WARNING(false, "Resizing an OL_HashMap, this might be a bit slow. Possibly reserve more.", WarningType::OPTIMALIZATION);
 
 		size_t t_ModifiedCapacity = m_Capacity * 2;
 

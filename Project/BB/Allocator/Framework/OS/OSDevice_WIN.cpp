@@ -1,4 +1,4 @@
-#include "pch.h"
+#include "Utils/Logger.h"
 #include "OSDevice.h"
 
 #include <Windows.h>
@@ -145,14 +145,7 @@ const size_t BB::OSDevice::VirtualMemoryMinimumAllocation() const
 
 const uint32_t OSDevice::LatestOSError() const
 {
-	DWORD t_LatestError = GetLastError();
-	if (t_LatestError != 0x00)
-	{
-		printf("OSDevice Error:");
-		printf("%u", t_LatestError);
-	}
-
-	return static_cast<uint32_t>(t_LatestError);
+	return static_cast<uint32_t>(GetLastError());
 }
 
 WindowHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
