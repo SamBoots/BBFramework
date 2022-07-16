@@ -1,8 +1,5 @@
 #pragma once
-#pragma warning (push, 0)
-#include <gtest/gtest.h>
-#pragma warning (pop)
-
+#include "../TestValues.h"
 #include "Utils/Slice.h"
 
 TEST(Slice_Utils, Slice_Utils_Boundry_Check)

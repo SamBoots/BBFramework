@@ -1,17 +1,11 @@
 #pragma once
-#pragma warning (push, 0)
-#include <gtest/gtest.h>
-#pragma warning (pop)
-
+#include "../TestValues.h"
 #include "Storage/Dynamic_Array.h"
-#include "Utils/Utils.h"
 
 TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 {
 	constexpr const size_t initialSize = 8;
 	constexpr const size_t samples = initialSize * BB::Dynamic_Array_Specs::overAllocateMultiplier;
-	//Unaligned big struct with a union to test the value.
-	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
 	//32 MB alloactor.
 	const size_t allocatorSize = BB::mbSize * 32;

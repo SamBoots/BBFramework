@@ -1,13 +1,32 @@
-#pragma warning (push, 0)
-#include <gtest/gtest.h>
-#pragma warning (pop)
-#include "Utils/Utils.h"
+#pragma once
+#include "../TestValues.h"
+#include "Allocators/AllocTypes.h"
 
-#include "Allocators/MemoryArena.h"
+TEST(GlobalDebugAllocator, Macro_Test)
+{
+	size2593bytesObj* t_TestObj = BB::BBglobalalloc<size2593bytesObj>();
+	t_TestObj->value = 2;
+	
+	EXPECT_EQ(t_TestObj->value, 2) << "BBglobalalloc didn't allocate correctly.";
+	BB::BBglobaldestroy<size2593bytesObj>(t_TestObj);
 
+	constexpr const size_t ArraySamples = 165;
+	size2593bytesObj* t_TestObjArr = BB::BBglobalallocarray<size2593bytesObj>(ArraySamples);
+
+	for (size_t i = 0; i < ArraySamples; i++)
+	{
+		t_TestObjArr[i].value = i * 2;
+	}
+
+	for (size_t i = 0; i < ArraySamples; i++)
+	{
+		EXPECT_EQ(t_TestObjArr[i].value, i * 2) << "BBglobalallocarray didn't allocate correctly.";
+	}
+
+	BB::BBglobaldestroyarray<size2593bytesObj>(t_TestObjArr);
+}
 
 #ifdef _DEBUG
-
 TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 {
 	//We use a freelist for the test since it allows for easy allocations and deallocations.

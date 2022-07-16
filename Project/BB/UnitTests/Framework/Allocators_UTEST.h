@@ -1,10 +1,6 @@
 #pragma once
-
-#pragma warning (push, 0)
-#include <gtest/gtest.h>
-#pragma warning (pop)
+#include "../TestValues.h"
 #include "Allocators/AllocTypes.h"
-#include "Utils/Utils.h"
 
 //Bytes samples with different sizes.
 constexpr const size_t sample_32_bytes = 10000;
@@ -13,13 +9,6 @@ constexpr const size_t sample_2593_bytes = 500;
 
 //How many samples in total.
 constexpr const size_t samples = sample_32_bytes + sample_256_bytes + sample_2593_bytes;
-
-//Structs with different sizes, union to check for the values.
-struct size32Bytes { union { char data[32]; size_t value; }; };
-struct size256Bytes { union { char data[256]; size_t value; }; };
-struct size2593bytes { union { char data[2593]; size_t value; }; };
-
-
 
 #pragma region LINEAR_ALLOCATOR
 TEST(MemoryAllocators, LINEAR_SINGLE_ALLOCATIONS)

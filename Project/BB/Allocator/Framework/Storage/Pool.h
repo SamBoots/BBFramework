@@ -57,7 +57,7 @@ namespace BB
 	{
 		if (m_Pool == nullptr)
 		{
-			BB_WARNING(false, "Trying to get an pool object while there are none left!", WarningType::LOW);
+			BB_WARNING(false, "Trying to get an pool object while there are none left!", WarningType::HIGH);
 			return nullptr;
 		}
 

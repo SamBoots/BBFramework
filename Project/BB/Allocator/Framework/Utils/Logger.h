@@ -53,11 +53,15 @@ namespace BB
 				WarningType TYPE; switch(a_WarningType){ \
 			case WarningType::OPTIMALIZATION:           \
 				BB::Logger::Log_Warning_Optimization(__FILE__, __LINE__, a_Msg);\
-            case WarningType::LOW:       \
+				break;\
+            case WarningType::LOW:\
 				BB::Logger::Log_Warning_Low(__FILE__, __LINE__, a_Msg);\
-            case WarningType::MEDIUM:       \
+				break;\
+            case WarningType::MEDIUM:\
 				BB::Logger::Log_Warning_Medium(__FILE__, __LINE__, a_Msg);\
-            case WarningType::HIGH:       \
+				break;\
+            case WarningType::HIGH:\
 				BB::Logger::Log_Warning_High(__FILE__, __LINE__, a_Msg);\
+				break;\
          }; TYPE; \
 			}

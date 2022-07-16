@@ -19,6 +19,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable (Unit_Test_Proj
 "Main.cpp"
+"TestValues.h"
 "Framework/Allocators_UTEST.h"
 "Framework/Dynamic_Array_UTEST.h"
 "Framework/Pool_UTEST.h" 

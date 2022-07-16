@@ -1,10 +1,6 @@
 #pragma once
-#pragma warning (push, 0)
-#include <gtest/gtest.h>
-#pragma warning (pop)
-
+#include "../TestValues.h"
 #include "Storage/Pool.h"
-#include "Utils/Utils.h"
 
 TEST(PoolDataStructure, Pool_Create_Get_Free)
 {
