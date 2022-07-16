@@ -50,7 +50,7 @@ namespace BB
 #define BB_WARNING(a_Check, a_Msg, a_WarningType)\
 			if (!(a_Check)) \
 			{\
-				WarningType TYPE; switch(a_WarningType){ \
+				WarningType TYPE{}; switch(a_WarningType){ \
 			case WarningType::OPTIMALIZATION:           \
 				BB::Logger::Log_Warning_Optimization(__FILE__, __LINE__, a_Msg);\
 				break;\

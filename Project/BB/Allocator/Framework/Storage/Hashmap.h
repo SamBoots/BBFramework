@@ -36,7 +36,7 @@ namespace BB
 
 		struct HashEntry
 		{
-			HashEntry* next_Entry;
+			HashEntry* next_Entry = nullptr;
 
 			union
 			{
@@ -57,12 +57,14 @@ namespace BB
 		Value* find(const Key& a_Key) const;
 		void remove(const Key& a_Key);
 
+		void grow(size_t a_MinCapacity = 1);
 		void reserve(const size_t a_Size);
 
 	private:
 		void reallocate(const size_t a_NewCapacity);
 
 		size_t m_Capacity;
+		size_t m_LoadCapacity;
 		size_t m_Size = 0;
 
 		HashEntry* m_Entries;
@@ -89,7 +91,9 @@ namespace BB
 	inline UM_HashMap<Key, Value>::UM_HashMap(Allocator a_Allocator, const size_t a_Size)
 		: m_Allocator(a_Allocator)
 	{
-		m_Capacity = a_Size;
+		m_Capacity = LFCalculation(a_Size, Hashmap_Specs::UM_LoadFactor);
+		m_Size = 0;
+		m_LoadCapacity = a_Size;
 		m_Entries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, m_Capacity * sizeof(HashEntry)));
 	}
 
@@ -142,6 +146,9 @@ namespace BB
 	template <class... Args>
 	inline void UM_HashMap<Key, Value>::emplace(Key& a_Key, Args&&... a_ValueArgs)
 	{
+		if (m_Size > m_LoadCapacity)
+			grow();
+
 		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		HashEntry* t_Entry = &m_Entries[t_Hash.hash];
@@ -233,27 +240,42 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
+	inline void UM_HashMap<Key, Value>::grow(size_t a_MinCapacity)
+	{
+		BB_WARNING(false, "Resizing an OL_HashMap, this might be a bit slow. Possibly reserve more.", WarningType::OPTIMALIZATION);
+
+		size_t t_ModifiedCapacity = m_Capacity * 2;
+
+		if (a_MinCapacity > t_ModifiedCapacity)
+			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Dynamic_Array_Specs::multipleValue);
+
+		reallocate(t_ModifiedCapacity);
+	}
+
+	template<typename Key, typename Value>
 	inline void UM_HashMap<Key, Value>::reserve(const size_t a_Size)
 	{
 		if (a_Size > m_Capacity)
 		{
-			size_t t_ModifiedCapacity = Math::RoundUp(a_Size * Hashmap_Specs::OL_LoadFactor, Hashmap_Specs::multipleValue);
+			size_t t_ModifiedCapacity = Math::RoundUp(a_Size, Hashmap_Specs::multipleValue);
 
 			reallocate(t_ModifiedCapacity);
 		}
 	}
 
 	template<typename Key, typename Value>
-	inline void BB::UM_HashMap<Key, Value>::reallocate(const size_t a_NewCapacity)
+	inline void BB::UM_HashMap<Key, Value>::reallocate(const size_t a_NewLoadCapacity)
 	{
+		const size_t t_NewCapacity = LFCalculation(a_NewLoadCapacity, Hashmap_Specs::OL_LoadFactor);
+
 		//Allocate the new buffer.
-		HashEntry* t_NewEntries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, a_NewCapacity * sizeof(HashEntry)));
+		HashEntry* t_NewEntries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, t_NewCapacity * sizeof(HashEntry)));
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
 			if (m_Entries[i].state != Hashmap_Specs::Um_EmptyNode)
 			{
-				const Hash t_Hash = Hash::MakeHash(m_Entries[i].key) % a_NewCapacity;
+				const Hash t_Hash = Hash::MakeHash(m_Entries[i].key) % t_NewCapacity;
 
 				HashEntry* t_Entry = &t_NewEntries[t_Hash.hash];
 				if (t_Entry->state == Hashmap_Specs::Um_EmptyNode)
@@ -279,7 +301,8 @@ namespace BB
 
 		this->~UM_HashMap();
 
-		m_Capacity = a_NewCapacity;
+		m_Capacity = t_NewCapacity;
+		m_LoadCapacity = a_NewLoadCapacity;
 		m_Entries = t_NewEntries;
 	}
 
@@ -308,12 +331,12 @@ namespace BB
 
 	private:
 		void grow(size_t a_MinCapacity = 1);
-		void reallocate(const size_t a_NewLoadFactor);
+		void reallocate(const size_t a_NewLoadCapacity);
 
 	private:
 		size_t m_Capacity;
 		size_t m_Size;
-		size_t m_LoadFactor;
+		size_t m_LoadCapacity;
 
 		//All the elements.
 		Hash* m_Hashes;
@@ -334,7 +357,7 @@ namespace BB
 	{
 		m_Capacity = LFCalculation(a_Size, Hashmap_Specs::OL_LoadFactor);
 		m_Size = 0;
-		m_LoadFactor = a_Size;
+		m_LoadCapacity = a_Size;
 
 		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
 
@@ -372,7 +395,7 @@ namespace BB
 	template <class... Args>
 	inline void OL_HashMap<Key, Value>::emplace(Key& a_Key, Args&&... a_ValueArgs)
 	{
-		if (m_Size > m_LoadFactor)
+		if (m_Size > m_LoadCapacity)
 			grow();
 
 		m_Size++;
@@ -508,9 +531,9 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline void OL_HashMap<Key, Value>::reallocate(const size_t a_NewLoadFactor)
+	inline void OL_HashMap<Key, Value>::reallocate(const size_t a_NewLoadCapacity)
 	{
-		const size_t t_NewCapacity = LFCalculation(a_NewLoadFactor, Hashmap_Specs::OL_LoadFactor);
+		const size_t t_NewCapacity = LFCalculation(a_NewLoadCapacity, Hashmap_Specs::OL_LoadFactor);
 
 		//Allocate the new buffer.
 		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * t_NewCapacity;
@@ -548,7 +571,7 @@ namespace BB
 		m_Values = t_NewValues;
 
 		m_Capacity = t_NewCapacity;
-		m_LoadFactor = a_NewLoadFactor;
+		m_LoadCapacity = a_NewLoadCapacity;
 	}
 }
 

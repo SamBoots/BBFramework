@@ -62,7 +62,7 @@ namespace BB
 		~Dynamic_Array();
 
 		Dynamic_Array<T>& operator=(const Dynamic_Array<T>& a_Rhs);
-		Dynamic_Array<T>& operator=(Dynamic_Array<T>&& a_Rhs);
+		Dynamic_Array<T>& operator=(Dynamic_Array<T>&& a_Rhs) noexcept;
 		T& operator[](const size_t a_Index) const;
 
 		void push_back(T& a_Element);
@@ -170,7 +170,7 @@ namespace BB
 	}
 
 	template<typename T>
-	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(Dynamic_Array<T>&& a_Rhs)
+	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(Dynamic_Array<T>&& a_Rhs) noexcept
 	{
 		m_Allocator = a_Rhs.m_Allocator;
 		m_Size = a_Rhs.m_Size;
