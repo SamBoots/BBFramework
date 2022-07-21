@@ -21,7 +21,7 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 
-		t_Map.remove(t_Key);
+		t_Map.erase(t_Key);
 		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
@@ -62,7 +62,7 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 
-		t_Map.remove(t_Key);
+		t_Map.erase(t_Key);
 		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
@@ -83,7 +83,7 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 
-		t_Map.remove(t_Key);
+		t_Map.erase(t_Key);
 		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
@@ -104,6 +104,54 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		if (t_Map.find(t_Key) != nullptr)
 			EXPECT_EQ(t_Map.find(t_Key)->value, t_Key + 2) << "element: " << i << " Wrong element was likely grabbed.";
 	}
+}
+
+TEST(Hashmap_Datastructure, OL_Hashmap_Range_Based_Loop)
+{
+	constexpr const uint32_t samples = 4096;
+
+	//32 MB alloactor.
+	const size_t allocatorSize = BB::mbSize * 32;
+	BB::FreeListAllocator_t t_Allocator(allocatorSize);
+
+	BB::OL_HashMap<size_t, size2593bytesObj> t_Map(t_Allocator);
+	t_Map.reserve(samples);
+
+	size_t t_RandomKeys[samples]{};
+	for (size_t i = 0; i < samples; i++)
+	{
+		t_RandomKeys[i] = (i + 1) * 2;
+	}
+
+	//Only test a quarter of the samples for just inserting and removing.
+	for (size_t i = 0; i < samples; i++)
+	{
+		size2593bytesObj t_Value{};
+		t_Value.value = 5 + i * 2;
+		size_t t_Key = t_RandomKeys[i];
+		t_Map.insert(t_Key, t_Value);
+
+		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
+		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+	}
+
+	size_t t_IteratorCount = 0;
+	size_t t_PreviousKey = 0xDEADBEEF;
+	for (auto t_It = t_Map.begin(); t_It < t_Map.end(); t_It++)
+	{
+		++t_IteratorCount;
+		size_t t_Key = *t_It->key;
+		ASSERT_EQ(t_Map.find(t_Key)->value, t_It->value->value) << "Iterator found an pair that the hashmap couldn't find.";
+		ASSERT_NE(t_Key, t_PreviousKey) << "You read the same key twice.";
+		t_PreviousKey = t_Key;
+	}
+	ASSERT_EQ(t_IteratorCount, samples) << "Did not iterate over all the values.";
+
+	//Not supporting range based loops.
+	//for (auto& t_It : t_Map)
+	//{
+	//	ASSERT_EQ(t_Map.find(*t_It.key)->value, t_It.value->value) << "Iterator found an pair that the hashmap couldn't find.";
+	//}
 }
 
 #include <chrono>
@@ -285,7 +333,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::UM speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			t_UM_Map.remove(t_RandomKeys[i]);
+			t_UM_Map.erase(t_RandomKeys[i]);
 		}
 		auto t_UMMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "UM map remove speed with: " << samples <<
@@ -297,7 +345,7 @@ TEST(Hashmap_Datastructure, Hashmap_Speedtest)
 		//BB::OL speed.
 		for (size_t i = 0; i < samples; i++)
 		{
-			t_OL_Map.remove(t_RandomKeys[i]);
+			t_OL_Map.erase(t_RandomKeys[i]);
 		}
 		auto t_OLMapSpeed = std::chrono::duration_cast<ms>(std::chrono::high_resolution_clock::now() - t_Timer).count() * MILLITIMEDIVIDE;
 		std::cout << "OL map remove speed with: " << samples <<

@@ -31,13 +31,9 @@ namespace BB
 	template<typename Key, typename Value>
 	class UM_HashMap
 	{
-		static constexpr bool trivalDestructableKey = std::is_trivially_destructible_v<Key>;
-		static constexpr bool trivalDestructableValue = std::is_trivially_destructible_v<Value>;
-
 		struct HashEntry
 		{
 			HashEntry* next_Entry = nullptr;
-
 			union
 			{
 				uint64_t state = Hashmap_Specs::Um_EmptyNode;
@@ -45,6 +41,46 @@ namespace BB
 			};
 			Value value;
 		};
+
+		//struct Iterator
+		//{
+		//	using iterator_category = std::forward_iterator_tag;
+		//	using difference_type = std::ptrdiff_t;
+		//	using value_type = HashEntry;
+		//	using pointer = HashEntry*;
+		//	using reference = HashEntry&;
+
+		//	Iterator(HashEntry* a_Ptr) : m_Entry(a_Ptr) {};
+
+		//	reference operator*() { return m_Entry; }
+		//	pointer operator->() { return &m_Entry; }
+
+		//	Iterator& operator++()
+		//	{
+		//		while(m_Entry)
+
+		//		return *this;
+		//	}
+
+		//	Iterator operator++(int)
+		//	{
+		//		Iterator t_Tmp = *this;
+		//		++(*this);
+		//		return t_Tmp;
+		//	}
+
+		//	friend bool operator< (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry < a_Rhs.m_Entry; };
+		//	friend bool operator> (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry > a_Rhs.m_Entry; };
+		//	friend bool operator<= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry <= a_Rhs.m_Entry; };
+		//	friend bool operator>= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry >= a_Rhs.m_Entry; };
+
+		//private:
+		//	HashEntry* m_Entry;
+		//	size_t m_Index;
+		//};
+
+		static constexpr bool trivalDestructableKey = std::is_trivially_destructible_v<Key>;
+		static constexpr bool trivalDestructableValue = std::is_trivially_destructible_v<Value>;
 
 	public:
 		UM_HashMap(Allocator a_Allocator);
@@ -55,12 +91,16 @@ namespace BB
 		template <class... Args>
 		void emplace(Key& a_Key, Args&&... a_ValueArgs);
 		Value* find(const Key& a_Key) const;
-		void remove(const Key& a_Key);
+		void erase(const Key& a_Key);
+		void clear();
 
-		void grow(size_t a_MinCapacity = 1);
 		void reserve(const size_t a_Size);
 
+		//Iterator begin();
+		//Iterator end();
+
 	private:
+		void grow(size_t a_MinCapacity = 1);
 		void reallocate(const size_t a_NewCapacity);
 
 		size_t m_Capacity;
@@ -100,38 +140,7 @@ namespace BB
 	template<typename Key, typename Value>
 	inline UM_HashMap<Key, Value>::~UM_HashMap()
 	{
-		//go through all the entries and individually delete the extra values from the linked list.
-		//They need to be deleted seperatly since the memory is somewhere else.
-		for (size_t i = 0; i < m_Capacity; i++)
-		{
-			if (m_Entries[i].state != Hashmap_Specs::Um_EmptyNode)
-			{
-				HashEntry* t_NextEntry = m_Entries[i].next_Entry;
-				while (t_NextEntry != nullptr)
-				{
-					HashEntry* t_DeleteEntry = t_NextEntry;
-					t_NextEntry = t_NextEntry->next_Entry;
-					//Call the destructor if it has one for the value.
-					if constexpr (!trivalDestructableValue)
-						t_DeleteEntry->value.~Value();
-					//Call the destructor if it has one for the key.
-					if constexpr (!trivalDestructableKey)
-						t_DeleteEntry->key.~Key();
-
-					BBfree(m_Allocator, t_DeleteEntry);
-				}
-			}
-		}
-		//Call the destructor if it has one for the value.
-		if constexpr (!trivalDestructableValue)
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
-					m_Entries[i].value.~Value();
-		//Call the destructor if it has one for the key.
-		if constexpr (!trivalDestructableKey)
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
-					m_Entries[i].key.~Key();
+		clear();
 
 		BBfree(m_Allocator, m_Entries);
 	}
@@ -198,7 +207,7 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline void UM_HashMap<Key, Value>::remove(const Key& a_Key)
+	inline void UM_HashMap<Key, Value>::erase(const Key& a_Key)
 	{
 		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;;
 
@@ -240,16 +249,43 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline void UM_HashMap<Key, Value>::grow(size_t a_MinCapacity)
+	inline void UM_HashMap<Key, Value>::clear()
 	{
-		BB_WARNING(false, "Resizing an OL_HashMap, this might be a bit slow. Possibly reserve more.", WarningType::OPTIMALIZATION);
+		//go through all the entries and individually delete the extra values from the linked list.
+		//They need to be deleted seperatly since the memory is somewhere else.
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			if (m_Entries[i].state != Hashmap_Specs::Um_EmptyNode)
+			{
+				HashEntry* t_NextEntry = m_Entries[i].next_Entry;
+				while (t_NextEntry != nullptr)
+				{
+					HashEntry* t_DeleteEntry = t_NextEntry;
+					t_NextEntry = t_NextEntry->next_Entry;
+					//Call the destructor if it has one for the value.
+					if constexpr (!trivalDestructableValue)
+						t_DeleteEntry->value.~Value();
+					//Call the destructor if it has one for the key.
+					if constexpr (!trivalDestructableKey)
+						t_DeleteEntry->key.~Key();
 
-		size_t t_ModifiedCapacity = m_Capacity * 2;
+					BBfree(m_Allocator, t_DeleteEntry);
+				}
+				m_Entries[i].state = Hashmap_Specs::Um_EmptyNode;
+			}
+		}
+		//Call the destructor if it has one for the value.
+		if constexpr (!trivalDestructableValue)
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
+					m_Entries[i].value.~Value();
+		//Call the destructor if it has one for the key.
+		if constexpr (!trivalDestructableKey)
+			for (size_t i = 0; i < m_Capacity; i++)
+				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
+					m_Entries[i].key.~Key();
 
-		if (a_MinCapacity > t_ModifiedCapacity)
-			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Dynamic_Array_Specs::multipleValue);
-
-		reallocate(t_ModifiedCapacity);
+		m_Size = 0;
 	}
 
 	template<typename Key, typename Value>
@@ -261,6 +297,37 @@ namespace BB
 
 			reallocate(t_ModifiedCapacity);
 		}
+	}
+
+	//template<typename Key, typename Value>
+	//inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::begin()
+	//{
+	//	size_t t_FirstFilled = 0;
+	//	while (m_Entries[t_FirstFilled++] == Hashmap_Specs::Um_EmptyNode);
+
+	//	return UM_HashMap<Key, Value>::Iterator(m_Entries[t_FirstFilled]);
+	//}
+
+	//template<typename Key, typename Value>
+	//inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::end()
+	//{
+	//	size_t t_FirstFilled = m_Capacity;
+	//	while (m_Entries[t_FirstFilled--] == Hashmap_Specs::Um_EmptyNode);
+
+	//	return UM_HashMap<Key, Value>::Iterator(m_Entries[t_FirstFilled]);
+	//}
+
+	template<typename Key, typename Value>
+	inline void UM_HashMap<Key, Value>::grow(size_t a_MinCapacity)
+	{
+		BB_WARNING(false, "Resizing an OL_HashMap, this might be a bit slow. Possibly reserve more.", WarningType::OPTIMALIZATION);
+
+		size_t t_ModifiedCapacity = m_Capacity * 2;
+
+		if (a_MinCapacity > t_ModifiedCapacity)
+			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Dynamic_Array_Specs::multipleValue);
+
+		reallocate(t_ModifiedCapacity);
 	}
 
 	template<typename Key, typename Value>
@@ -317,6 +384,62 @@ namespace BB
 		static constexpr bool trivalDestructableKey = std::is_trivially_destructible_v<Key>;
 
 	public:
+		struct Iterator
+		{
+			struct Pair
+			{
+				Key* key{};
+				Value* value{};
+			};
+
+			using iterator_category = std::forward_iterator_tag;
+			using difference_type = std::ptrdiff_t;
+			using value_type = Pair;
+			using pointer = Pair*;
+			using reference = Pair&;
+
+			Iterator(Hash* a_HashPtr, Key* a_KeyPtr, Value* a_ValuePtr)
+				: m_Hash(a_HashPtr)
+			{
+				m_Pair.key = a_KeyPtr;
+				m_Pair.value = a_ValuePtr;
+			};
+
+			reference operator*() { return m_Pair; }
+			pointer operator->() { return &m_Pair; }
+
+			Iterator& operator++()
+			{
+				size_t t_Increase = 1;
+				++m_Hash;
+				while (*m_Hash == Hashmap_Specs::OL_EMPTY ||
+					*m_Hash == Hashmap_Specs::OL_TOMBSTONE)
+				{
+					++m_Hash;
+					++t_Increase;
+				}
+				m_Pair.key += t_Increase;
+				m_Pair.value += t_Increase;
+				return *this;
+			}
+
+			Iterator operator++(int)
+			{
+				Iterator t_Tmp = *this;
+				++(*this);
+				return t_Tmp;
+			}
+
+			friend bool operator< (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Hash < a_Rhs.m_Hash; };
+			friend bool operator> (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Hash > a_Rhs.m_Hash; };
+			friend bool operator<= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Hash <= a_Rhs.m_Hash; };
+			friend bool operator>= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Hash >= a_Rhs.m_Hash; };
+
+		private:
+			Hash* m_Hash;
+			value_type m_Pair;
+		};
+
 		OL_HashMap(Allocator a_Allocator);
 		OL_HashMap(Allocator a_Allocator, const size_t a_Size);
 		~OL_HashMap();
@@ -325,10 +448,13 @@ namespace BB
 		template <class... Args>
 		void emplace(Key& a_Key, Args&&... a_ValueArgs);
 		Value* find(const Key& a_Key) const;
-		void remove(const Key& a_Key);
+		void erase(const Key& a_Key);
+		void clear();
 
 		void reserve(const size_t a_Size);
 
+		Iterator begin();
+		Iterator end();
 	private:
 		void grow(size_t a_MinCapacity = 1);
 		void reallocate(const size_t a_NewLoadCapacity);
@@ -433,7 +559,7 @@ namespace BB
 
 		for (size_t i = t_Hash; i < m_Capacity; i++)
 		{
-			if (m_Keys[i] == a_Key)
+			if (m_Hashes[i] != Hashmap_Specs::OL_TOMBSTONE && m_Keys[i] == a_Key)
 			{
 				return &m_Values[i];
 			}
@@ -447,7 +573,7 @@ namespace BB
 		//Loop again but then from the start and stop at the hash. 
 		for (size_t i = 0; i < t_Hash; i++)
 		{
-			if (m_Keys[i] == a_Key)
+			if (m_Hashes[i] != Hashmap_Specs::OL_TOMBSTONE && m_Keys[i] == a_Key)
 			{
 				return &m_Values[i];
 			}
@@ -463,7 +589,7 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline void OL_HashMap<Key, Value>::remove(const Key& a_Key)
+	inline void OL_HashMap<Key, Value>::erase(const Key& a_Key)
 	{
 		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
@@ -507,6 +633,23 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
+	inline void OL_HashMap<Key, Value>::clear()
+	{
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			if (m_Hashes[i] != Hashmap_Specs::OL_EMPTY)
+			{
+				m_Hashes[i] = Hashmap_Specs::OL_EMPTY;
+				if constexpr (!trivalDestructableValue)
+					m_Values[i].~Value();
+				if constexpr (!trivalDestructableKey)
+					m_Keys[i].~Key();
+			}
+		}
+		m_Size = 0;
+	}
+
+	template<typename Key, typename Value>
 	inline void OL_HashMap<Key, Value>::reserve(const size_t a_Size)
 	{
 		if (a_Size > m_Capacity)
@@ -515,6 +658,32 @@ namespace BB
 
 			reallocate(t_ModifiedCapacity);
 		}
+	}
+
+	template<typename Key, typename Value>
+	inline typename OL_HashMap<Key, Value>::Iterator OL_HashMap<Key, Value>::begin()
+	{
+		size_t t_FirstFilled = 0;
+		while (m_Hashes[t_FirstFilled] == Hashmap_Specs::OL_EMPTY ||
+			m_Hashes[t_FirstFilled] == Hashmap_Specs::OL_TOMBSTONE)
+		{
+			++t_FirstFilled;
+		}
+
+		return OL_HashMap<Key, Value>::Iterator(&m_Hashes[t_FirstFilled], &m_Keys[t_FirstFilled], &m_Values[t_FirstFilled]);
+	}
+
+	template<typename Key, typename Value>
+	inline typename OL_HashMap<Key, Value>::Iterator OL_HashMap<Key, Value>::end()
+	{
+		size_t t_FirstFilled = m_Capacity; 
+		while (m_Hashes[t_FirstFilled] == Hashmap_Specs::OL_EMPTY ||
+			m_Hashes[t_FirstFilled] == Hashmap_Specs::OL_TOMBSTONE)
+		{
+			--t_FirstFilled;
+		}
+
+		return OL_HashMap<Key, Value>::Iterator(&m_Hashes[t_FirstFilled], &m_Keys[t_FirstFilled], &m_Values[t_FirstFilled]);
 	}
 
 	template<typename Key, typename Value>
@@ -546,7 +715,7 @@ namespace BB
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
-			if (m_Hashes[i] != 0)
+			if (m_Hashes[i] == i)
 			{
 				Key t_Key = m_Keys[i];
 				Hash t_Hash = Hash::MakeHash(t_Key) % t_NewCapacity;
