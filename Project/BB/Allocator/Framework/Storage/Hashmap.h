@@ -12,11 +12,11 @@ namespace BB
 		constexpr const size_t multipleValue = 8;
 
 		constexpr const float UM_LoadFactor = 1.f;
-		constexpr const size_t Um_EmptyNode = 0x00;
+		constexpr const size_t Um_EmptyNode = 0xAABBCCDD;
 
 
 		constexpr const float OL_LoadFactor = 1.3f;
-		constexpr const uintptr_t OL_TOMBSTONE = 0xDEADBEEFDEADBEEF;
+		constexpr const size_t OL_TOMBSTONE = 0xDEADBEEFDEADBEEF;
 		constexpr const size_t OL_EMPTY = 0xAABBCCDD;
 	};
 
@@ -33,54 +33,75 @@ namespace BB
 	{
 		struct HashEntry
 		{
+			static constexpr bool trivalDestructableKey = std::is_trivially_destructible_v<Key>;
+			static constexpr bool trivalDestructableValue = std::is_trivially_destructible_v<Value>;
+			~HashEntry()
+			{
+				state = Hashmap_Specs::Um_EmptyNode;
+				//Call the destructor if it has one for the value.
+				if constexpr (!trivalDestructableValue)
+					value.~Value();
+				//Call the destructor if it has one for the key.
+				if constexpr (!trivalDestructableKey)
+					key.~Key();
+			}
 			HashEntry* next_Entry = nullptr;
 			union
 			{
-				uint64_t state = Hashmap_Specs::Um_EmptyNode;
+				size_t state = Hashmap_Specs::Um_EmptyNode;
 				Key key;
 			};
 			Value value;
 		};
 
-		//struct Iterator
-		//{
-		//	using iterator_category = std::forward_iterator_tag;
-		//	using difference_type = std::ptrdiff_t;
-		//	using value_type = HashEntry;
-		//	using pointer = HashEntry*;
-		//	using reference = HashEntry&;
+		struct Iterator
+		{
+			using iterator_category = std::forward_iterator_tag;
+			using difference_type = std::ptrdiff_t;
+			using value_type = HashEntry;
+			using pointer = HashEntry*;
+			using reference = HashEntry&;
 
-		//	Iterator(HashEntry* a_Ptr) : m_Entry(a_Ptr) {};
+			Iterator(HashEntry* a_Ptr) : m_MainEntry(a_Ptr), m_Entry(a_Ptr) {};
 
-		//	reference operator*() { return m_Entry; }
-		//	pointer operator->() { return &m_Entry; }
+			reference operator*() { return &m_Entry; }
+			pointer operator->() { return m_Entry; }
 
-		//	Iterator& operator++()
-		//	{
-		//		while(m_Entry)
+			Iterator& operator++()
+			{
+				if (m_Entry->next_Entry == nullptr)
+				{
+					++m_MainEntry;
+					while (m_MainEntry->state == Hashmap_Specs::Um_EmptyNode)
+					{
+						++m_MainEntry;
+					}
+					m_Entry = m_MainEntry;
+				}
+				else
+				{
+					m_Entry = m_Entry->next_Entry;
+				}
 
-		//		return *this;
-		//	}
+				return *this;
+			}
 
-		//	Iterator operator++(int)
-		//	{
-		//		Iterator t_Tmp = *this;
-		//		++(*this);
-		//		return t_Tmp;
-		//	}
+			Iterator operator++(int)
+			{
+				Iterator t_Tmp = *this;
+				++(*this);
+				return t_Tmp;
+			}
 
-		//	friend bool operator< (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry < a_Rhs.m_Entry; };
-		//	friend bool operator> (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry > a_Rhs.m_Entry; };
-		//	friend bool operator<= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry <= a_Rhs.m_Entry; };
-		//	friend bool operator>= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_Entry >= a_Rhs.m_Entry; };
+			friend bool operator< (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_MainEntry < a_Rhs.m_MainEntry; };
+			friend bool operator> (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_MainEntry > a_Rhs.m_MainEntry; };
+			friend bool operator<= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_MainEntry <= a_Rhs.m_MainEntry; };
+			friend bool operator>= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_MainEntry >= a_Rhs.m_MainEntry; };
 
-		//private:
-		//	HashEntry* m_Entry;
-		//	size_t m_Index;
-		//};
-
-		static constexpr bool trivalDestructableKey = std::is_trivially_destructible_v<Key>;
-		static constexpr bool trivalDestructableValue = std::is_trivially_destructible_v<Value>;
+		private:
+			HashEntry* m_MainEntry;
+			HashEntry* m_Entry;
+		};
 
 	public:
 		UM_HashMap(Allocator a_Allocator);
@@ -96,8 +117,8 @@ namespace BB
 
 		void reserve(const size_t a_Size);
 
-		//Iterator begin();
-		//Iterator end();
+		Iterator begin();
+		Iterator end();
 
 	private:
 		void grow(size_t a_MinCapacity = 1);
@@ -135,6 +156,11 @@ namespace BB
 		m_Size = 0;
 		m_LoadCapacity = a_Size;
 		m_Entries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, m_Capacity * sizeof(HashEntry)));
+
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			new (&m_Entries[i]) HashEntry();
+		}
 	}
 
 	template<typename Key, typename Value>
@@ -214,12 +240,7 @@ namespace BB
 		HashEntry* t_Entry = &m_Entries[t_Hash];
 		if (Match(t_Entry, a_Key))
 		{
-			//Call the destructor if it has one for the value.
-			if constexpr (!trivalDestructableValue)
-				t_Entry->value.~Value();
-			//Call the destructor if it has one for the key.
-			if constexpr (!trivalDestructableKey)
-				t_Entry->key.~Key();
+			t_Entry->~HashEntry();
 
 			if (t_Entry->next_Entry != nullptr)
 			{
@@ -262,28 +283,16 @@ namespace BB
 				{
 					HashEntry* t_DeleteEntry = t_NextEntry;
 					t_NextEntry = t_NextEntry->next_Entry;
-					//Call the destructor if it has one for the value.
-					if constexpr (!trivalDestructableValue)
-						t_DeleteEntry->value.~Value();
-					//Call the destructor if it has one for the key.
-					if constexpr (!trivalDestructableKey)
-						t_DeleteEntry->key.~Key();
+					t_DeleteEntry->~HashEntry();
 
 					BBfree(m_Allocator, t_DeleteEntry);
 				}
 				m_Entries[i].state = Hashmap_Specs::Um_EmptyNode;
 			}
 		}
-		//Call the destructor if it has one for the value.
-		if constexpr (!trivalDestructableValue)
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
-					m_Entries[i].value.~Value();
-		//Call the destructor if it has one for the key.
-		if constexpr (!trivalDestructableKey)
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
-					m_Entries[i].key.~Key();
+		for (size_t i = 0; i < m_Capacity; i++)
+			if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
+				m_Entries[i].~HashEntry();
 
 		m_Size = 0;
 	}
@@ -299,23 +308,29 @@ namespace BB
 		}
 	}
 
-	//template<typename Key, typename Value>
-	//inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::begin()
-	//{
-	//	size_t t_FirstFilled = 0;
-	//	while (m_Entries[t_FirstFilled++] == Hashmap_Specs::Um_EmptyNode);
+	template<typename Key, typename Value>
+	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::begin()
+	{
+		size_t t_FirstFilled = 0;
+		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::Um_EmptyNode)
+		{
+			++t_FirstFilled;
+		}
 
-	//	return UM_HashMap<Key, Value>::Iterator(m_Entries[t_FirstFilled]);
-	//}
+		return UM_HashMap<Key, Value>::Iterator(&m_Entries[t_FirstFilled]);
+	}
 
-	//template<typename Key, typename Value>
-	//inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::end()
-	//{
-	//	size_t t_FirstFilled = m_Capacity;
-	//	while (m_Entries[t_FirstFilled--] == Hashmap_Specs::Um_EmptyNode);
+	template<typename Key, typename Value>
+	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::end()
+	{
+		size_t t_FirstFilled = m_Capacity;
+		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::Um_EmptyNode)
+		{
+			--t_FirstFilled;
+		}
 
-	//	return UM_HashMap<Key, Value>::Iterator(m_Entries[t_FirstFilled]);
-	//}
+		return UM_HashMap<Key, Value>::Iterator(&m_Entries[t_FirstFilled]);
+	}
 
 	template<typename Key, typename Value>
 	inline void UM_HashMap<Key, Value>::grow(size_t a_MinCapacity)
@@ -333,10 +348,15 @@ namespace BB
 	template<typename Key, typename Value>
 	inline void BB::UM_HashMap<Key, Value>::reallocate(const size_t a_NewLoadCapacity)
 	{
-		const size_t t_NewCapacity = LFCalculation(a_NewLoadCapacity, Hashmap_Specs::OL_LoadFactor);
+		const size_t t_NewCapacity = LFCalculation(a_NewLoadCapacity, Hashmap_Specs::UM_LoadFactor);
 
 		//Allocate the new buffer.
 		HashEntry* t_NewEntries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, t_NewCapacity * sizeof(HashEntry)));
+
+		for (size_t i = 0; i < t_NewCapacity; i++)
+		{
+			new (&t_NewEntries[i]) HashEntry();
+		}
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
