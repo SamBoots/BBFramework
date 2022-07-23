@@ -9,11 +9,17 @@ namespace BB
 	constexpr const size_t mbSize = kbSize * 1024;
 	constexpr const size_t gbSize = mbSize * 1024;
 
-
+#ifdef _DEBUG
 	//Default types
-	using LinearAllocator_t = BB::MemoryArena<BB::allocators::LinearAllocator, BB::ThreadPolicy::Single_Thread>;
-	using FreeListAllocator_t = BB::MemoryArena<BB::allocators::FreelistAllocator, BB::ThreadPolicy::Single_Thread>;
-	using POW_FreeListAllocator_t = BB::MemoryArena<BB::allocators::POW_FreelistAllocator, BB::ThreadPolicy::Single_Thread>;
+	using LinearAllocator_t = BB::MemoryArena<BB::allocators::LinearAllocator, BB::ThreadPolicy::Single_Thread, true>;
+	using FreeListAllocator_t = BB::MemoryArena<BB::allocators::FreelistAllocator, BB::ThreadPolicy::Single_Thread, true>;
+	using POW_FreeListAllocator_t = BB::MemoryArena<BB::allocators::POW_FreelistAllocator, BB::ThreadPolicy::Single_Thread, true>;
+#else
+	//Default types
+	using LinearAllocator_t = BB::MemoryArena<BB::allocators::LinearAllocator, BB::ThreadPolicy::Single_Thread, false>;
+	using FreeListAllocator_t = BB::MemoryArena<BB::allocators::FreelistAllocator, BB::ThreadPolicy::Single_Thread, false>;
+	using POW_FreeListAllocator_t = BB::MemoryArena<BB::allocators::POW_FreelistAllocator, BB::ThreadPolicy::Single_Thread, false>;
+#endif
 
 #pragma region AllocationFunctions
 	inline void* BBalloc(Allocator a_Arena, const size_t a_Size)

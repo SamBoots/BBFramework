@@ -117,8 +117,10 @@ namespace BB
 
 		void reserve(const size_t a_Size);
 
-		Iterator begin();
-		Iterator end();
+		Iterator begin() const;
+		Iterator end() const;
+
+		size_t size() const { return m_Size; }
 
 	private:
 		void grow(size_t a_MinCapacity = 1);
@@ -309,7 +311,7 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::begin()
+	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::begin() const
 	{
 		size_t t_FirstFilled = 0;
 		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::Um_EmptyNode)
@@ -321,7 +323,7 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::end()
+	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::end() const
 	{
 		size_t t_FirstFilled = m_Capacity;
 		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::Um_EmptyNode)
@@ -473,8 +475,10 @@ namespace BB
 
 		void reserve(const size_t a_Size);
 
-		Iterator begin();
-		Iterator end();
+		size_t size() const { return m_Size; }
+
+		Iterator begin() const;
+		Iterator end() const;
 	private:
 		void grow(size_t a_MinCapacity = 1);
 		void reallocate(const size_t a_NewLoadCapacity);
@@ -681,7 +685,7 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline typename OL_HashMap<Key, Value>::Iterator OL_HashMap<Key, Value>::begin()
+	inline typename OL_HashMap<Key, Value>::Iterator OL_HashMap<Key, Value>::begin() const
 	{
 		size_t t_FirstFilled = 0;
 		while (m_Hashes[t_FirstFilled] == Hashmap_Specs::OL_EMPTY ||
@@ -694,7 +698,7 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
-	inline typename OL_HashMap<Key, Value>::Iterator OL_HashMap<Key, Value>::end()
+	inline typename OL_HashMap<Key, Value>::Iterator OL_HashMap<Key, Value>::end() const
 	{
 		size_t t_FirstFilled = m_Capacity; 
 		while (m_Hashes[t_FirstFilled] == Hashmap_Specs::OL_EMPTY ||

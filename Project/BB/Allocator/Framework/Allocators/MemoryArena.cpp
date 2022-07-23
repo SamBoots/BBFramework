@@ -3,7 +3,6 @@
 
 #include <iostream>
 
-#ifdef _DEBUG
 using namespace BB::MemoryDebugTools;
 
 BoundsCheck::~BoundsCheck()
@@ -69,4 +68,3 @@ void MemoryTrack::Clear()
 {
 	m_TrackingList.clear();
 }
-#endif //_DEBUG

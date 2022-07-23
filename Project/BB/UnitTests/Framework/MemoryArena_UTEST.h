@@ -26,7 +26,6 @@ TEST(GlobalDebugAllocator, Macro_Test)
 	BB::BBglobaldestroyarray<size2593bytesObj>(t_TestObjArr);
 }
 
-#ifdef _DEBUG
 TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 {
 	//We use a freelist for the test since it allows for easy allocations and deallocations.
@@ -42,9 +41,9 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 		size_t size;
 	};
 
-	struct MockMemoryArena : BB::FreeListAllocator_t
+	struct MockMemoryArena : BB::MemoryArena<BB::allocators::FreelistAllocator, BB::ThreadPolicy::Single_Thread, true>
 	{
-		MockMemoryArena() : BB::FreeListAllocator_t(ALLOCATORSIZE) {}
+		MockMemoryArena() : BB::MemoryArena<BB::allocators::FreelistAllocator, BB::ThreadPolicy::Single_Thread, true>(ALLOCATORSIZE) {}
 
 		void CheckAllocExists(const MemoryTrackInstance& a_Instance)
 		{
@@ -102,5 +101,3 @@ TEST(MemoryAllocator_MemoryArena, COUNT_MEMORYTRACKER)
 		t_MockArena.CheckAllocDoesntExists(t_TrackInstances[i]);
 	}
 }
-
-#endif //_DEBUG

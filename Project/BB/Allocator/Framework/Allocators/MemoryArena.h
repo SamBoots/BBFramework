@@ -2,14 +2,12 @@
 
 //Source on idea: https://blog.molecular-matters.com/2011/06/29/designing-extensible-modular-classes/
 
-		//needs replacement by a custom hashmap.
 #include <unordered_map>
 #include "Utils/Utils.h"
 #include "Utils/Logger.h"
 
 namespace BB
 {
-#ifdef _DEBUG
 	namespace MemoryDebugTools
 	{
 		constexpr const uintptr_t BoundryCheckValue = 0xDEADBEEFDEADBEEF;
@@ -24,7 +22,7 @@ namespace BB
 			void CheckBoundries(void* a_FrontPtr);
 			void Clear();
 
-			//needs replacement by a custom hashmap.
+			//replace with own hashmap.
 			//First pointer = front.
 			//Second pointer = back.
 			std::unordered_map<void*, void*> m_BoundsList;
@@ -37,11 +35,11 @@ namespace BB
 			void OnDealloc(void* a_Ptr);
 			void Clear();
 
+			//replace with own hashmap.
 			//needs replacement by a custom hashmap.
 			std::unordered_map<void*, size_t> m_TrackingList;
 		};
 	}
-#endif //_DEBUG
 
 	namespace ThreadPolicy
 	{
@@ -73,14 +71,14 @@ namespace BB
 		}
 	}
 
-	template <class Allocator_Type, class ThreadPolicy>
+	template <class Allocator_Type, class ThreadPolicy, bool debugging>
 	struct MemoryArena
 	{
 		operator Allocator()
 		{
 			Allocator t_AllocatorInterface;
 			t_AllocatorInterface.allocator = this;
-			t_AllocatorInterface.func = Realloc<MemoryArena<Allocator_Type, ThreadPolicy>>;
+			t_AllocatorInterface.func = Realloc<MemoryArena<Allocator_Type, ThreadPolicy, debugging>>;
 			return t_AllocatorInterface;
 		}
 
@@ -96,17 +94,20 @@ namespace BB
 		{
 			m_ThreadPolicy.Enter();
 
-#ifdef _DEBUG
-			//Add more room for the boundry checking.
-			a_Size += MemoryDebugTools::BOUNDRY_FRONT + MemoryDebugTools::BOUNDRY_BACK;
-#endif //_DEBUG
+			if constexpr (debugging)
+			{
+				//Add more room for the boundry checking.
+				a_Size += MemoryDebugTools::BOUNDRY_FRONT + MemoryDebugTools::BOUNDRY_BACK;
+			} //debugging
 			void* allocatedMemory = m_Allocator.Alloc(a_Size, a_Alignment);
-#ifdef _DEBUG
-			//Do all the debugging tools.
-			m_BoundsCheck.AddBoundries(allocatedMemory, a_Size);
-			m_MemoryTrack.OnAlloc(allocatedMemory, a_Size);
-			allocatedMemory = Pointer::Add(allocatedMemory, MemoryDebugTools::BOUNDRY_FRONT);
-#endif //_DEBUG
+
+			if constexpr (debugging)
+			{
+				//Do all the debugging tools.
+				m_BoundsCheck.AddBoundries(allocatedMemory, a_Size);
+				m_MemoryTrack.OnAlloc(allocatedMemory, a_Size);
+				allocatedMemory = Pointer::Add(allocatedMemory, MemoryDebugTools::BOUNDRY_FRONT);
+			} //debugging
 			m_ThreadPolicy.Leave();
 
 			return allocatedMemory;
@@ -114,12 +115,13 @@ namespace BB
 		void Free(void* a_Ptr)
 		{
 			m_ThreadPolicy.Enter();
-#ifdef _DEBUG
+			if constexpr (debugging)
+			{
 			//Adjust the pointer to the boundry that was being set.
 			a_Ptr = Pointer::Subtract(a_Ptr, MemoryDebugTools::BOUNDRY_FRONT);
 			m_BoundsCheck.CheckBoundries(a_Ptr);
 			m_MemoryTrack.OnDealloc(a_Ptr);
-#endif //_DEBUG
+			} //debugging
 			m_Allocator.Free(a_Ptr);
 
 			m_ThreadPolicy.Leave();
@@ -128,10 +130,11 @@ namespace BB
 		void Clear()
 		{
 			m_ThreadPolicy.Enter();
-#ifdef _DEBUG
-			m_BoundsCheck.Clear();
-			m_MemoryTrack.Clear();
-#endif //_DEBUG
+			if constexpr (debugging)
+			{
+				m_BoundsCheck.Clear();
+				m_MemoryTrack.Clear();
+			} //debugging
 			m_Allocator.Clear();
 
 			m_ThreadPolicy.Leave();
@@ -141,9 +144,7 @@ namespace BB
 		Allocator_Type m_Allocator;
 		ThreadPolicy m_ThreadPolicy;
 
-#ifdef _DEBUG
 		MemoryDebugTools::BoundsCheck m_BoundsCheck;
 		MemoryDebugTools::MemoryTrack m_MemoryTrack;
-#endif //_DEBUG
 	};
 }
