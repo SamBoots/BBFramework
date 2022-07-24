@@ -12,7 +12,7 @@ namespace BB
 		constexpr const size_t multipleValue = 8;
 
 		constexpr const float UM_LoadFactor = 1.f;
-		constexpr const size_t Um_EmptyNode = 0xAABBCCDD;
+		constexpr const size_t UM_EMPTYNODE = 0xAABBCCDD;
 
 
 		constexpr const float OL_LoadFactor = 1.3f;
@@ -37,7 +37,7 @@ namespace BB
 			static constexpr bool trivalDestructableValue = std::is_trivially_destructible_v<Value>;
 			~HashEntry()
 			{
-				state = Hashmap_Specs::Um_EmptyNode;
+				state = Hashmap_Specs::UM_EMPTYNODE;
 				//Call the destructor if it has one for the value.
 				if constexpr (!trivalDestructableValue)
 					value.~Value();
@@ -48,7 +48,7 @@ namespace BB
 			HashEntry* next_Entry = nullptr;
 			union
 			{
-				size_t state = Hashmap_Specs::Um_EmptyNode;
+				size_t state = Hashmap_Specs::UM_EMPTYNODE;
 				Key key;
 			};
 			Value value;
@@ -72,7 +72,7 @@ namespace BB
 				if (m_Entry->next_Entry == nullptr)
 				{
 					++m_MainEntry;
-					while (m_MainEntry->state == Hashmap_Specs::Um_EmptyNode)
+					while (m_MainEntry->state == Hashmap_Specs::UM_EMPTYNODE)
 					{
 						++m_MainEntry;
 					}
@@ -106,7 +106,12 @@ namespace BB
 	public:
 		UM_HashMap(Allocator a_Allocator);
 		UM_HashMap(Allocator a_Allocator, const size_t a_Size);
+		//UM_HashMap(const UM_HashMap<Key, Value>& a_Map);
+		UM_HashMap(UM_HashMap<Key, Value>&& a_Map) noexcept;
 		~UM_HashMap();
+
+		//UM_HashMap<Key, Value>& operator=(const UM_HashMap<Key, Value>& a_Rhs);
+		UM_HashMap<Key, Value>& operator=(UM_HashMap<Key, Value>&& a_Rhs) noexcept;
 
 		void insert(Key& a_Key, Value& a_Res);
 		template <class... Args>
@@ -165,12 +170,72 @@ namespace BB
 		}
 	}
 
+	//template<typename Key, typename Value>
+	//inline UM_HashMap<Key, Value>::UM_HashMap(const UM_HashMap<Key, Value>& a_Map)
+	//{
+	//	m_Allocator = a_Map.m_Allocator;
+	//	m_Size = a_Map.m_Size;
+	//	m_Capacity = a_Map.m_Capacity;
+	//	m_LoadCapacity = a_Map.m_LoadCapacity;
+
+	//	m_Entries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, m_Capacity * sizeof(HashEntry)));
+
+	//	//Copy over the hashmap and construct the element
+	//}
+
+	template<typename Key, typename Value>
+	inline UM_HashMap<Key, Value>::UM_HashMap(UM_HashMap<Key, Value>&& a_Map) noexcept
+	{
+		m_Allocator = a_Map.m_Allocator;
+		m_Size = a_Map.m_Size;
+		m_Capacity = a_Map.m_Capacity;
+		m_LoadCapacity = a_Map.m_LoadCapacity;
+		m_Entries = a_Map.m_Entries;
+
+		a_Map.m_Size = 0;
+		a_Map.m_Capacity = 0;
+		a_Map.m_LoadCapacity = 0;
+		a_Map.m_Entries = nullptr;
+		a_Map.m_Allocator.allocator = nullptr;
+		a_Map.m_Allocator.func = nullptr;
+	}
+
 	template<typename Key, typename Value>
 	inline UM_HashMap<Key, Value>::~UM_HashMap()
 	{
-		clear();
+		if (m_Entries != nullptr)
+		{ 
+			clear();
 
-		BBfree(m_Allocator, m_Entries);
+			BBfree(m_Allocator, m_Entries);
+		}
+	}
+
+	//template<typename Key, typename Value>
+	//inline UM_HashMap<Key, Value>& BB::UM_HashMap<Key, Value>::operator=(const UM_HashMap<Key, Value>& a_Rhs)
+	//{
+	//	this->~UM_HashMap();
+	//}
+
+	template<typename Key, typename Value>
+	inline UM_HashMap<Key, Value>& BB::UM_HashMap<Key, Value>::operator=(UM_HashMap<Key, Value>&& a_Rhs) noexcept
+	{
+		this->~UM_HashMap();
+
+		m_Allocator = a_Rhs.m_Allocator;
+		m_Size = a_Rhs.m_Size;
+		m_Capacity = a_Rhs.m_Capacity;
+		m_LoadCapacity = a_Rhs.m_LoadCapacity;
+		m_Entries = a_Rhs.m_Entries;
+
+		a_Rhs.m_Size = 0;
+		a_Rhs.m_Capacity = 0;
+		a_Rhs.m_LoadCapacity = 0;
+		a_Rhs.m_Entries = nullptr;
+		a_Rhs.m_Allocator.allocator = nullptr;
+		a_Rhs.m_Allocator.func = nullptr;
+
+		return *this;
 	}
 
 	template<typename Key, typename Value>
@@ -189,7 +254,7 @@ namespace BB
 		const Hash t_Hash = Hash::MakeHash(a_Key) % m_Capacity;
 
 		HashEntry* t_Entry = &m_Entries[t_Hash.hash];
-		if (t_Entry->state == Hashmap_Specs::Um_EmptyNode)
+		if (t_Entry->state == Hashmap_Specs::UM_EMPTYNODE)
 		{
 			t_Entry->key = a_Key;
 			new (&t_Entry->value) Value(std::forward<Args>(a_ValueArgs)...);
@@ -220,7 +285,7 @@ namespace BB
 
 		HashEntry* t_Entry = &m_Entries[t_Hash];
 
-		if (t_Entry->state == Hashmap_Specs::Um_EmptyNode)
+		if (t_Entry->state == Hashmap_Specs::UM_EMPTYNODE)
 			return nullptr;
 
 		while (t_Entry)
@@ -252,7 +317,7 @@ namespace BB
 				return;
 			}
 
-			t_Entry->state = Hashmap_Specs::Um_EmptyNode;
+			t_Entry->state = Hashmap_Specs::UM_EMPTYNODE;
 			return;
 		}
 
@@ -278,7 +343,7 @@ namespace BB
 		//They need to be deleted seperatly since the memory is somewhere else.
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
-			if (m_Entries[i].state != Hashmap_Specs::Um_EmptyNode)
+			if (m_Entries[i].state != Hashmap_Specs::UM_EMPTYNODE)
 			{
 				HashEntry* t_NextEntry = m_Entries[i].next_Entry;
 				while (t_NextEntry != nullptr)
@@ -289,11 +354,11 @@ namespace BB
 
 					BBfree(m_Allocator, t_DeleteEntry);
 				}
-				m_Entries[i].state = Hashmap_Specs::Um_EmptyNode;
+				m_Entries[i].state = Hashmap_Specs::UM_EMPTYNODE;
 			}
 		}
 		for (size_t i = 0; i < m_Capacity; i++)
-			if (m_Entries[i].state == Hashmap_Specs::Um_EmptyNode)
+			if (m_Entries[i].state == Hashmap_Specs::UM_EMPTYNODE)
 				m_Entries[i].~HashEntry();
 
 		m_Size = 0;
@@ -314,7 +379,7 @@ namespace BB
 	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::begin() const
 	{
 		size_t t_FirstFilled = 0;
-		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::Um_EmptyNode)
+		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::UM_EMPTYNODE)
 		{
 			++t_FirstFilled;
 		}
@@ -326,7 +391,7 @@ namespace BB
 	inline typename UM_HashMap<Key, Value>::Iterator UM_HashMap<Key, Value>::end() const
 	{
 		size_t t_FirstFilled = m_Capacity;
-		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::Um_EmptyNode)
+		while (m_Entries[t_FirstFilled].state == Hashmap_Specs::UM_EMPTYNODE)
 		{
 			--t_FirstFilled;
 		}
@@ -362,16 +427,14 @@ namespace BB
 
 		for (size_t i = 0; i < m_Capacity; i++)
 		{
-			if (m_Entries[i].state != Hashmap_Specs::Um_EmptyNode)
+			if (m_Entries[i].state != Hashmap_Specs::UM_EMPTYNODE)
 			{
 				const Hash t_Hash = Hash::MakeHash(m_Entries[i].key) % t_NewCapacity;
 
 				HashEntry* t_Entry = &t_NewEntries[t_Hash.hash];
-				if (t_Entry->state == Hashmap_Specs::Um_EmptyNode)
+				if (t_Entry->state == Hashmap_Specs::UM_EMPTYNODE)
 				{
 					*t_Entry = m_Entries[i];
-
-					return;
 				}
 				//Collision accurred, no problem we just create a linked list and make a new element.
 				//Bad for cache memory though.
@@ -379,9 +442,7 @@ namespace BB
 				{
 					if (t_Entry->next_Entry == nullptr)
 					{
-						HashEntry* t_NewEntry = BBalloc<HashEntry>(m_Allocator);
-						*t_NewEntry = m_Entries[i];
-						return;
+						HashEntry* t_NewEntry = BBalloc<HashEntry>(m_Allocator, m_Entries[i]);
 					}
 					t_Entry = t_Entry->next_Entry;
 				}

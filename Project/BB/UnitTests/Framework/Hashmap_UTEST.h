@@ -25,21 +25,58 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 		ASSERT_EQ(t_Map.find(t_Key), nullptr) << "Element was found while it should've been deleted.";
 	}
 
-	uint32_t t_RandomKeys[samples]{};
-	for (uint32_t i = 0; i < samples; i++)
+	size_t t_RandomKeys[samples]{};
+	for (size_t i = 0; i < samples; i++)
 	{
 		t_RandomKeys[i] = static_cast<size_t>(BB::Random::Random());
 	}
-	
-	for (uint32_t i = 0; i < samples; i++)
+
+	for (size_t i = 0; i < samples; i++)
 	{
 		size2593bytesObj t_Value{};
-		t_Value.value = 500;
+		t_Value.value = 50 * i;
 		size_t t_Key = t_RandomKeys[i];
 		t_Map.insert(t_Key, t_Value);
 
 		ASSERT_NE(t_Map.find(t_Key), nullptr) << "Cannot find the element while it was added!";
 		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
+	}
+
+	//BB::UM_HashMap<size_t, size2593bytesObj> t_CopyMap(t_Map);
+
+	//for (uint32_t i = 0; i < samples; i++)
+	//{
+	//	size_t t_Key = t_RandomKeys[i];
+
+	//	ASSERT_EQ(t_CopyMap.find(t_Key)->value, t_Map.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
+	//}
+
+	//Assignment Constructor
+	//TODO, do this with the copy operated one.
+	BB::UM_HashMap<size_t, size2593bytesObj> t_AssignmentMap(std::move(t_Map));
+	ASSERT_EQ(t_Map.size(), 0);
+
+	for (size_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
+		size2593bytesObj t_Value{};
+		t_Value.value = 50 * i;
+
+		ASSERT_EQ(t_AssignmentMap.find(t_Key)->value, t_Value.value) << "Wrong element was grabbed from the copy of the map.";
+	}
+
+	//Assignment Operator
+	BB::UM_HashMap<size_t, size2593bytesObj> t_AssignmentOperatorMap(t_Allocator);
+	t_AssignmentOperatorMap = std::move(t_AssignmentMap);
+	ASSERT_EQ(t_AssignmentMap.size(), 0);
+
+	for (size_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
+		size2593bytesObj t_Value{};
+		t_Value.value = 50 * i;
+
+		ASSERT_EQ(t_AssignmentOperatorMap.find(t_Key)->value, t_Value.value) << "Wrong element was grabbed from the copy of the map.";
 	}
 }
 
