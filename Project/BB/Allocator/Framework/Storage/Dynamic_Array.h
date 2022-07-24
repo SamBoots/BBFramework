@@ -159,6 +159,8 @@ namespace BB
 	template<typename T>
 	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(const Dynamic_Array<T>& a_Rhs)
 	{
+		this->~Dynamic_Array();
+
 		m_Allocator = a_Rhs.m_Allocator;
 		m_Size = a_Rhs.m_Size;
 		m_Capacity = a_Rhs.m_Capacity;
@@ -172,6 +174,8 @@ namespace BB
 	template<typename T>
 	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(Dynamic_Array<T>&& a_Rhs) noexcept
 	{
+		this->~Dynamic_Array();
+
 		m_Allocator = a_Rhs.m_Allocator;
 		m_Size = a_Rhs.m_Size;
 		m_Capacity = a_Rhs.m_Capacity;

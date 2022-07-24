@@ -414,7 +414,7 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Assignment)
 
 	for (size_t i = 0; i < testSize; i++)
 	{
-		EXPECT_EQ(t_AssignmentArray[i].value, t_RandomValues[i]) << "Dynamic Array, copy array test has wrong values.";
+		EXPECT_EQ(t_AssignmentArray[i].value, t_RandomValues[i]) << "Dynamic Array, assignment array test has wrong values.";
 	}
 
 	BB::Dynamic_Array<size2593bytes> t_AssignmentOperatorArray(t_Allocator);
@@ -424,6 +424,6 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_Array_Assignment)
 
 	for (size_t i = 0; i < testSize; i++)
 	{
-		EXPECT_EQ(t_AssignmentOperatorArray[i].value, t_RandomValues[i]) << "Dynamic Array, copy operator array test has wrong values.";
+		EXPECT_EQ(t_AssignmentOperatorArray[i].value, t_RandomValues[i]) << "Dynamic Array, assignment operator array test has wrong values.";
 	}
 }
