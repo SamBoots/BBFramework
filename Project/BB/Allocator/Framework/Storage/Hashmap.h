@@ -574,7 +574,12 @@ namespace BB
 
 		OL_HashMap(Allocator a_Allocator);
 		OL_HashMap(Allocator a_Allocator, const size_t a_Size);
+		OL_HashMap(const OL_HashMap<Key, Value>& a_Map);
+		OL_HashMap(OL_HashMap<Key, Value>&& a_Map) noexcept;
 		~OL_HashMap();
+
+		OL_HashMap<Key, Value>& operator=(const OL_HashMap<Key, Value>& a_Rhs);
+		OL_HashMap<Key, Value>& operator=(OL_HashMap<Key, Value>&& a_Rhs) noexcept;
 
 		void insert(Key& a_Key, Value& a_Res);
 		template <class... Args>
@@ -629,20 +634,132 @@ namespace BB
 	}
 
 	template<typename Key, typename Value>
+	inline OL_HashMap<Key, Value>::OL_HashMap(const OL_HashMap<Key, Value>& a_Map)
+	{
+		m_Capacity = a_Map.m_Capacity;
+		m_Size = 0;
+		m_LoadCapacity = a_Map.m_LoadCapacity;
+
+		m_Allocator = a_Map.m_Allocator;
+
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
+
+		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
+		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
+		m_Keys = reinterpret_cast<Key*>(Pointer::Add(t_Buffer, sizeof(Hash) * m_Capacity));
+		m_Values = reinterpret_cast<Value*>(Pointer::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
+		std::fill(m_Hashes, m_Hashes + m_Capacity, Hashmap_Specs::OL_EMPTY);
+
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			if (a_Map.m_Hashes[i] != Hashmap_Specs::OL_EMPTY && a_Map.m_Hashes[i] != Hashmap_Specs::OL_TOMBSTONE)
+			{
+				insert(a_Map.m_Keys[i], a_Map.m_Values[i]);
+			}
+		}
+	}
+
+	template<typename Key, typename Value>
+	inline OL_HashMap<Key, Value>::OL_HashMap(OL_HashMap<Key, Value>&& a_Map) noexcept
+	{
+		m_Capacity = a_Map.m_Capacity;
+		m_Size = a_Map.m_Size;
+		m_LoadCapacity = a_Map.m_LoadCapacity;
+
+		m_Hashes = a_Map.m_Hashes;
+		m_Keys = a_Map.m_Keys;
+		m_Values = a_Map.m_Values;
+
+		m_Allocator = a_Map.m_Allocator;
+
+		a_Map.m_Capacity = 0;
+		a_Map.m_Size = 0;
+		a_Map.m_LoadCapacity = 0;
+		a_Map.m_Hashes = nullptr;
+		a_Map.m_Keys = nullptr;
+		a_Map.m_Values = nullptr;
+
+		a_Map.m_Allocator.allocator = nullptr;
+		a_Map.m_Allocator.func = nullptr;
+	}
+
+	template<typename Key, typename Value>
 	inline OL_HashMap<Key, Value>::~OL_HashMap()
 	{
-		//Call the destructor if it has one for the value.
-		if constexpr (!trivalDestructableValue)
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Hashes[i] != 0)
-					m_Values[i].~Value();
-		//Call the destructor if it has one for the key.
-		if constexpr (!trivalDestructableKey)
-			for (size_t i = 0; i < m_Capacity; i++)
-				if (m_Hashes[i] != 0)
-					m_Keys[i].~Key();
+		if (m_Hashes != nullptr)
+		{
+			//Call the destructor if it has one for the value.
+			if constexpr (!trivalDestructableValue)
+				for (size_t i = 0; i < m_Capacity; i++)
+					if (m_Hashes[i] != 0)
+						m_Values[i].~Value();
+			//Call the destructor if it has one for the key.
+			if constexpr (!trivalDestructableKey)
+				for (size_t i = 0; i < m_Capacity; i++)
+					if (m_Hashes[i] != 0)
+						m_Keys[i].~Key();
 
-		BBfree(m_Allocator, m_Hashes);
+			BBfree(m_Allocator, m_Hashes);
+		}
+	}
+
+	template<typename Key, typename Value>
+	inline OL_HashMap<Key, Value>& BB::OL_HashMap<Key, Value>::operator=(const OL_HashMap<Key, Value>& a_Rhs)
+	{
+		this->~OL_HashMap();
+
+		m_Capacity = a_Rhs.m_Capacity;
+		m_Size = 0;
+		m_LoadCapacity = a_Rhs.m_LoadCapacity;
+
+		m_Allocator = a_Rhs.m_Allocator;
+
+		const size_t t_MemorySize = (sizeof(Hash) + sizeof(Key) + sizeof(Value)) * m_Capacity;
+
+		void* t_Buffer = BBalloc(m_Allocator, t_MemorySize);
+		m_Hashes = reinterpret_cast<Hash*>(t_Buffer);
+		m_Keys = reinterpret_cast<Key*>(Pointer::Add(t_Buffer, sizeof(Hash) * m_Capacity));
+		m_Values = reinterpret_cast<Value*>(Pointer::Add(t_Buffer, (sizeof(Hash) + sizeof(Key)) * m_Capacity));
+		std::fill(m_Hashes, m_Hashes + m_Capacity, Hashmap_Specs::OL_EMPTY);
+
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			if (a_Rhs.m_Hashes[i] != Hashmap_Specs::OL_EMPTY && a_Rhs.m_Hashes[i] != Hashmap_Specs::OL_TOMBSTONE)
+			{
+				insert(a_Rhs.m_Keys[i], a_Rhs.m_Values[i]);
+			}
+		}
+
+		return *this;
+	}
+
+	template<typename Key, typename Value>
+	inline OL_HashMap<Key, Value>& BB::OL_HashMap<Key, Value>::operator=(OL_HashMap<Key, Value>&& a_Rhs) noexcept
+	{
+		this->~OL_HashMap();
+
+		m_Capacity = a_Rhs.m_Capacity;
+		m_Size = a_Rhs.m_Size;
+		m_LoadCapacity = a_Rhs.m_LoadCapacity;
+
+		m_Allocator = a_Rhs.m_Allocator;
+
+		m_Hashes = a_Rhs.m_Hashes;
+		m_Keys = a_Rhs.m_Keys;
+		m_Values = a_Rhs.m_Values;
+
+		a_Rhs.m_Capacity = 0;
+		a_Rhs.m_Size = 0;
+		a_Rhs.m_LoadCapacity = 0;
+
+		a_Rhs.m_Allocator.allocator = nullptr;
+		a_Rhs.m_Allocator.func = nullptr;
+
+		a_Rhs.m_Hashes = nullptr;
+		a_Rhs.m_Keys = nullptr;
+		a_Rhs.m_Values = nullptr;
+
+		return *this;
 	}
 
 	template<typename Key, typename Value>

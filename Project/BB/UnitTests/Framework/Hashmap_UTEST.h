@@ -138,7 +138,7 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Range_Based_Loop)
 	//}
 }
 
-TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
+TEST(Hashmap_Datastructure, OL_Hashmap_Insert_Copy_Assignment)
 {
 	constexpr const uint32_t samples = 4096;
 
@@ -198,6 +198,49 @@ TEST(Hashmap_Datastructure, OL_Hashmap_Insert)
 		EXPECT_NE(t_Map.find(t_Key), nullptr) << " Cannot find the element while it was added!";
 		if (t_Map.find(t_Key) != nullptr)
 			EXPECT_EQ(t_Map.find(t_Key)->value, t_Key + 2) << "element: " << i << " Wrong element was likely grabbed.";
+	}
+
+	//Copy Constructor
+	BB::OL_HashMap<size_t, size2593bytesObj> t_CopyMap(t_Map);
+
+	for (uint32_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
+
+		ASSERT_EQ(t_CopyMap.find(t_Key)->value, t_Map.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
+	}
+
+	BB::OL_HashMap<size_t, size2593bytesObj> t_CopyOperatorMap(t_Allocator);
+	t_CopyOperatorMap = t_CopyMap;
+
+	for (uint32_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
+
+		ASSERT_EQ(t_CopyOperatorMap.find(t_Key)->value, t_CopyMap.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
+	}
+
+	//Assignment Constructor
+	BB::OL_HashMap<size_t, size2593bytesObj> t_AssignmentMap(std::move(t_CopyOperatorMap));
+	ASSERT_EQ(t_CopyOperatorMap.size(), 0);
+
+	for (size_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
+
+		ASSERT_EQ(t_AssignmentMap.find(t_Key)->value, t_Map.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
+	}
+
+	//Assignment Operator
+	BB::OL_HashMap<size_t, size2593bytesObj> t_AssignmentOperatorMap(t_Allocator);
+	t_AssignmentOperatorMap = std::move(t_AssignmentMap);
+	ASSERT_EQ(t_AssignmentMap.size(), 0);
+
+	for (size_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
+
+		ASSERT_EQ(t_AssignmentOperatorMap.find(t_Key)->value, t_Map.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
 	}
 }
 
