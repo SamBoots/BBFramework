@@ -2,7 +2,7 @@
 #include "../TestValues.h"
 #include "Storage/Hashmap.h"
 
-TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
+TEST(Hashmap_Datastructure, UM_Hashmap_Insert_Copy_Assignment)
 {
 	constexpr const size_t samples = 256;
 
@@ -42,19 +42,29 @@ TEST(Hashmap_Datastructure, UM_Hashmap_Insert)
 		ASSERT_EQ(t_Map.find(t_Key)->value, t_Value.value) << "Wrong element was likely grabbed.";
 	}
 
-	//BB::UM_HashMap<size_t, size2593bytesObj> t_CopyMap(t_Map);
+	//Copy Constructor
+	BB::UM_HashMap<size_t, size2593bytesObj> t_CopyMap(t_Map);
 
-	//for (uint32_t i = 0; i < samples; i++)
-	//{
-	//	size_t t_Key = t_RandomKeys[i];
+	for (uint32_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
 
-	//	ASSERT_EQ(t_CopyMap.find(t_Key)->value, t_Map.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
-	//}
+		ASSERT_EQ(t_CopyMap.find(t_Key)->value, t_Map.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
+	}
+
+	BB::UM_HashMap<size_t, size2593bytesObj> t_CopyOperatorMap(t_Allocator);
+	t_CopyOperatorMap = t_CopyMap;
+
+	for (uint32_t i = 0; i < samples; i++)
+	{
+		size_t t_Key = t_RandomKeys[i];
+
+		ASSERT_EQ(t_CopyOperatorMap.find(t_Key)->value, t_CopyMap.find(t_Key)->value) << "Wrong element was grabbed from the copy of the map.";
+	}
 
 	//Assignment Constructor
-	//TODO, do this with the copy operated one.
-	BB::UM_HashMap<size_t, size2593bytesObj> t_AssignmentMap(std::move(t_Map));
-	ASSERT_EQ(t_Map.size(), 0);
+	BB::UM_HashMap<size_t, size2593bytesObj> t_AssignmentMap(std::move(t_CopyOperatorMap));
+	ASSERT_EQ(t_CopyOperatorMap.size(), 0);
 
 	for (size_t i = 0; i < samples; i++)
 	{

@@ -106,11 +106,11 @@ namespace BB
 	public:
 		UM_HashMap(Allocator a_Allocator);
 		UM_HashMap(Allocator a_Allocator, const size_t a_Size);
-		//UM_HashMap(const UM_HashMap<Key, Value>& a_Map);
+		UM_HashMap(const UM_HashMap<Key, Value>& a_Map);
 		UM_HashMap(UM_HashMap<Key, Value>&& a_Map) noexcept;
 		~UM_HashMap();
 
-		//UM_HashMap<Key, Value>& operator=(const UM_HashMap<Key, Value>& a_Rhs);
+		UM_HashMap<Key, Value>& operator=(const UM_HashMap<Key, Value>& a_Rhs);
 		UM_HashMap<Key, Value>& operator=(UM_HashMap<Key, Value>&& a_Rhs) noexcept;
 
 		void insert(Key& a_Key, Value& a_Res);
@@ -170,18 +170,37 @@ namespace BB
 		}
 	}
 
-	//template<typename Key, typename Value>
-	//inline UM_HashMap<Key, Value>::UM_HashMap(const UM_HashMap<Key, Value>& a_Map)
-	//{
-	//	m_Allocator = a_Map.m_Allocator;
-	//	m_Size = a_Map.m_Size;
-	//	m_Capacity = a_Map.m_Capacity;
-	//	m_LoadCapacity = a_Map.m_LoadCapacity;
+	template<typename Key, typename Value>
+	inline UM_HashMap<Key, Value>::UM_HashMap(const UM_HashMap<Key, Value>& a_Map)
+	{
+		m_Allocator = a_Map.m_Allocator;
+		m_Size = a_Map.m_Size;
+		m_Capacity = a_Map.m_Capacity;
+		m_LoadCapacity = a_Map.m_LoadCapacity;
 
-	//	m_Entries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, m_Capacity * sizeof(HashEntry)));
+		m_Entries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, m_Capacity * sizeof(HashEntry)));
 
-	//	//Copy over the hashmap and construct the element
-	//}
+		//Copy over the hashmap and construct the element
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			if (a_Map.m_Entries[i].state != Hashmap_Specs::UM_EMPTYNODE)
+			{
+				new (&m_Entries[i]) HashEntry(a_Map.m_Entries[i]);
+				HashEntry* t_Entry = &m_Entries[i];
+				HashEntry* t_PreviousEntry;
+				while (t_Entry->next_Entry != nullptr)
+				{
+					t_PreviousEntry = t_Entry;
+					t_Entry = reinterpret_cast<HashEntry*>(BBalloc<HashEntry>(m_Allocator, *t_Entry->next_Entry));
+					t_PreviousEntry->next_Entry = t_Entry;
+				}
+			}
+			else
+			{
+				new (&m_Entries[i]) HashEntry();
+			}
+		}
+	}
 
 	template<typename Key, typename Value>
 	inline UM_HashMap<Key, Value>::UM_HashMap(UM_HashMap<Key, Value>&& a_Map) noexcept
@@ -211,11 +230,41 @@ namespace BB
 		}
 	}
 
-	//template<typename Key, typename Value>
-	//inline UM_HashMap<Key, Value>& BB::UM_HashMap<Key, Value>::operator=(const UM_HashMap<Key, Value>& a_Rhs)
-	//{
-	//	this->~UM_HashMap();
-	//}
+	template<typename Key, typename Value>
+	inline UM_HashMap<Key, Value>& BB::UM_HashMap<Key, Value>::operator=(const UM_HashMap<Key, Value>& a_Rhs)
+	{
+		this->~UM_HashMap();
+
+		m_Allocator = a_Rhs.m_Allocator;
+		m_Size = a_Rhs.m_Size;
+		m_Capacity = a_Rhs.m_Capacity;
+		m_LoadCapacity = a_Rhs.m_LoadCapacity;
+
+		m_Entries = reinterpret_cast<HashEntry*>(BBalloc(m_Allocator, m_Capacity * sizeof(HashEntry)));
+
+		//Copy over the hashmap and construct the element
+		for (size_t i = 0; i < m_Capacity; i++)
+		{
+			if (a_Rhs.m_Entries[i].state != Hashmap_Specs::UM_EMPTYNODE)
+			{
+				new (&m_Entries[i]) HashEntry(a_Rhs.m_Entries[i]);
+				HashEntry* t_Entry = &m_Entries[i];
+				HashEntry* t_PreviousEntry;
+				while (t_Entry->next_Entry != nullptr)
+				{
+					t_PreviousEntry = t_Entry;
+					t_Entry = reinterpret_cast<HashEntry*>(BBalloc<HashEntry>(m_Allocator, *t_Entry->next_Entry));
+					t_PreviousEntry->next_Entry = t_Entry;
+				}
+			}
+			else
+			{
+				new (&m_Entries[i]) HashEntry();
+			}
+		}
+
+		return *this;
+	}
 
 	template<typename Key, typename Value>
 	inline UM_HashMap<Key, Value>& BB::UM_HashMap<Key, Value>::operator=(UM_HashMap<Key, Value>&& a_Rhs) noexcept
