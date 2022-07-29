@@ -8,7 +8,6 @@ namespace BB
 {
 	namespace Dynamic_Array_Specs
 	{
-		constexpr const size_t overAllocateMultiplier = 16;
 		constexpr const size_t multipleValue = 8;
 		constexpr const size_t standardSize = 8;
 	};

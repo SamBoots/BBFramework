@@ -5,7 +5,7 @@
 TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 {
 	constexpr const size_t initialSize = 8;
-	constexpr const size_t samples = initialSize * BB::Dynamic_Array_Specs::overAllocateMultiplier;
+	constexpr const size_t samples = initialSize * 16;
 
 	//32 MB alloactor.
 	const size_t allocatorSize = BB::mbSize * 32;
@@ -27,10 +27,10 @@ TEST(Dynamic_ArrayDataStructure, Dynamic_push_reserve)
 	}
 	size_t t_OldCapacity = t_Array.capacity();
 
-	EXPECT_NE(t_OldCapacity, initialSize * BB::Dynamic_Array_Specs::overAllocateMultiplier) << "Just allocating one element seems to be enough for the test, this is wrong and might indicate an unaccurate test.";
+	EXPECT_NE(t_OldCapacity, initialSize * 16) << "Just allocating one element seems to be enough for the test, this is wrong and might indicate an unaccurate test.";
 	t_Array.reserve(initialSize);
 	//Because of overallocationmultiplier this should reserve some.
-	EXPECT_NE(t_OldCapacity, initialSize * BB::Dynamic_Array_Specs::overAllocateMultiplier) << "Reserve overallocates while reserve should be able to do that!";
+	EXPECT_NE(t_OldCapacity, initialSize * 16) << "Reserve overallocates while reserve should be able to do that!";
 
 	size_t t_RandomValues[samples]{};
 
