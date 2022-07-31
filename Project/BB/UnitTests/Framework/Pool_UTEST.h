@@ -5,14 +5,16 @@
 TEST(PoolDataStructure, Pool_Create_Get_Free)
 {
 	constexpr const size_t samples = 128;
+	//Unaligned big struct with a union to test the value.
+	struct size2593bytes { union { char data[2593]; size_t value; }; };
 
 	//2 MB alloactor.
 	BB::FreeListAllocator_t t_Allocator(1024 * 1024 * 2);
 
-	BB::Pool<size2593bytesObj> t_Pool(t_Allocator, samples);
+	BB::Pool<size2593bytes> t_Pool(t_Allocator, samples);
 
 	size_t t_RandomValues[samples]{};
-	size2593bytesObj* t_Array[samples]{};
+	size2593bytes* t_Array[samples]{};
 
 	for (size_t i = 0; i < samples; i++)
 	{
