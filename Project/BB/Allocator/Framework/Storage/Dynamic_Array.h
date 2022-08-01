@@ -84,7 +84,7 @@ namespace BB
 		void* data() const { return m_Arr; };
 
 		Iterator begin() { return Iterator(m_Arr); }
-		Iterator end() { return Iterator(m_Arr(m_Size + 1)); } //Get an out of bounds Iterator.
+		Iterator end() { return Iterator(&m_Arr[m_Size + 1]); } //Get an out of bounds Iterator.
 			 
 	private:
 		void grow(size_t a_MinCapacity = 0);

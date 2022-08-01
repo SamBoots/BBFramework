@@ -26,6 +26,7 @@ add_executable (Unit_Test_Proj
 "Framework/Hashmap_UTEST.h"
 "Framework/MemoryArena_UTEST.h"
 "Framework/Slice_UTEST.h"
+"Framework/Slotmap_UTEST.h"
 )
 
 include_directories(

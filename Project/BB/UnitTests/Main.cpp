@@ -7,6 +7,7 @@
 #include "Framework/Hashmap_UTEST.h"
 #include "Framework/MemoryArena_UTEST.h"
 #include "Framework/Slice_UTEST.h"
+#include "Framework/Slotmap_UTEST.h"
 
 #include "OS/OSDevice.h"
 
