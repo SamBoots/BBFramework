@@ -6,7 +6,8 @@ namespace BB
 {
 	namespace Slotmap_Specs
 	{
-
+		constexpr const size_t multipleValue = 8;
+		constexpr const size_t standardSize = 8;
 	}
 
 	struct SlotmapID
@@ -17,13 +18,15 @@ namespace BB
 	template <typename T>
 	class Slotmap
 	{
-	public:
+		static constexpr bool trivalDestructableT = std::is_trivially_destructible_v<T>;
+
 		struct Node
 		{
 			SlotmapID id;
 			T value;
 		};
 
+	public:
 		struct Iterator
 		{
 			Iterator(Node* a_Ptr) : m_Ptr(a_Ptr) {}
@@ -53,8 +56,14 @@ namespace BB
 			Node* m_Ptr;
 		};
 
-		Slotmap();
+		Slotmap(Allocator a_Allocator);
+		Slotmap(Allocator a_Allocator, size_t a_Size);
+		Slotmap(const Slotmap<T>& a_Map);
+		Slotmap(Slotmap<T>&& a_Map) noexcept;
 		~Slotmap();
+
+		Slotmap<T>& operator=(const Slotmap<T>& a_Rhs);
+		Slotmap<T>& operator=(Slotmap<T>&& a_Rhs) noexcept;
 
 		SlotmapID insert(T& a_Obj);
 		T& find(SlotmapID a_ID);
@@ -63,18 +72,33 @@ namespace BB
 		Iterator begin() { return Iterator(m_ObjArr); }
 		Iterator end() { return Iterator(&m_ObjArr[m_Capacity]); }
 
+		size_t size() const { return m_Size; }
+
 	private:
+		Allocator m_Allocator;
+
+		SlotmapID* m_IdArr;
+		Node* m_ObjArr;
+
 		size_t m_Capacity = 128;
 		size_t m_Size = 0;
 		size_t m_NextFree;
-
-		SlotmapID m_IdArr[128];
-		Node m_ObjArr[128];
 	};
 
 	template<typename T>
-	inline BB::Slotmap<T>::Slotmap()
+	inline BB::Slotmap<T>::Slotmap(Allocator a_Allocator)
+		:	Slotmap(a_Allocator, Slotmap_Specs::standardSize)
+	{}
+
+	template<typename T>
+	inline BB::Slotmap<T>::Slotmap(Allocator a_Allocator, size_t a_Size)
 	{
+		m_Allocator = a_Allocator;
+		m_Capacity = a_Size;
+
+		m_IdArr = reinterpret_cast<SlotmapID*>(BBalloc(m_Allocator, sizeof(SlotmapID) * m_Capacity));
+		m_ObjArr = reinterpret_cast<Node*>(BBalloc(m_Allocator, sizeof(Node) * m_Capacity));
+
 		for (size_t i = 0; i < m_Capacity; ++i)
 		{
 			m_IdArr[i].index = i + 1;
@@ -83,9 +107,97 @@ namespace BB
 	}
 
 	template<typename T>
+	inline BB::Slotmap<T>::Slotmap(const Slotmap<T>& a_Map)
+	{
+		m_Allocator = a_Map.m_Allocator;
+		m_Capacity = a_Map.m_Capacity;
+		m_Size = a_Map.m_Size;
+		m_NextFree = a_Map.m_NextFree;
+
+		m_IdArr = reinterpret_cast<SlotmapID*>(BBalloc(m_Allocator, sizeof(SlotmapID) * m_Capacity));
+		m_ObjArr = reinterpret_cast<Node*>(BBalloc(m_Allocator, sizeof(Node) * m_Capacity));
+
+		BB::Memory::Copy(m_IdArr, a_Map.m_IdArr, m_Capacity);
+		BB::Memory::Copy(m_ObjArr, a_Map.m_ObjArr, m_Size);
+	}
+
+	template<typename T>
+	inline BB::Slotmap<T>::Slotmap(Slotmap<T>&& a_Map) noexcept
+	{
+		m_Capacity = a_Map.m_Capacity;
+		m_Size = a_Map.m_Size;
+		m_NextFree = a_Map.m_NextFree;
+		m_IdArr = a_Map.m_IdArr;
+		m_ObjArr = a_Map.m_ObjArr;
+		m_Allocator = a_Map.m_Allocator;
+
+		a_Map.m_Capacity = 0;
+		a_Map.m_Size = 0;
+		a_Map.m_NextFree = 0;
+		a_Map.m_IdArr = nullptr;
+		a_Map.m_ObjArr = nullptr;
+		a_Map.m_Allocator.allocator = nullptr;
+		a_Map.m_Allocator.func = nullptr;
+	}
+
+	template<typename T>
 	inline BB::Slotmap<T>::~Slotmap()
 	{
+		if (m_IdArr != nullptr)
+		{
+			if constexpr (!trivalDestructableT)
+			{
+				for (size_t i = 0; i < m_Size; i++)
+				{
+					m_ObjArr[i].value.~T();
+				}
+			}
 
+			BBfree(m_Allocator, m_IdArr);
+			BBfree(m_Allocator, m_ObjArr);
+		}
+	}
+
+	template<typename T>
+	inline Slotmap<T>& BB::Slotmap<T>::operator=(const Slotmap<T>& a_Rhs)
+	{
+		this->~Slotmap();
+
+		m_Allocator = a_Rhs.m_Allocator;
+		m_Capacity = a_Rhs.m_Capacity;
+		m_Size = a_Rhs.m_Size;
+		m_NextFree = a_Rhs.m_NextFree;
+
+		m_IdArr = reinterpret_cast<SlotmapID*>(BBalloc(m_Allocator, sizeof(SlotmapID) * m_Capacity));
+		m_ObjArr = reinterpret_cast<Node*>(BBalloc(m_Allocator, sizeof(Node) * m_Capacity));
+
+		BB::Memory::Copy(m_IdArr, a_Rhs.m_IdArr, m_Capacity);
+		BB::Memory::Copy(m_ObjArr, a_Rhs.m_ObjArr, m_Size);
+
+		return *this;
+	}
+
+	template<typename T>
+	inline Slotmap<T>& BB::Slotmap<T>::operator=(Slotmap<T>&& a_Rhs) noexcept
+	{
+		this->~Slotmap();
+
+		m_Capacity = a_Rhs.m_Capacity;
+		m_Size = a_Rhs.m_Size;
+		m_NextFree = a_Rhs.m_NextFree;
+		m_IdArr = a_Rhs.m_IdArr;
+		m_ObjArr = a_Rhs.m_ObjArr;
+		m_Allocator = a_Rhs.m_Allocator;
+
+		a_Rhs.m_Capacity = 0;
+		a_Rhs.m_Size = 0;
+		a_Rhs.m_NextFree = 0;
+		a_Rhs.m_IdArr = nullptr;
+		a_Rhs.m_ObjArr = nullptr;
+		a_Rhs.m_Allocator.allocator = nullptr;
+		a_Rhs.m_Allocator.func = nullptr;
+
+		return *this;
 	}
 
 	template<typename T>
