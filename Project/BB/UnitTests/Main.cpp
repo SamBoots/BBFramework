@@ -15,11 +15,13 @@ int main()
 {
 	testing::InitGoogleTest();
 	RUN_ALL_TESTS();
-	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::MAIN, 250, 200, 250, 200, "Unit Test Main Window");
+	BB::WindowHandle mainWindow = BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::MAIN, 250, 200, 250, 200, "Unit Test Main Window");
 
-	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 100, 100, 250, 50, "Unit Test Child Window 1");
+	BB::WindowHandle childWindow = BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 100, 100, 250, 50, "Unit Test Child Window 1");
 
-	BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 150, 100, 250, 100, "Unit Test Child Window 2");
+	BB::WindowHandle deletedWindow = BB::AppOSDevice().CreateOSWindow(BB::OS_WINDOW_STYLE::CHILD, 150, 100, 250, 100, "Unit Test deleted window");
+
+	BB::AppOSDevice().DestroyOSWindow(deletedWindow);
 
 	while (BB::AppOSDevice().ProcessMessages())
 	{

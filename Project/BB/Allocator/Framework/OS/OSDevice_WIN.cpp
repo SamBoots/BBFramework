@@ -2,7 +2,7 @@
 #include "OSDevice.h"
 
 #include <Windows.h>
-#include "Storage/Dynamic_Array.h"
+#include "Storage/Slotmap.h"
 
 using namespace BB;
 
@@ -110,7 +110,7 @@ private:
 struct BB::OSDevice_o
 {
 	//Special array for all the windows. Stored seperately 
-	Dynamic_Array<OSWindow> OSWindows{ OSAllocator, 8 };
+	Slotmap<OSWindow> OSWindows{ OSAllocator, 8 };
 };
 
 
@@ -153,29 +153,13 @@ WindowHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y,
 	OSWindow t_OSWindow;
 	t_OSWindow.Init(a_Style, a_X, a_Y, a_Width, a_Height, a_WindowName);
 
-	size_t t_OSWindowsSize = m_OSDevice->OSWindows.size();
-
-	for (size_t i = 0; i < t_OSWindowsSize; i++)
-	{
-		if (m_OSDevice->OSWindows[i].hwnd == nullptr)
-		{
-			m_OSDevice->OSWindows[i] = t_OSWindow;
-			return WindowHandle(static_cast<uint32_t>(t_OSWindowsSize));
-		}
-	}
-
-	m_OSDevice->OSWindows.push_back(t_OSWindow);
-
-	return WindowHandle(static_cast<uint32_t>(t_OSWindowsSize));
+	return WindowHandle(static_cast<uint32_t>(m_OSDevice->OSWindows.insert(t_OSWindow)));
 }
 
 void BB::OSDevice::DestroyOSWindow(WindowHandle a_Handle)
 {
-	//Don't delete it from the array but call the deconstructor.
-	m_OSDevice->OSWindows[a_Handle.index].Destroy();
-
-	//Instead of deleting the entry mark it as empty, so that it may be used again.
-	m_OSDevice->OSWindows[a_Handle.index].hwnd = nullptr;
+	m_OSDevice->OSWindows.find(a_Handle.index).Destroy();
+	m_OSDevice->OSWindows.erase(a_Handle.index);
 }
 
 void OSDevice::ExitApp() const
@@ -191,7 +175,11 @@ bool BB::OSDevice::ProcessMessages() const
 	{
 		if (t_Msg.message == WM_QUIT)
 		{
-			return false;
+			//if there are now windows just close the application.
+			if (m_OSDevice->OSWindows.size() == 0)
+			{
+				return false;
+			}
 		}
 
 		TranslateMessage(&t_Msg);

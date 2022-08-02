@@ -10,15 +10,13 @@ namespace BB
 		constexpr const size_t standardSize = 8;
 	}
 
-	struct SlotmapID
-	{
-		size_t index; //Can also have the index to the next free id.
-	};
+	using SlotmapID = size_t;
 
 	template <typename T>
 	class Slotmap
 	{
 		static constexpr bool trivalDestructableT = std::is_trivially_destructible_v<T>;
+		static constexpr bool destructableT = std::is_destructible_v<T>;
 
 		struct Node
 		{
@@ -92,7 +90,7 @@ namespace BB
 
 		size_t m_Capacity = 128;
 		size_t m_Size = 0;
-		size_t m_NextFree;
+		SlotmapID m_NextFree;
 	};
 
 	template<typename T>
@@ -111,7 +109,7 @@ namespace BB
 
 		for (size_t i = 0; i < m_Capacity; ++i)
 		{
-			m_IdArr[i].index = i + 1;
+			m_IdArr[i] = i + 1;
 		}
 		m_NextFree = 0;
 	}
@@ -155,7 +153,7 @@ namespace BB
 	{
 		if (m_IdArr != nullptr)
 		{
-			if constexpr (!trivalDestructableT)
+			if constexpr (destructableT)
 			{
 				for (size_t i = 0; i < m_Size; i++)
 				{
@@ -224,11 +222,11 @@ namespace BB
 			grow();
 
 		SlotmapID& t_Id = m_IdArr[m_NextFree];
-		m_NextFree = t_Id.index;
+		m_NextFree = t_Id;
 
-		t_Id.index = m_Size++;
+		t_Id = m_Size++;
 
-		Node& t_Node = m_ObjArr[t_Id.index];
+		Node& t_Node = m_ObjArr[t_Id];
 		t_Node.id = t_Id;
 		new (&t_Node.value) T(std::forward<Args>(a_Args)...);
 
@@ -238,19 +236,25 @@ namespace BB
 	template<typename T>
 	inline T& BB::Slotmap<T>::find(SlotmapID a_ID)
 	{
-		return m_ObjArr[a_ID.index].value;
+		return m_ObjArr[a_ID].value;
 	}
 
 	template<typename T>
 	inline void BB::Slotmap<T>::erase(SlotmapID a_ID)
 	{
 		size_t t_OldFree = m_NextFree;
-		m_NextFree = a_ID.index;
-		m_IdArr[a_ID.index].index = t_OldFree;
+		m_NextFree = a_ID;
+		m_IdArr[a_ID] = t_OldFree;
 
 		Slotmap::Node& t_Node = m_ObjArr[--m_Size];
-		t_Node.id.index = t_OldFree;
-		t_Node.value = std::move(m_ObjArr[a_ID.index].value);
+		t_Node.id = t_OldFree;
+		if constexpr (destructableT)
+		{
+			//Before move call the destructor if it has one.
+			t_Node.value.~T();
+		}
+
+		t_Node.value = std::move(m_ObjArr[a_ID].value);
 	}
 	template<typename T>
 	inline void BB::Slotmap<T>::reserve(size_t a_Capacity)
@@ -267,12 +271,12 @@ namespace BB
 
 		for (size_t i = 0; i < m_Capacity; ++i)
 		{
-			m_IdArr[i].index = i + 1;
+			m_IdArr[i] = i + 1;
 		}
 		m_NextFree = 0;
 
 		//Destruct all the variables when it is not trivially destructable.
-		if constexpr (!trivalDestructableT)
+		if constexpr (destructableT)
 		{
 			for (size_t i = 0; i < m_Size; i++)
 			{
@@ -298,7 +302,7 @@ namespace BB
 
 		for (size_t i = m_Capacity; i < a_NewCapacity; ++i)
 		{
-			t_NewIdArr[i].index = i + 1;
+			t_NewIdArr[i] = i + 1;
 		}
 
 		this->~Slotmap();
