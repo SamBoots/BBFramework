@@ -66,8 +66,14 @@ namespace BB
 		Slotmap<T>& operator=(Slotmap<T>&& a_Rhs) noexcept;
 
 		SlotmapID insert(T& a_Obj);
+		template <class... Args>
+		SlotmapID emplace(Args&&... a_Args);
 		T& find(SlotmapID a_ID);
 		void erase(SlotmapID a_ID);
+
+		void reserve(size_t a_Capacity);
+
+		void clear();
 
 		Iterator begin() { return Iterator(m_ObjArr); }
 		Iterator end() { return Iterator(&m_ObjArr[m_Capacity]); }
@@ -75,6 +81,10 @@ namespace BB
 		size_t size() const { return m_Size; }
 
 	private:
+		void grow();
+		//This function also changes the m_Capacity value.
+		void reallocate(size_t a_NewCapacity);
+
 		Allocator m_Allocator;
 
 		SlotmapID* m_IdArr;
@@ -203,6 +213,16 @@ namespace BB
 	template<typename T>
 	inline SlotmapID BB::Slotmap<T>::insert(T& a_Obj)
 	{
+		return emplace(a_Obj);
+	}
+
+	template<typename T>
+	template<class ...Args>
+	inline SlotmapID BB::Slotmap<T>::emplace(Args&&... a_Args)
+	{
+		if (m_Size >= m_Capacity)
+			grow();
+
 		SlotmapID& t_Id = m_IdArr[m_NextFree];
 		m_NextFree = t_Id.index;
 
@@ -210,7 +230,7 @@ namespace BB
 
 		Node& t_Node = m_ObjArr[t_Id.index];
 		t_Node.id = t_Id;
-		t_Node.value = a_Obj;
+		new (&t_Node.value) T(std::forward<Args>(a_Args)...);
 
 		return t_Id;
 	}
@@ -231,5 +251,60 @@ namespace BB
 		Slotmap::Node& t_Node = m_ObjArr[--m_Size];
 		t_Node.id.index = t_OldFree;
 		t_Node.value = std::move(m_ObjArr[a_ID.index].value);
+	}
+	template<typename T>
+	inline void BB::Slotmap<T>::reserve(size_t a_Capacity)
+	{
+		if (a_Capacity > m_Capacity)
+			reallocate(a_Capacity);
+	}
+
+
+	template<typename T>
+	inline void BB::Slotmap<T>::clear()
+	{
+		m_Size = 0;
+
+		for (size_t i = 0; i < m_Capacity; ++i)
+		{
+			m_IdArr[i].index = i + 1;
+		}
+		m_NextFree = 0;
+
+		//Destruct all the variables when it is not trivially destructable.
+		if constexpr (!trivalDestructableT)
+		{
+			for (size_t i = 0; i < m_Size; i++)
+			{
+				m_ObjArr[i].value.~T();
+			}
+		}
+	}
+
+	template<typename T>
+	inline void BB::Slotmap<T>::grow()
+	{
+		reallocate(m_Capacity * 2);
+	}
+
+	template<typename T>
+	inline void BB::Slotmap<T>::reallocate(size_t a_NewCapacity)
+	{
+		SlotmapID* t_NewIdArr = reinterpret_cast<SlotmapID*>(BBalloc(m_Allocator, sizeof(SlotmapID) * a_NewCapacity));
+		Node* t_NewObjArr = reinterpret_cast<Node*>(BBalloc(m_Allocator, sizeof(Node) * a_NewCapacity));
+
+		BB::Memory::Copy(t_NewIdArr, m_IdArr, m_Capacity);
+		BB::Memory::Copy(t_NewObjArr, m_ObjArr, m_Size);
+
+		for (size_t i = m_Capacity; i < a_NewCapacity; ++i)
+		{
+			t_NewIdArr[i].index = i + 1;
+		}
+
+		this->~Slotmap();
+
+		m_Capacity = a_NewCapacity;
+		m_IdArr = t_NewIdArr;
+		m_ObjArr = t_NewObjArr;
 	}
 }
