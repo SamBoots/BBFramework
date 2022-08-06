@@ -6,17 +6,16 @@
 
 namespace BB
 {
-	namespace Dynamic_Array_Specs
+	namespace Array_Specs
 	{
 		constexpr const size_t multipleValue = 8;
 		constexpr const size_t standardSize = 8;
 	};
 
 	template<typename T>
-	struct Dynamic_Array
+	struct Array
 	{
-		static constexpr bool trivalDestructableT = std::is_trivially_destructible_v<T>;
-		static constexpr bool trivialConstructableT = std::is_trivially_constructible_v<T>;
+		static constexpr bool trivialDestructible_T = std::is_trivially_destructible_v<T>;
 
 		struct Iterator
 		{
@@ -54,14 +53,14 @@ namespace BB
 			pointer m_Ptr;
 		};
 
-		Dynamic_Array(Allocator a_Allocator);
-		Dynamic_Array(Allocator a_Allocator, size_t a_Size);
-		Dynamic_Array(const Dynamic_Array<T>& a_Array);
-		Dynamic_Array(Dynamic_Array<T>&& a_Array) noexcept;
-		~Dynamic_Array();
+		Array(Allocator a_Allocator);
+		Array(Allocator a_Allocator, size_t a_Size);
+		Array(const Array<T>& a_Array);
+		Array(Array<T>&& a_Array) noexcept;
+		~Array();
 
-		Dynamic_Array<T>& operator=(const Dynamic_Array<T>& a_Rhs);
-		Dynamic_Array<T>& operator=(Dynamic_Array<T>&& a_Rhs) noexcept;
+		Array<T>& operator=(const Array<T>& a_Rhs);
+		Array<T>& operator=(Array<T>&& a_Rhs) noexcept;
 		T& operator[](const size_t a_Index) const;
 
 		void push_back(T& a_Element);
@@ -77,7 +76,7 @@ namespace BB
 		void resize(size_t a_Size);
 
 		void pop();
-		void empty();
+		void clear();
 
 		const size_t size() const { return m_Size; };
 		const size_t capacity() const { return m_Capacity; }
@@ -99,21 +98,21 @@ namespace BB
 	};
 
 	template<typename T>
-	inline BB::Dynamic_Array<T>::Dynamic_Array(Allocator a_Allocator)
-		: Dynamic_Array(a_Allocator, Dynamic_Array_Specs::standardSize) {}
+	inline BB::Array<T>::Array(Allocator a_Allocator)
+		: Array(a_Allocator, Array_Specs::standardSize) {}
 
 	template<typename T>
-	inline Dynamic_Array<T>::Dynamic_Array(Allocator a_Allocator, size_t a_Size)
+	inline BB::Array<T>::Array(Allocator a_Allocator, size_t a_Size)
 		: m_Allocator(a_Allocator)
 	{
 		BB_EXCEPTION(a_Size != 0, "Dynamic_array size is specified to be 0");
-		m_Capacity = Math::RoundUp(a_Size, Dynamic_Array_Specs::multipleValue);
+		m_Capacity = Math::RoundUp(a_Size, Array_Specs::multipleValue);
 
 		m_Arr = reinterpret_cast<T*>(BBalloc(m_Allocator, m_Capacity * sizeof(T)));
 	}
 
 	template<typename T>
-	inline BB::Dynamic_Array<T>::Dynamic_Array(const Dynamic_Array<T>& a_Array)
+	inline BB::Array<T>::Array(const Array<T>& a_Array)
 	{
 		m_Allocator = a_Array.m_Allocator;
 		m_Size = a_Array.m_Size;
@@ -124,7 +123,7 @@ namespace BB
 	}
 
 	template<typename T>
-	inline BB::Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T>&& a_Array) noexcept
+	inline BB::Array<T>::Array(Array<T>&& a_Array) noexcept
 	{
 		m_Allocator = a_Array.m_Allocator;
 		m_Size = a_Array.m_Size;
@@ -139,11 +138,11 @@ namespace BB
 	}
 
 	template<typename T>
-	inline Dynamic_Array<T>::~Dynamic_Array()
+	inline Array<T>::~Array()
 	{
 		if (m_Arr != nullptr)
 		{
-			if constexpr (!trivalDestructableT)
+			if constexpr (!trivialDestructible_T)
 			{
 				for (size_t i = 0; i < m_Size; i++)
 				{
@@ -156,9 +155,9 @@ namespace BB
 	}
 
 	template<typename T>
-	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(const Dynamic_Array<T>& a_Rhs)
+	inline Array<T>& BB::Array<T>::operator=(const Array<T>& a_Rhs)
 	{
-		this->~Dynamic_Array();
+		this->~Array();
 
 		m_Allocator = a_Rhs.m_Allocator;
 		m_Size = a_Rhs.m_Size;
@@ -171,9 +170,9 @@ namespace BB
 	}
 
 	template<typename T>
-	inline Dynamic_Array<T>& BB::Dynamic_Array<T>::operator=(Dynamic_Array<T>&& a_Rhs) noexcept
+	inline Array<T>& BB::Array<T>::operator=(Array<T>&& a_Rhs) noexcept
 	{
-		this->~Dynamic_Array();
+		this->~Array();
 
 		m_Allocator = a_Rhs.m_Allocator;
 		m_Size = a_Rhs.m_Size;
@@ -190,20 +189,20 @@ namespace BB
 	}
 
 	template<typename T>
-	inline T& Dynamic_Array<T>::operator[](const size_t a_Index) const
+	inline T& Array<T>::operator[](const size_t a_Index) const
 	{
 		BB_EXCEPTION(a_Index <= m_Size, "Dynamic_Array, trying to get an element using the [] operator but that element is not there.");
 		return m_Arr[a_Index];
 	}
 
 	template<typename T>
-	inline void Dynamic_Array<T>::push_back(T& a_Element)
+	inline void Array<T>::push_back(T& a_Element)
 	{
 		emplace_back(a_Element);
 	}
 
 	template<typename T>
-	inline void Dynamic_Array<T>::push_back(const T* a_Elements, size_t a_Count)
+	inline void Array<T>::push_back(const T* a_Elements, size_t a_Count)
 	{
 		if (m_Size + a_Count > m_Capacity)
 			grow(a_Count);
@@ -214,14 +213,14 @@ namespace BB
 	}
 
 	template<typename T>
-	inline void BB::Dynamic_Array<T>::insert(size_t a_Position, const T& a_Element)
+	inline void BB::Array<T>::insert(size_t a_Position, const T& a_Element)
 	{
 		emplace(a_Position, a_Element);
 	}
 
 	template<typename T>
 	template<class ...Args>
-	inline void BB::Dynamic_Array<T>::emplace_back(Args&&... a_Args)
+	inline void BB::Array<T>::emplace_back(Args&&... a_Args)
 	{
 		if (m_Size >= m_Capacity)
 			grow();
@@ -232,13 +231,13 @@ namespace BB
 
 	template<typename T>
 	template<class ...Args>
-	inline void BB::Dynamic_Array<T>::emplace(size_t a_Position, Args&&... a_Args)
+	inline void BB::Array<T>::emplace(size_t a_Position, Args&&... a_Args)
 	{
 		BB_ASSERT(m_Size >= a_Position, "trying to insert in a position that is bigger then the current Dynamic_Array size!");
 		if (m_Size >= m_Capacity)
 			grow();
 
-		if constexpr (!trivialConstructableT || !trivalDestructableT)
+		if constexpr (!trivialDestructible_T)
 		{
 			//Move all elements after a_Position 1 to the front.
 			for (size_t i = m_Size; i > a_Position; i--)
@@ -260,11 +259,11 @@ namespace BB
 
 
 	template<typename T>
-	inline void Dynamic_Array<T>::reserve(size_t a_Size)
+	inline void Array<T>::reserve(size_t a_Size)
 	{
 		if (a_Size > m_Capacity)
 		{
-			size_t t_ModifiedCapacity = Math::RoundUp(a_Size, Dynamic_Array_Specs::multipleValue);
+			size_t t_ModifiedCapacity = Math::RoundUp(a_Size, Array_Specs::multipleValue);
 
 			reallocate(t_ModifiedCapacity);
 			return;
@@ -272,27 +271,33 @@ namespace BB
 	}
 
 	template<typename T>
-	inline void BB::Dynamic_Array<T>::resize(size_t a_Size)
+	inline void BB::Array<T>::resize(size_t a_Size)
 	{
 		reserve(a_Size);
-		m_Size = m_Capacity;
+
+		for (size_t i = m_Size; i < a_Size; i++)
+		{
+			new (&m_Arr[i]) T();
+		}
+
+		m_Size = a_Size;
 	}
 
 	template<typename T>
-	inline void BB::Dynamic_Array<T>::pop()
+	inline void BB::Array<T>::pop()
 	{
 		BB_ASSERT(m_Size != 0, "Dynamic_Array, Popping while m_Size is 0!");
 		--m_Size;
-		if constexpr (!trivalDestructableT)
+		if constexpr (!trivialDestructible_T)
 		{
 			m_Arr[m_Size].~T();
 		}
 	}
 
 	template<typename T>
-	inline void BB::Dynamic_Array<T>::empty()
+	inline void BB::Array<T>::clear()
 	{
-		if constexpr (!trivalDestructableT)
+		if constexpr (!trivialDestructible_T)
 		{
 			for (size_t i = 0; i < m_Size; i++)
 			{
@@ -303,18 +308,18 @@ namespace BB
 	}
 
 	template<typename T>
-	inline void Dynamic_Array<T>::grow(size_t a_MinCapacity)
+	inline void Array<T>::grow(size_t a_MinCapacity)
 	{
 		size_t t_ModifiedCapacity = m_Capacity * 2;
 
 		if (a_MinCapacity > t_ModifiedCapacity)
-			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Dynamic_Array_Specs::multipleValue);
+			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Array_Specs::multipleValue);
 
 		reallocate(t_ModifiedCapacity);
 	}
 
 	template<typename T>
-	inline void Dynamic_Array<T>::reallocate(size_t a_NewCapacity)
+	inline void Array<T>::reallocate(size_t a_NewCapacity)
 	{
 		T* t_NewArr = reinterpret_cast<T*>(BBalloc(m_Allocator, a_NewCapacity * sizeof(T)));
 

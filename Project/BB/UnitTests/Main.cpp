@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 #include "Framework/Allocators_UTEST.h"
-#include "Framework/Dynamic_Array_UTEST.h"
+#include "Framework/Array_UTEST.h"
 #include "Framework/Pool_UTEST.h"
 #include "Framework/Hashmap_UTEST.h"
 #include "Framework/MemoryArena_UTEST.h"

@@ -21,7 +21,7 @@ add_executable (Unit_Test_Proj
 "Main.cpp"
 "TestValues.h"
 "Framework/Allocators_UTEST.h"
-"Framework/Dynamic_Array_UTEST.h"
+"Framework/Array_UTEST.h"
 "Framework/Pool_UTEST.h" 
 "Framework/Hashmap_UTEST.h"
 "Framework/MemoryArena_UTEST.h"

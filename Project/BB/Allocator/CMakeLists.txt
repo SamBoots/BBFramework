@@ -22,7 +22,7 @@ add_library (Allocator
 "Framework/Allocators/AllocTypes.h" 
 "Framework/Allocators/MemoryArena.h" 
 "Framework/Allocators/MemoryArena.cpp" 
-"Framework/Storage/Dynamic_Array.h" 
+"Framework/Storage/Array.h" 
 "Framework/Storage/Pool.h" 
 "Framework/Storage/Hashmap.h"
 "Framework/Storage/Slotmap.h"

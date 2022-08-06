@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "Storage/Dynamic_Array.h"
+#include "Storage/Array.h"
 #include "Storage/Pool.h"
 
 namespace BB
@@ -15,7 +15,7 @@ namespace BB
 		Slice(T* a_Ptr, size_t a_Count) : ptr(a_Ptr), count(a_Count) {};
 		Slice(T* a_Begin, T* a_End) : ptr(a_Begin), count(a_End - a_Begin) {};
 		Slice(std::vector<T>& a_Vector) : ptr(a_Vector.data()), count(a_Vector.size()) {};
-		Slice(Dynamic_Array<T>& a_Array) : ptr(a_Array.data()), count(a_Array.size()) {};
+		Slice(Array<T>& a_Array) : ptr(a_Array.data()), count(a_Array.size()) {};
 		Slice(Pool<T>& a_Pool) : ptr(a_Pool.data()), count(a_Pool.size()) {};
 
 		T& operator[](size_t a_Index)
