@@ -15,8 +15,7 @@ namespace BB
 	template <typename T>
 	class Slotmap
 	{
-		static constexpr bool trivalDestructableT = std::is_trivially_destructible_v<T>;
-		static constexpr bool destructableT = std::is_destructible_v<T>;
+		static constexpr bool trivialDestructible_T = std::is_trivially_destructible_v<T>;
 
 		struct Node
 		{
@@ -153,7 +152,7 @@ namespace BB
 	{
 		if (m_IdArr != nullptr)
 		{
-			if constexpr (destructableT)
+			if constexpr (!trivialDestructible_T)
 			{
 				for (size_t i = 0; i < m_Size; i++)
 				{
@@ -248,7 +247,7 @@ namespace BB
 
 		Slotmap::Node& t_Node = m_ObjArr[--m_Size];
 		t_Node.id = t_OldFree;
-		if constexpr (destructableT)
+		if constexpr (!trivialDestructible_T)
 		{
 			//Before move call the destructor if it has one.
 			t_Node.value.~T();
@@ -276,7 +275,7 @@ namespace BB
 		m_NextFree = 0;
 
 		//Destruct all the variables when it is not trivially destructable.
-		if constexpr (destructableT)
+		if constexpr (!trivialDestructible_T)
 		{
 			for (size_t i = 0; i < m_Size; i++)
 			{

@@ -34,7 +34,7 @@ LRESULT CALLBACK WindowProc(HWND a_Hwnd, UINT a_Msg, WPARAM a_WParam, LPARAM a_L
 class OSWindow
 {
 public:
-	void Init(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
+	OSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 	{
 		m_WindowName = a_WindowName;
 
@@ -89,7 +89,7 @@ public:
 		ShowWindow(hwnd, SW_SHOW);
 	}
 
-	void Destroy()
+	~OSWindow()
 	{
 		//Delete the window before you unregister the class.
 		if (!DestroyWindow(hwnd))
@@ -150,15 +150,11 @@ const uint32_t OSDevice::LatestOSError() const
 
 WindowHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 {
-	OSWindow t_OSWindow;
-	t_OSWindow.Init(a_Style, a_X, a_Y, a_Width, a_Height, a_WindowName);
-
-	return WindowHandle(static_cast<uint32_t>(m_OSDevice->OSWindows.insert(t_OSWindow)));
+	return WindowHandle(static_cast<uint32_t>(m_OSDevice->OSWindows.emplace(a_Style, a_X, a_Y, a_Width, a_Height, a_WindowName)));
 }
 
 void BB::OSDevice::DestroyOSWindow(WindowHandle a_Handle)
 {
-	m_OSDevice->OSWindows.find(a_Handle.index).Destroy();
 	m_OSDevice->OSWindows.erase(a_Handle.index);
 }
 
