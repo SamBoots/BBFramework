@@ -27,7 +27,7 @@ add_executable (Unit_Test_Proj
 "Framework/MemoryArena_UTEST.h"
 "Framework/Slice_UTEST.h"
 "Framework/Slotmap_UTEST.h"
-)
+ "Framework/String_UTEST.h")
 
 include_directories(
 "../Allocator/Framework"

@@ -33,7 +33,7 @@ add_library (Allocator
 "Framework/Utils/Logger.h"
 "Framework/Utils/Logger.cpp"
 "Framework/Allocators/BackingAllocator/BackingAllocator${PLATFORM_NAME}.cpp" 
-"Framework/OS/OSDevice${PLATFORM_NAME}.cpp")
+"Framework/OS/OSDevice${PLATFORM_NAME}.cpp" "Framework/Storage/String.h")
 
 #Include library
 include_directories(

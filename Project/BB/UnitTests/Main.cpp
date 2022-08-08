@@ -8,6 +8,7 @@
 #include "Framework/MemoryArena_UTEST.h"
 #include "Framework/Slice_UTEST.h"
 #include "Framework/Slotmap_UTEST.h"
+#include "Framework/String_UTEST.h"
 
 #include "OS/OSDevice.h"
 
