@@ -59,6 +59,39 @@ namespace BB
 			BB_ASSERT(false, "Something weird happened in Utils.h, Unsafe Move.");
 			return nullptr;
 		}
+
+		/// <summary>
+		/// Memmove abstraction that will call the constructor and/or deconstructor if needed.
+		/// Safe version: It will call memmove instead of memcpy
+		/// </summary>
+		template<typename T>
+		inline static void* sMove(T* a_Destination, const T* a_Source, const size_t a_ElementCount)
+		{
+			constexpr bool trivalConstruction = std::is_trivially_constructible_v<T>;
+			constexpr bool trivalDestructible = std::is_trivially_destructible_v<T>;
+
+			if constexpr (trivalConstruction)
+			{
+				return memmove(a_Destination, a_Source, a_ElementCount * sizeof(T));
+			}
+			else if constexpr (!trivalConstruction && !trivalDestructible)
+			{
+				for (size_t i = 0; i < a_ElementCount; i++)
+				{
+					if constexpr (!trivalConstruction)
+					{
+						new (&a_Destination[i]) T(a_Source[i]);
+					}
+					if constexpr (!trivalDestructible)
+					{
+						a_Source[i].~T();
+					}
+				}
+				return a_Destination;
+			}
+			BB_ASSERT(false, "Something weird happened in Utils.h, Unsafe Move.");
+			return nullptr;
+		}
 	}
 
 	namespace Math

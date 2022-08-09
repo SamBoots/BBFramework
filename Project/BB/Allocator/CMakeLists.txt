@@ -26,6 +26,7 @@ add_library (Allocator
 "Framework/Storage/Pool.h" 
 "Framework/Storage/Hashmap.h"
 "Framework/Storage/Slotmap.h"
+"Framework/Storage/String.h"
 "Framework/OS/OSDevice.h"
 "Framework/Utils/Utils.h"
 "Framework/Utils/Hash.h"
@@ -33,7 +34,7 @@ add_library (Allocator
 "Framework/Utils/Logger.h"
 "Framework/Utils/Logger.cpp"
 "Framework/Allocators/BackingAllocator/BackingAllocator${PLATFORM_NAME}.cpp" 
-"Framework/OS/OSDevice${PLATFORM_NAME}.cpp" "Framework/Storage/String.h")
+"Framework/OS/OSDevice${PLATFORM_NAME}.cpp")
 
 #Include library
 include_directories(

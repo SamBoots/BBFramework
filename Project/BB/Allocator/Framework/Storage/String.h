@@ -17,18 +17,35 @@ namespace BB
 	public:
 		String(Allocator a_Allocator);
 		String(Allocator a_Allocator, size_t a_Size);
+		String(Allocator a_Allocator, const char* a_String);
+		String(Allocator a_Allocator, const char* a_String, size_t a_Size);
 		String(const String& a_String);
 		String(String&& a_String) noexcept;
 		~String();
 
 		String& operator=(const String& a_Rhs);
 		String& operator=(String&& a_Rhs) noexcept;
+		bool operator==(const String& a_Rhs) const;
 
+		void append(const String& a_String);
+		void append(const String& a_String, size_t a_SubPos, size_t a_SubLength);
 		void append(const char* a_String);
 		void append(const char* a_String, size_t a_Size);
+		void insert(size_t a_Pos, const String& a_String);
+		void insert(size_t a_Pos, const String& a_String, size_t a_SubPos, size_t a_SubLength);
+		void insert(size_t a_Pos, const char* a_String);
+		void insert(size_t a_Pos, const char* a_String, size_t a_Size);
 		void push_back(const char a_Char);
 		
 		void pop_back();
+
+		bool compare(const String& a_String) const;
+		bool compare(const String& a_String, size_t a_Size) const;
+		bool compare(size_t a_Pos, const String& a_String, size_t a_Subpos, size_t a_Size) const;
+		bool compare(const char* a_String) const;
+		bool compare(const char* a_String, size_t a_Size) const;
+		bool compare(size_t a_Pos, const char* a_String) const;
+		bool compare(size_t a_Pos, const char* a_String, size_t a_Size) const;
 
 		void clear();
 
@@ -37,7 +54,7 @@ namespace BB
 
 		size_t size() const { return m_Size; }
 		size_t capacity() const { return m_Capacity; }
-		const char* data() const { return m_String; }
+		void* data() const { return m_String; }
 		const char* c_str() const { return m_String; }
 
 	private:
@@ -58,10 +75,25 @@ namespace BB
 	inline BB::String::String(Allocator a_Allocator, size_t a_Size)
 	{
 		m_Allocator = a_Allocator;
-		m_Capacity = a_Size;
+		m_Capacity = Math::RoundUp(a_Size, String_Specs::multipleValue);
 
 		m_String = reinterpret_cast<char*>(BBalloc(m_Allocator, m_Capacity));
 		memset(m_String, NULL, m_Capacity);
+	}
+
+	inline BB::String::String(Allocator a_Allocator, const char* a_String)
+		:	String(a_Allocator, a_String, strlen(a_String))
+	{}
+
+	inline BB::String::String(Allocator a_Allocator, const char* a_String, size_t a_Size)
+	{
+		m_Allocator = a_Allocator;
+		m_Capacity = Math::RoundUp(a_Size + 1, String_Specs::multipleValue);
+		m_Size = a_Size;
+
+		m_String = reinterpret_cast<char*>(BBalloc(m_Allocator, m_Capacity));
+		BB::Memory::Copy(m_String, a_String, a_Size);
+		memset(m_String + a_Size, NULL, m_Capacity - a_Size);
 	}
 
 	inline BB::String::String(const String& a_String)
@@ -128,6 +160,23 @@ namespace BB
 		return *this;
 	}
 
+	inline bool BB::String::operator==(const String& a_Rhs) const
+	{
+		if (memcmp(m_String, a_Rhs.data(), m_Size) == 0)
+			return true;
+		return false;
+	}
+
+	inline void BB::String::append(const String& a_String)
+	{
+		append(a_String.c_str(), a_String.size());
+	}
+
+	inline void BB::String::append(const String& a_String, size_t a_SubPos, size_t a_SubLength)
+	{
+		append(a_String.c_str() + a_SubPos, a_SubLength);
+	}
+
 	inline void BB::String::append(const char* a_String)
 	{
 		append(a_String, strlen(a_String));
@@ -142,6 +191,34 @@ namespace BB
 		m_Size += a_Size;
 	}
 
+	inline void BB::String::insert(size_t a_Pos, const String& a_String)
+	{
+		insert(a_Pos, a_String.c_str(), a_String.size());
+	}
+
+	inline void BB::String::insert(size_t a_Pos, const String& a_String, size_t a_SubPos, size_t a_SubLength)
+	{
+		insert(a_Pos, a_String.c_str() + a_SubPos, a_SubLength);
+	}
+
+	inline void BB::String::insert(size_t a_Pos, const char* a_String)
+	{
+		insert(a_Pos, a_String, strlen(a_String));
+	}
+
+	inline void BB::String::insert(size_t a_Pos, const char* a_String, size_t a_Size)
+	{
+		BB_ASSERT(m_Size >= a_Pos, "String::Insert, trying to insert a string in a invalid position.");
+
+		if (m_Size + 1 + a_Size >= m_Capacity)
+			grow(a_Size + 1);
+
+		BB::Memory::Move(m_String + (a_Pos + a_Size), m_String + a_Pos, m_Size - a_Pos);
+
+		BB::Memory::Copy(m_String + a_Pos, a_String, a_Size);
+		m_Size += a_Size;
+	}
+
 	inline void BB::String::push_back(const char a_Char)
 	{
 		if (m_Size + 1 >= m_Capacity)
@@ -153,6 +230,51 @@ namespace BB
 	inline void BB::String::pop_back()
 	{
 		m_String[m_Size--] = NULL;
+	}
+
+	inline bool BB::String::compare(const String& a_String) const
+	{
+		if (memcmp(m_String, a_String.data(), m_Size) == 0)
+			return true;
+		return false;
+	}
+
+	inline bool BB::String::compare(const String& a_String, size_t a_Size) const
+	{
+		if (memcmp(m_String, a_String.c_str(), a_Size) == 0)
+			return true;
+		return false;
+	}
+
+	inline bool BB::String::compare(size_t a_Pos, const String& a_String, size_t a_Subpos, size_t a_Size) const
+	{
+		if (memcmp(m_String + a_Pos, a_String.c_str() + a_Subpos, a_Size) == 0)
+			return true;
+		return false;
+	}
+
+	inline bool BB::String::compare(const char* a_String) const
+	{
+		return compare(a_String, strlen(a_String));
+	}
+
+	inline bool BB::String::compare(const char* a_String, size_t a_Size) const
+	{
+		if (memcmp(m_String, a_String, a_Size) == 0)
+			return true;
+		return false;
+	}
+
+	inline bool BB::String::compare(size_t a_Pos, const char* a_String) const
+	{
+		return compare(a_Pos, a_String, strlen(a_String));
+	}
+
+	inline bool BB::String::compare(size_t a_Pos, const char* a_String, size_t a_Size) const
+	{
+		if (memcmp(m_String + a_Pos, a_String, a_Size) == 0)
+			return true;
+		return false;
 	}
 
 	inline void BB::String::clear()
