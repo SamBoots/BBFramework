@@ -121,7 +121,7 @@ OSDevice& BB::AppOSDevice()
 
 OSDevice::OSDevice()
 {
-	m_OSDevice = BBalloc<OSDevice_o>(OSAllocator);
+	m_OSDevice = BBnew<OSDevice_o>(OSAllocator);
 }
 
 OSDevice::~OSDevice()
