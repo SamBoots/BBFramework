@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <stdint.h>
 #include <cmath>
+#include <cstring>
+
 namespace BB
 {
 	namespace Memory
@@ -91,6 +93,34 @@ namespace BB
 			}
 			BB_ASSERT(false, "Something weird happened in Utils.h, Unsafe Move.");
 			return nullptr;
+		}
+
+		/// <summary>
+		/// memset abstraction that will use the sizeof operator for type T.
+		/// </summary>
+		template<typename T>
+		inline static void* Set(T* a_Destination, const int a_Value, const size_t a_ElementCount)
+		{
+			return memset(a_Destination, a_Value, a_ElementCount * sizeof(T));
+		}
+
+		/// <summary>
+		/// memcmp abstraction that will use the sizeof operator for type T.
+		/// </summary>
+		template<typename T>
+		inline static int Compare(T* a_Destination, const void* a_Source, const size_t a_ElementCount)
+		{
+			return memcmp(a_Destination, a_Source, a_ElementCount * sizeof(T));
+		}
+
+		inline static size_t StrLength(const char* a_String)
+		{
+			return strlen(a_String);
+		}
+
+		inline static size_t StrLength(const wchar_t* a_String)
+		{
+			return wcslen(a_String);
 		}
 	}
 
