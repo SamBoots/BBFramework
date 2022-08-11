@@ -8,8 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "Storage/Dynamic_Array.h"
-#include "Storage/Pool.h"
+#include "Storage/Slotmap.h"
 
 using namespace BB;
 
@@ -25,7 +24,7 @@ static OSDevice osDevice;
 class OSWindow
 {
 public:
-	void Init(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
+	OSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 	{
 		windowName = a_WindowName;
 
@@ -79,7 +78,7 @@ public:
 
 	}
 
-	void Destroy()
+	~OSWindow()
 	{
 		XFreeGC(display, graphicContext);
 		XDestroyWindow(display, window);
@@ -120,7 +119,7 @@ public:
 struct BB::OSDevice_o
 {
 	//Special array for all the windows. Stored seperately 
-	Dynamic_Array<OSWindow> OSWindows{ OSAllocator, 8 };	
+	Slotmap<OSWindow> OSWindows{ OSAllocator, 8 };	
 };
 
 OSDevice& BB::AppOSDevice()
@@ -130,7 +129,7 @@ OSDevice& BB::AppOSDevice()
 
 OSDevice::OSDevice()
 {
-	m_OSDevice = BBalloc<OSDevice_o>(OSAllocator);
+	m_OSDevice = BBnew<OSDevice_o>(OSAllocator);
 }
 
 OSDevice::~OSDevice()
@@ -155,32 +154,12 @@ const uint32_t OSDevice::LatestOSError() const
 
 WindowHandle OSDevice::CreateOSWindow(OS_WINDOW_STYLE a_Style, int a_X, int a_Y, int a_Width, int a_Height, const char* a_WindowName)
 {
-	OSWindow t_OSWindow;
-	t_OSWindow.Init(a_Style, a_X, a_Y, a_Width, a_Height, a_WindowName);
-
-	size_t t_OSWindowsSize = m_OSDevice->OSWindows.size();
-
-	for (size_t i = 0; i < t_OSWindowsSize; i++)
-	{
-		if (m_OSDevice->OSWindows[i].display == nullptr)
-		{
-			m_OSDevice->OSWindows[i] = t_OSWindow;
-			return WindowHandle(static_cast<uint32_t>(t_OSWindowsSize));
-		}
-	}
-
-	m_OSDevice->OSWindows.push_back(t_OSWindow);
-
-	return WindowHandle(static_cast<uint32_t>(t_OSWindowsSize));
+	return WindowHandle(static_cast<uint32_t>(m_OSDevice->OSWindows.emplace(a_Style, a_X, a_Y, a_Width, a_Height, a_WindowName)));
 }
 
 void BB::OSDevice::DestroyOSWindow(WindowHandle a_Handle)
 {
-	//Don't delete it from the array but call the deconstructor.
-	m_OSDevice->OSWindows[a_Handle.index].Destroy();
-
-	//Instead of deleting the entry mark it as empty, so that it may be used again.
-	m_OSDevice->OSWindows[a_Handle.index].display = nullptr;
+	m_OSDevice->OSWindows.erase(a_Handle.index);
 }
 
 void OSDevice::ExitApp() const
@@ -193,17 +172,17 @@ bool BB::OSDevice::ProcessMessages() const
 	KeySym t_Key;
 	char t_Text[255];
 
-	for (size_t i = 0; i < m_OSDevice->OSWindows.size(); i++)
+	for (auto t_It = m_OSDevice->OSWindows.begin(); t_It < m_OSDevice->OSWindows.end(); t_It++)
 	{
-		if (m_OSDevice->OSWindows[i].display == nullptr)
+		if (t_It->display == nullptr)
 		{
 			continue;
 		}
 
-		while (XPending(m_OSDevice->OSWindows[i].display))
+		while (XPending(t_It->display))
 		{
 			XEvent t_Event;
-			XNextEvent(m_OSDevice->OSWindows[i].display, &t_Event);
+			XNextEvent(t_It->display, &t_Event);
 
 			switch (t_Event.type)
 			{
@@ -219,28 +198,27 @@ bool BB::OSDevice::ProcessMessages() const
 						return false;
 						break;
 					case XK_BackSpace:
-						m_OSDevice->OSWindows[i].BackOnce();
-						XClearWindow(m_OSDevice->OSWindows[i].display, 
-							m_OSDevice->OSWindows[i].window);
-						XDrawString(m_OSDevice->OSWindows[i].display,
-							m_OSDevice->OSWindows[i].window,
-							m_OSDevice->OSWindows[i].graphicContext,
+						t_It->BackOnce();
+						XClearWindow(t_It->display, t_It->window);
+						XDrawString(t_It->display,
+							t_It->window,
+							t_It->graphicContext,
 							10,
 							50,
-							m_OSDevice->OSWindows[i].m_WindowTextBuffer,
-							m_OSDevice->OSWindows[i].m_CurrentTextPos);
+							t_It->m_WindowTextBuffer,
+							t_It->m_CurrentTextPos);
 						break;
 					default:
-						m_OSDevice->OSWindows[i].AddChar(t_Key);
-						XClearWindow(m_OSDevice->OSWindows[i].display, 
-							m_OSDevice->OSWindows[i].window);
-						XDrawString(m_OSDevice->OSWindows[i].display,
-							m_OSDevice->OSWindows[i].window,
-							m_OSDevice->OSWindows[i].graphicContext,
+						t_It->AddChar(t_Key);
+						XClearWindow(t_It->display,
+							t_It->window);
+						XDrawString(t_It->display,
+							t_It->window,
+							t_It->graphicContext,
 							10,
 							50,
-							m_OSDevice->OSWindows[i].m_WindowTextBuffer,
-							m_OSDevice->OSWindows[i].m_CurrentTextPos);
+							t_It->m_WindowTextBuffer,
+							t_It->m_CurrentTextPos);
 						break;
 					}
 				}
