@@ -242,7 +242,7 @@ namespace BB
 		if (m_Size + 1 + a_Size >= m_Capacity)
 			grow(a_Size + 1);
 
-		Memory::Move(m_String + (a_Pos + a_Size), m_String + a_Pos, m_Size - a_Pos);
+		Memory::sMove(m_String + (a_Pos + a_Size), m_String + a_Pos, m_Size - a_Pos);
 
 		Memory::Copy(m_String + a_Pos, a_String, a_Size);
 		m_Size += a_Size;

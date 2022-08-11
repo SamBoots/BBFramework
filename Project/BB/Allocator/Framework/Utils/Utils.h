@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstring>
 
+#include <wchar.h>
+
 namespace BB
 {
 	namespace Memory
