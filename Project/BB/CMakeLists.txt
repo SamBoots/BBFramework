@@ -32,5 +32,5 @@ link_libraries(X11)
 endif()
 
 # Include sub-projects.
-add_subdirectory ("Allocator")
+add_subdirectory ("Framework")
 add_subdirectory ("UnitTests")

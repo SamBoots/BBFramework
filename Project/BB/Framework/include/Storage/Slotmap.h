@@ -73,7 +73,7 @@ namespace BB
 		void clear();
 
 		Iterator begin() { return Iterator(m_ObjArr); }
-		Iterator end() { return Iterator(&m_ObjArr[m_Capacity]); }
+		Iterator end() { return Iterator(&m_ObjArr[m_Size]); }
 
 		size_t size() const { return m_Size; }
 

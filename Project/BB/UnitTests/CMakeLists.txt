@@ -17,7 +17,7 @@ FetchContent_MakeAvailable(googletest)
 # Google Test Project
 # enable_testing()
 
-add_executable (Unit_Test_Proj
+add_executable (Unittest_Project
 "Main.cpp"
 "TestValues.h"
 "Framework/Allocators_UTEST.h"
@@ -30,10 +30,9 @@ add_executable (Unit_Test_Proj
 "Framework/String_UTEST.h")
 
 include_directories(
-"../Allocator/Framework"
-"../Allocator/pch"
+"../Framework/include"
 )
-target_link_libraries(Unit_Test_Proj Allocator gtest_main)
+target_link_libraries(Unittest_Project BBFramework gtest_main)
 
 #include(googletest)
 #gtest_discover_tests(Unit_Test_Proj)

@@ -1,11 +1,10 @@
 #pragma once
 #include "Utils/Logger.h"
 #include <cstdint>
-#include <stdint.h>
 #include <cmath>
 #include <cstring>
 
-#include <wchar.h>
+#include <cwchar>
 
 namespace BB
 {

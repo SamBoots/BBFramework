@@ -1,9 +1,8 @@
 #pragma once
-#include <stdlib.h>
+#include <cstdlib>
 
 namespace BB
 {
-	
 	enum class virtual_reserve_extra : size_t
 	{
 		none = 1, //Don't reserve more virtual space, use this if you will never resize a mallocVirtual address.

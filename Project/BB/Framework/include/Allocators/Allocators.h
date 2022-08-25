@@ -1,5 +1,5 @@
 #pragma once
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstdint>
 
 namespace BB
