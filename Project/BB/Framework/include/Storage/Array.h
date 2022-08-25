@@ -80,7 +80,7 @@ namespace BB
 
 		const size_t size() const { return m_Size; };
 		const size_t capacity() const { return m_Capacity; }
-		void* data() const { return m_Arr; };
+		T* data() const { return m_Arr; };
 
 		Iterator begin() { return Iterator(m_Arr); }
 		Iterator end() { return Iterator(&m_Arr[m_Size + 1]); } //Get an out of bounds Iterator.
