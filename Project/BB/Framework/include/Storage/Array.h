@@ -49,6 +49,12 @@ namespace BB
 			friend bool operator== (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr == a_Rhs.m_ptr; };
 			friend bool operator!= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr != a_Rhs.m_ptr; };
 
+			friend bool operator< (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr < a_Rhs.m_ptr; };
+			friend bool operator> (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr > a_Rhs.m_ptr; };
+			friend bool operator<= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr <= a_Rhs.m_ptr; };
+			friend bool operator>= (const Iterator& a_Lhs, const Iterator& a_Rhs) { return a_Lhs.m_ptr >= a_Rhs.m_ptr; };
+
+
 		private:
 			pointer m_Ptr;
 		};

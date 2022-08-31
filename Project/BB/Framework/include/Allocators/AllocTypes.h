@@ -122,16 +122,14 @@ namespace BB
 #pragma region Debug
 
 #ifdef _64BIT
-	//1GB of debug size, more can be reserved automatically.
-	constexpr const size_t debugSize = gbSize * 1;
+	//A global debug allocator.
+	static FreeListAllocator_t DebugAllocator{ mbSize * 8 };
 #endif //_64BIT
 #ifdef _32BIT
-	//32mb of debug size, more can be reserved automatically.
-	constexpr const size_t debugSize = mbSize * 16;
-#endif //_32BIT
-
+	//16mb of debug size, more can be reserved automatically.
 	//A global debug allocator.
-	static FreeListAllocator_t DebugAllocator(debugSize);
+	static FreeListAllocator_t DebugAllocator{ mbSize * 8 };
+#endif //_32BIT
 
 	//Global alloc that uses a debug allocator. Only use this when debugging or testing features. It will pop warnings in release mode.
 	template <typename T, typename... Args>

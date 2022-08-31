@@ -16,7 +16,7 @@ namespace BB
 		void Free(T* a_Ptr);
 
 		const size_t size() const { return m_Size; };
-		const T* data() const { return m_Start; };
+		const void* data() const { return m_Start; };
 
 	private:
 		Allocator m_Allocator;

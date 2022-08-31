@@ -28,8 +28,8 @@ namespace BB
 		{
 			Iterator(Node* a_Ptr) : m_Ptr(a_Ptr) {}
 
-			T& operator*() const { return m_Ptr->value; }
-			T* operator->() { return &m_Ptr->value; }
+			Node& operator*() const { return *m_Ptr; }
+			Node* operator->() { return m_Ptr; }
 
 			Iterator& operator++()
 			{

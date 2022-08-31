@@ -35,8 +35,7 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_ext
 			void* t_NewCommitRange = Pointer::Add(t_PageHeader, t_PageHeader->bytesCommited);
 
 			t_PageHeader->bytesCommited += t_PageAdjustedSize;
-			VirtualAlloc(t_PageHeader, t_PageHeader->bytesCommited, MEM_COMMIT, PAGE_READWRITE);
-			BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error commiting virtual memory");
+			BB_ASSERT(VirtualAlloc(t_PageHeader, t_PageHeader->bytesCommited, MEM_COMMIT, PAGE_READWRITE) != NULL, "Windows API error commiting virtual memory");
 			return t_NewCommitRange;
 		}
 
@@ -46,11 +45,10 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_ext
 	//When making a new header reserve a lot more then that is requested to support later resizes better.
 	size_t t_AdditionalReserve = t_PageAdjustedSize * static_cast<size_t>(a_ReserveSize);
 	void* t_Address = VirtualAlloc(a_Start, t_AdditionalReserve, MEM_RESERVE, PAGE_NOACCESS);
-	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error reserving virtual memory");
+	BB_ASSERT(t_Address != NULL, "Windows API error reserving virtual memory");
 
 	//Now commit enough memory that the user requested.
-	VirtualAlloc(t_Address, t_PageAdjustedSize, MEM_COMMIT, PAGE_READWRITE);
-	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error commiting right after a reserve virtual memory");
+	BB_ASSERT(VirtualAlloc(t_Address, t_PageAdjustedSize, MEM_COMMIT, PAGE_READWRITE) != NULL, "Windows API error commiting right after a reserve virtual memory");
 
 	//Set the header of the allocator, used for later resizes and when you need to free it.
 	reinterpret_cast<VirtualHeader*>(t_Address)->bytesCommited = t_PageAdjustedSize;
@@ -62,8 +60,7 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const virtual_reserve_ext
 
 void BB::freeVirtual(void* a_Ptr)
 {
-	VirtualFree(Pointer::Subtract(a_Ptr, sizeof(VirtualHeader)), 0, MEM_RELEASE);
-	BB_ASSERT(AppOSDevice().LatestOSError() == 0x0, "Windows API error on virtualFree");
+	BB_ASSERT(VirtualFree(Pointer::Subtract(a_Ptr, sizeof(VirtualHeader)), 0, MEM_RELEASE) != 0, "Windows API error on virtualFree");
 }
 
 
