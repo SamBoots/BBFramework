@@ -8,17 +8,31 @@
 
 namespace BB
 {
-	namespace Memory
+	namespace Memory	
 	{
+
+		void MemCpy(void* __restrict  a_Destination, const void* __restrict  a_Source, size_t a_Size);
+		void MemCpySIMD128(void* __restrict  a_Destination, const void* __restrict  a_Source, size_t a_Size);
+		void MemCpySIMD256(void* __restrict  a_Destination, const void* __restrict  a_Source, size_t a_Size);
+		
+		void MemSet(void* __restrict  a_Destination, const int32_t a_Value, size_t a_Size);
+		void MemSetSIMD128(void* __restrict a_Destination, const int32_t a_Value, size_t a_Size);
+		void MemSetSIMD256(void* __restrict  a_Destination, const int32_t a_Value, size_t a_Size);
+
+		bool MemCmp(const void* __restrict  a_Left, const void* __restrict  a_Right, size_t a_Size);
+		bool MemCmpSIMD128(const void* __restrict  a_Left, const void* __restrict  a_Right, size_t a_Size);
+		bool MemCmpSIMD256(const void* __restrict  a_Left, const void* __restrict  a_Right, size_t a_Size);
+
+
 		/// <summary>
 		/// Memcpy abstraction that will call the constructor if needed.
 		/// </summary>
 		template<typename T>
-		inline static void* Copy(T* a_Destination, const T* a_Source, const size_t a_ElementCount)
+		inline static void Copy(T* __restrict a_Destination, const T* __restrict a_Source, const size_t a_ElementCount)
 		{
 			if constexpr (std::is_trivially_constructible_v<T>)
 			{
-				return memcpy(a_Destination, a_Source, a_ElementCount * sizeof(T));
+				MemCpySIMD256(a_Destination, a_Source, a_ElementCount * sizeof(T));
 			}
 			else
 			{
@@ -26,7 +40,6 @@ namespace BB
 				{
 					new (&a_Destination[i]) T(a_Source[i]);
 				}
-				return a_Destination;
 			}
 		}
 
@@ -35,7 +48,7 @@ namespace BB
 		/// Unsafe version: It will call memcpy instead of memmove
 		/// </summary>
 		template<typename T>
-		inline static void* Move(T* a_Destination, const T* a_Source, const size_t a_ElementCount)
+		inline static void* Move(T* __restrict a_Destination, const T* __restrict a_Source, const size_t a_ElementCount)
 		{
 			constexpr bool trivalConstruction = std::is_trivially_constructible_v<T>;
 			constexpr bool trivalDestructible = std::is_trivially_destructible_v<T>;
@@ -68,7 +81,7 @@ namespace BB
 		/// Safe version: It will call memmove instead of memcpy
 		/// </summary>
 		template<typename T>
-		inline static void* sMove(T* a_Destination, const T* a_Source, const size_t a_ElementCount)
+		inline static void* sMove(T* __restrict a_Destination, const T* __restrict a_Source, const size_t a_ElementCount)
 		{
 			constexpr bool trivalConstruction = std::is_trivially_constructible_v<T>;
 			constexpr bool trivalDestructible = std::is_trivially_destructible_v<T>;
@@ -100,7 +113,7 @@ namespace BB
 		/// memset abstraction that will use the sizeof operator for type T.
 		/// </summary>
 		template<typename T>
-		inline static void* Set(T* a_Destination, const int a_Value, const size_t a_ElementCount)
+		inline static void* Set(T* __restrict a_Destination, const int a_Value, const size_t a_ElementCount)
 		{
 			return memset(a_Destination, a_Value, a_ElementCount * sizeof(T));
 		}
@@ -109,7 +122,7 @@ namespace BB
 		/// memcmp abstraction that will use the sizeof operator for type T.
 		/// </summary>
 		template<typename T>
-		inline static int Compare(T* a_Destination, const void* a_Source, const size_t a_ElementCount)
+		inline static int Compare(T* __restrict a_Destination, const void* __restrict a_Source, const size_t a_ElementCount)
 		{
 			return memcmp(a_Destination, a_Source, a_ElementCount * sizeof(T));
 		}
@@ -146,9 +159,22 @@ namespace BB
 			return a_B;
 		}
 
-		inline static  float Lerp(const float a_A, const float a_B, const float a_T)
+		inline static float Lerp(const float a_A, const float a_B, const float a_T)
 		{
 			return a_A + a_T * (a_B - a_A);
+		}
+
+		inline static int clamp(int a_Value, int a_Min, int a_Max)
+		{
+			if (a_Value > a_Max)
+			{
+				return a_Max;
+			}
+			else if (a_Value < a_Min)
+			{
+				return a_Min;
+			}
+			return a_Value;
 		}
 	}
 
@@ -162,19 +188,6 @@ namespace BB
 		inline static void Seed(const unsigned int a_Seed)
 		{
 			MathRandomSeed = a_Seed;
-		}
-
-		/// <summary>
-		/// Check if the chosenValue is close to the between value by using an 0.00001f epsilon.
-		/// </summary>
-		inline static bool Aprox(const float a_A, const float a_B)
-		{
-			if (a_A - 3.0f < a_B && a_A + 3.0f > a_B)
-			{
-				return true;
-			}
-
-			return false;
 		}
 
 		/// <summary>

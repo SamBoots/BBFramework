@@ -1,8 +1,7 @@
 #pragma once
-#include "Allocators/AllocTypes.h"
 #include "Utils/Hash.h"
 #include "Utils/Utils.h"
-
+#include "BBMemory.h"
 namespace BB
 {
 	namespace Hashmap_Specs
@@ -23,7 +22,7 @@ namespace BB
 	//Calculate the load factor.
 	static size_t LFCalculation(size_t a_Size, float a_LoadFactor)
 	{
-		return static_cast<size_t>(static_cast<float>(a_Size) * (1.f / a_LoadFactor + 1));
+		return static_cast<size_t>(static_cast<float>(a_Size) * (1.f / a_LoadFactor + 1.f));
 	}
 
 #pragma region Unordered_Map
@@ -56,8 +55,6 @@ namespace BB
 
 		struct Iterator
 		{
-			using iterator_category = std::forward_iterator_tag;
-			using difference_type = std::ptrdiff_t;
 			using value_type = HashEntry;
 			using pointer = HashEntry*;
 			using reference = HashEntry&;
@@ -191,7 +188,7 @@ namespace BB
 				while (t_Entry->next_Entry != nullptr)
 				{
 					t_PreviousEntry = t_Entry;
-					t_Entry = reinterpret_cast<HashEntry*>(BBnew<HashEntry>(m_Allocator, *t_Entry->next_Entry));
+					t_Entry = reinterpret_cast<HashEntry*>(BBnew(m_Allocator, HashEntry)(* t_Entry->next_Entry));
 					t_PreviousEntry->next_Entry = t_Entry;
 				}
 			}
@@ -253,7 +250,7 @@ namespace BB
 				while (t_Entry->next_Entry != nullptr)
 				{
 					t_PreviousEntry = t_Entry;
-					t_Entry = reinterpret_cast<HashEntry*>(BBnew<HashEntry>(m_Allocator, *t_Entry->next_Entry));
+					t_Entry = reinterpret_cast<HashEntry*>(BBnew(m_Allocator, HashEntry)(* t_Entry->next_Entry));
 					t_PreviousEntry->next_Entry = t_Entry;
 				}
 			}
@@ -316,7 +313,7 @@ namespace BB
 		{
 			if (t_Entry->next_Entry == nullptr)
 			{
-				HashEntry* t_NewEntry = BBnew<HashEntry>(m_Allocator);
+				HashEntry* t_NewEntry = BBnew(m_Allocator, HashEntry);
 				t_NewEntry->key = a_Key;
 				new (&t_NewEntry->value) Value(std::forward<Args>(a_ValueArgs)...);
 				t_NewEntry->next_Entry = nullptr;
@@ -456,7 +453,7 @@ namespace BB
 		size_t t_ModifiedCapacity = m_Capacity * 2;
 
 		if (a_MinCapacity > t_ModifiedCapacity)
-			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Array_Specs::multipleValue);
+			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Hashmap_Specs::multipleValue);
 
 		reallocate(t_ModifiedCapacity);
 	}
@@ -491,7 +488,7 @@ namespace BB
 				{
 					if (t_Entry->next_Entry == nullptr)
 					{
-						HashEntry* t_NewEntry = BBnew<HashEntry>(m_Allocator, m_Entries[i]);
+						HashEntry* t_NewEntry = BBnew(m_Allocator, HashEntry)(m_Entries[i]);
 					}
 					t_Entry = t_Entry->next_Entry;
 				}
@@ -524,8 +521,6 @@ namespace BB
 				Value* value{};
 			};
 
-			using iterator_category = std::forward_iterator_tag;
-			using difference_type = std::ptrdiff_t;
 			using value_type = Pair;
 			using pointer = Pair*;
 			using reference = Pair&;
@@ -895,6 +890,7 @@ namespace BB
 					m_Values[i].~Value();
 				if constexpr (!trivalDestructableKey)
 					m_Keys[i].~Key();
+				m_Keys[i] = 0;
 			}
 		}
 		m_Size = 0;
@@ -945,7 +941,7 @@ namespace BB
 		size_t t_ModifiedCapacity = m_Capacity * 2;
 
 		if (a_MinCapacity > t_ModifiedCapacity)
-			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Array_Specs::multipleValue);
+			t_ModifiedCapacity = Math::RoundUp(a_MinCapacity, Hashmap_Specs::multipleValue);
 
 		reallocate(t_ModifiedCapacity);
 	}

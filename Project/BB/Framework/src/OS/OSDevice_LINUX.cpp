@@ -90,30 +90,6 @@ public:
 	int screen; //the current user window.
 	XID window; //X11 window ID.
 	_XGC* graphicContext; //Graphic context of X11
-
-
-	//For fun functions.
-	void AddChar(char a_Char)
-	{
-		if (m_CurrentTextPos > 31)
-			return;
-		m_WindowTextBuffer[m_CurrentTextPos] = a_Char;
-		m_CurrentTextPos++;
-	}
-
-	void BackOnce()
-	{
-		if (m_CurrentTextPos > 0)
-			m_CurrentTextPos--;
-	}
-
-	void FlushChar()
-	{
-		m_CurrentTextPos = 0;
-	}
-
-	uint32_t m_CurrentTextPos = 0;
-	char m_WindowTextBuffer[31]; //Just a test to have some fun.
 };
 
 struct BB::OSDevice_o
@@ -174,15 +150,15 @@ bool BB::OSDevice::ProcessMessages() const
 
 	for (auto t_It = m_OSDevice->OSWindows.begin(); t_It < m_OSDevice->OSWindows.end(); t_It++)
 	{
-		if (t_It->display == nullptr)
+		if (t_It->value.display == nullptr)
 		{
 			continue;
 		}
 
-		while (XPending(t_It->display))
+		while (XPending(t_It->value.display))
 		{
 			XEvent t_Event;
-			XNextEvent(t_It->display, &t_Event);
+			XNextEvent(t_It->value.display, &t_Event);
 
 			switch (t_Event.type)
 			{
@@ -190,38 +166,7 @@ bool BB::OSDevice::ProcessMessages() const
 
 				break;
 			case KeyPress:
-				if (XLookupString(&t_Event.xkey, t_Text, 255, &t_Key, 0))
-				{
-					switch (t_Key)
-					{
-					case XK_Escape:
-						return false;
-						break;
-					case XK_BackSpace:
-						t_It->BackOnce();
-						XClearWindow(t_It->display, t_It->window);
-						XDrawString(t_It->display,
-							t_It->window,
-							t_It->graphicContext,
-							10,
-							50,
-							t_It->m_WindowTextBuffer,
-							t_It->m_CurrentTextPos);
-						break;
-					default:
-						t_It->AddChar(t_Key);
-						XClearWindow(t_It->display,
-							t_It->window);
-						XDrawString(t_It->display,
-							t_It->window,
-							t_It->graphicContext,
-							10,
-							50,
-							t_It->m_WindowTextBuffer,
-							t_It->m_CurrentTextPos);
-						break;
-					}
-				}
+
 				break;
 			}
 		}

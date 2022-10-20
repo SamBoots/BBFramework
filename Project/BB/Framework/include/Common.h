@@ -6,7 +6,16 @@ namespace BB
 	template<typename Tag>
 	union FrameworkHandle
 	{
-		FrameworkHandle(uint32_t a_Index, uint32_t a_ExtraIndex = 0)
+		FrameworkHandle() {};
+		FrameworkHandle(void* a_Handle)
+		{
+			ptrHandle = a_Handle;
+		};
+		FrameworkHandle(uint64_t a_Handle)
+		{
+			handle = a_Handle;
+		};
+		FrameworkHandle(uint32_t a_Index, uint32_t a_ExtraIndex)
 		{
 			index = a_Index;
 			extraIndex = a_ExtraIndex;
@@ -18,7 +27,8 @@ namespace BB
 			//A extra handle index, can be used to track something else. Usually this value is 0.
 			uint32_t extraIndex;
 		};
-
+		//Some handles work with pointers.
+		void* ptrHandle;
 		uint64_t handle;
 
 		inline bool operator ==(FrameworkHandle a_Rhs) const { return handle == a_Rhs.handle; }
@@ -26,4 +36,10 @@ namespace BB
 	};
 
 	using WindowHandle = FrameworkHandle<struct WindowHandleTag>;
+
+	struct Buffer
+	{
+		void* data;
+		uint64_t size;
+	};
 }

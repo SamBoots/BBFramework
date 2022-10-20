@@ -1,6 +1,6 @@
 #pragma once
-#include "Allocators/AllocTypes.h"
 #include "Utils/Utils.h"
+#include "BBMemory.h"
 
 namespace BB
 {
@@ -10,7 +10,7 @@ namespace BB
 		constexpr const size_t standardSize = 8;
 	}
 
-	using SlotmapID = size_t;
+	using SlotmapID = uint64_t;
 
 	template <typename T>
 	class Slotmap
@@ -61,11 +61,12 @@ namespace BB
 
 		Slotmap<T>& operator=(const Slotmap<T>& a_Rhs);
 		Slotmap<T>& operator=(Slotmap<T>&& a_Rhs) noexcept;
+		T& operator[](const SlotmapID a_Index) const;
 
 		SlotmapID insert(T& a_Obj);
 		template <class... Args>
 		SlotmapID emplace(Args&&... a_Args);
-		T& find(SlotmapID a_ID);
+		T& find(SlotmapID a_ID) const;
 		void erase(SlotmapID a_ID);
 
 		void reserve(size_t a_Capacity);
@@ -208,6 +209,13 @@ namespace BB
 	}
 
 	template<typename T>
+	inline T& BB::Slotmap<T>::operator[](const SlotmapID a_Index) const
+	{
+		return find(a_Index);
+	}
+
+
+	template<typename T>
 	inline SlotmapID BB::Slotmap<T>::insert(T& a_Obj)
 	{
 		return emplace(a_Obj);
@@ -233,7 +241,7 @@ namespace BB
 	}
 
 	template<typename T>
-	inline T& BB::Slotmap<T>::find(SlotmapID a_ID)
+	inline T& BB::Slotmap<T>::find(SlotmapID a_ID) const
 	{
 		return m_ObjArr[a_ID].value;
 	}
