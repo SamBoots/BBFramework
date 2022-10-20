@@ -12,11 +12,18 @@ All the allocators and dynamic memory allocators come from a Backing Allocator. 
 **[BackingAllocator.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Allocators/BackingAllocator/BackingAllocator.h), [BackingAllocator_WIN.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/BackingAllocator/BackingAllocator_WIN.cpp), [BackingAllocator_LINUX.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/BackingAllocator/BackingAllocator_LINUX.cpp)**
 
 ### Allocators & Memory Arenas
-This framework currently has 3 Allocators, a linear allocator, a freelist and a power-of-two freelist allocator. All these allocators get their memory from the virtual backing allocator and support resizing. All the allocators are unit tested for allocating, freeing and resizing.
+This framework currently has 4 Allocators, a linear allocator, fixed linear allocator, freelist and a power-of-two freelist allocator. All these allocators get their memory from the virtual backing allocator and support resizing. All the allocators are unit tested for allocating, freeing and resizing.
 
-In addition, these memory allocators are inside a Memory Arena, this way on debug mode boundry checking and memory tracking can be done while not disturbing release builds with debugging tools. 
+We also have a temporary allocator that gets it's backing memory from a already existing allocator, this way you can quickly create and destroy an allocator without necessarily doing an operating system call to get virtual memory.
 
-**[Allocators.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Allocators/Allocators.h), [Allocators.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/Allocators.cpp), [MemoryArena.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Allocators/MemoryArena.h), [MemoryArena.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/MemoryArena.cpp)**
+In debug the allocators will allocate more memory to host a allocationLog that checks for boundry, file name and line number and how big it is. This is useful to see if you have a buffer overflow or a leak after you remove an allocator using RAII. You can find these under the BBMemory.h/cpp files.
+
+**[Allocators.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Allocators/Allocators.h), 
+[Allocators.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/Allocators.cpp), 
+[TemporaryAllocator.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Allocators/TemporaryAllocator.h), 
+[TemporaryAllocator.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/TemporaryAllocator.cpp),
+[BBMemory.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/BBMemory.h),
+[BBMemory.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/BBMemory.cpp)**
 
 ### Storage Containers
 The framework also has containers similiar to the stl, however, these use the allocators found in the framework and require one if you want to use a container. 
@@ -27,13 +34,6 @@ All containers support POD and non-POD types and try to optimize for each use.
 The hashmap has an unordered hashmap and a open addressed linear probing hashmap.
 
 **[Array.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Storage/Array.h), [Hashmap.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Storage/Hashmap.h), [Slotmap.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Storage/Slotmap.h), [BBString.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Storage/BBString.h)**
-
-### TODO
-Memory Arena: Make system and temporary allocator distinction. 
-
-Memory Arena: Use own hashmap for storing boundry checks.
-
-Utils: Make own memory operations like memcpy, memmove, memcmp and string operations.
 
 ## Cross-platform
 
