@@ -1,181 +1,24 @@
 #pragma once
-#include <unordered_map>
 #include "Allocators/Allocators.h"
 #include "Utils/Utils.h"
 #include "Utils/Logger.h"
 
-#include <iostream>
-
+#include <type_traits>
 
 template <typename T>
 struct MacroType { typedef T type; }; //I hate C++.
 
 namespace BB
 {
-#ifdef _DEBUG
-#define BB_MEMORY_DEBUG const char* a_File, size_t a_Line,
-#define BB_MEMORY_DEBUG_ARGS __FILE__, __LINE__,
-#define BB_MEMORY_DEBUG_SEND a_File, a_Line,
-#define BB_MEMORY_DEBUG_FREE nullptr, 0,
-#else
-#define BB_MEMORY_DEBUG 
-#define BB_MEMORY_DEBUG_ARGS
-#define BB_MEMORY_DEBUG_SEND
-#define BB_MEMORY_DEBUG_FREE
-#endif //_DEBUG
-
-	constexpr const size_t MEMORY_BOUNDRY_FRONT = sizeof(size_t);
-	constexpr const size_t MEMORY_BOUNDRY_BACK = sizeof(size_t);
-
 	constexpr const size_t kbSize = 1024;
 	constexpr const size_t mbSize = kbSize * 1024;
 	constexpr const size_t gbSize = mbSize * 1024;
 
-	//Checks Adds memory boundry to an allocation log.
-	void* Memory_AddBoundries(void* a_Front, size_t a_AllocSize);
-	//Checks the memory boundries, 
-	void Memory_CheckBoundries(void* a_Front, void* a_Back);
-
-	struct AllocationLog
-	{
-		AllocationLog* prev;
-		void* front;
-		void* back;
-		size_t allocSize;
-		const char* file;
-		size_t line;
-	};
-
-	struct AllocationLogger
-	{
-		AllocationLog* front;
-	};
-
-	static AllocationLog* DeleteEntry(AllocationLog* a_Front, const AllocationLog* a_DeletedEntry)
-	{
-		AllocationLog* t_Entry = a_Front;
-		while (t_Entry->prev != a_DeletedEntry)
-		{
-			t_Entry = t_Entry->prev;
-		}
-		t_Entry->prev = a_DeletedEntry->prev;
-
-		return a_Front;
-	}
-
-	typedef void* (*AllocateFunc)(BB_MEMORY_DEBUG void* a_AllocatorData, size_t a_Size, size_t a_Alignment, void* a_OldPtr);
-	struct Allocator
-	{
-		AllocateFunc func;
-		void* allocator;
-	};
-
-	template<typename Allocator_t>
-	void* StandardRealloc(BB_MEMORY_DEBUG void* a_Allocator, size_t a_Size, size_t a_Alignment, void* a_Ptr)
-	{
-		if (a_Size > 0)
-		{
-#ifdef _DEBUG
-			a_Size += MEMORY_BOUNDRY_FRONT + MEMORY_BOUNDRY_BACK + sizeof(AllocationLog);
-#endif //_DEBUG
-			void* t_AllocatedPtr = reinterpret_cast<Allocator_t*>(a_Allocator)->Alloc(a_Size, a_Alignment);
-#ifdef _DEBUG
-			//Get the space for the allocation log, but keep enough space for the boundry check.
-			AllocationLog* t_AllocLog = reinterpret_cast<AllocationLog*>(
-				Pointer::Add(t_AllocatedPtr, MEMORY_BOUNDRY_FRONT));
-
-			t_AllocLog->prev = reinterpret_cast<Allocator_t*>(a_Allocator)->frontLog;
-			t_AllocLog->front = t_AllocatedPtr;
-			t_AllocLog->back = Memory_AddBoundries(t_AllocatedPtr, a_Size);
-			t_AllocLog->allocSize = a_Size;
-			t_AllocLog->file = a_File;
-			t_AllocLog->line = a_Line;
-			reinterpret_cast<Allocator_t*>(a_Allocator)->frontLog = t_AllocLog;
-			t_AllocatedPtr = Pointer::Add(t_AllocatedPtr, MEMORY_BOUNDRY_FRONT + sizeof(AllocationLog));
-#endif //_DEBUG
-			return t_AllocatedPtr;
-		}
-		else
-		{
-#ifdef _DEBUG
-			AllocationLog* t_AllocLog = reinterpret_cast<AllocationLog*>(
-				Pointer::Subtract(a_Ptr, sizeof(AllocationLog)));
-
-			Memory_CheckBoundries(t_AllocLog->front, t_AllocLog->back);
-			a_Ptr = Pointer::Subtract(a_Ptr, MEMORY_BOUNDRY_FRONT + sizeof(AllocationLog));
-
-			AllocationLog* t_FrontLog = reinterpret_cast<Allocator_t*>(a_Allocator)->frontLog;
-
-			if (t_AllocLog != reinterpret_cast<Allocator_t*>(a_Allocator)->frontLog)
-				DeleteEntry(t_FrontLog, t_AllocLog);
-			else
-				reinterpret_cast<Allocator_t*>(a_Allocator)->frontLog = t_FrontLog->prev;
-#endif //_DEBUG
-			reinterpret_cast<Allocator_t*>(a_Allocator)->Free(a_Ptr);
-			return nullptr;
-		}
-	}
-
-	template<typename AllocatorType>
-	struct AllocatorTemplate
-	{
-		operator Allocator()
-		{
-			Allocator t_AllocatorInterface;
-			t_AllocatorInterface.allocator = this;
-			t_AllocatorInterface.func = StandardRealloc<AllocatorTemplate<AllocatorType>>;
-			return t_AllocatorInterface;
-		}
-
-		AllocatorTemplate(size_t a_AllocatorSize)
-			: allocator(a_AllocatorSize) {};
-
-		~AllocatorTemplate()
-		{
-#ifdef _DEBUG
-			AllocationLog* t_FrontLog = frontLog;
-			while (t_FrontLog != nullptr)
-			{
-				std::cout << "Memory leak accured in file: " << t_FrontLog->file << "\n on line: " 
-					<< t_FrontLog->line << "\n leak size: " << t_FrontLog->allocSize << "\n";
-				t_FrontLog = t_FrontLog->prev;
-			}
-#endif //_DEBUG
-			Clear();
-		}
-
-		void* Alloc(size_t a_Size, size_t a_Alignment)
-		{
-			return allocator.Alloc(a_Size, a_Alignment);
-		}
-
-		void Free(void* a_Ptr)
-		{
-			allocator.Free(a_Ptr);
-		}
-
-		void Clear()
-		{
-#ifdef _DEBUG
-			while (frontLog != nullptr)
-			{
-				Memory_CheckBoundries(frontLog->front, frontLog->back);
-				frontLog = frontLog->prev;
-			}
-#endif //_DEBUG
-			allocator.Clear();
-		}
-
-		AllocatorType allocator;
-#ifdef _DEBUG
-		AllocationLog* frontLog = nullptr;
-#endif //_DEBUG
-	};
-
-	using LinearAllocator_t = AllocatorTemplate<allocators::LinearAllocator>;
-	using FixedLinearAllocator_t = AllocatorTemplate<allocators::FixedLinearAllocator>;
-	using FreelistAllocator_t = AllocatorTemplate<allocators::FreelistAllocator>;
-	using POW_FreelistAllocator_t = AllocatorTemplate<allocators::POW_FreelistAllocator>;
+	//legacy code still used this, so we will just remain using this.
+	using LinearAllocator_t = allocators::LinearAllocator;
+	using FixedLinearAllocator_t = allocators::FixedLinearAllocator;
+	using FreelistAllocator_t = allocators::FreelistAllocator;
+	using POW_FreelistAllocator_t = allocators::POW_FreelistAllocator;
 
 #define BBalloc(a_Allocator, a_Size) BB::BBalloc_f(BB_MEMORY_DEBUG_ARGS a_Allocator, a_Size, 1)
 #define BBnew(a_Allocator, a_Type) new (BB::BBalloc_f(BB_MEMORY_DEBUG_ARGS a_Allocator, sizeof(a_Type), __alignof(a_Type))) a_Type

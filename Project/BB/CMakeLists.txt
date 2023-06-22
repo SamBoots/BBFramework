@@ -1,9 +1,12 @@
-﻿# CMakeList.txt : Top-level CMake project file, do global configuration
-# and include sub-projects here.
-#
+﻿########################################################################
+#  This cmakelist handles the base setup for the BB library framework  #
+########################################################################
 cmake_minimum_required (VERSION 3.8)
 project ("BB")
 set (CMAKE_CXX_STANDARD 17)
+
+# We force down the unicode
+add_definitions(-DUNICODE -D_UNICODE -UNICODE)
 
 if (MSVC)
     # warning level 4 and all warnings as errors

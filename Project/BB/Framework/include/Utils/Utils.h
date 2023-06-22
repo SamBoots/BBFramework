@@ -32,7 +32,7 @@ namespace BB
 		{
 			if constexpr (std::is_trivially_constructible_v<T>)
 			{
-				MemCpySIMD256(a_Destination, a_Source, a_ElementCount * sizeof(T));
+				memcpy(a_Destination, a_Source, a_ElementCount * sizeof(T));
 			}
 			else
 			{
@@ -122,9 +122,9 @@ namespace BB
 		/// memcmp abstraction that will use the sizeof operator for type T.
 		/// </summary>
 		template<typename T>
-		inline static int Compare(T* __restrict a_Destination, const void* __restrict a_Source, const size_t a_ElementCount)
+		inline static int Compare(const T* __restrict a_Left, const void* __restrict a_Right, const size_t a_ElementCount)
 		{
-			return memcmp(a_Destination, a_Source, a_ElementCount * sizeof(T));
+			return memcmp(a_Left, a_Right, a_ElementCount * sizeof(T));
 		}
 
 		inline static size_t StrLength(const char* a_String)
@@ -143,38 +143,6 @@ namespace BB
 		inline static size_t RoundUp(const size_t a_NumToRound, const size_t a_Multiple)
 		{
 			return ((a_NumToRound + a_Multiple - 1) / a_Multiple) * a_Multiple;
-		}
-
-		inline static size_t Max(const size_t a_A, const size_t a_B)
-		{
-			if (a_A > a_B)
-				return a_A;
-			return a_B;
-		}
-
-		inline static size_t Min(const size_t a_A, const size_t a_B)
-		{
-			if (a_A < a_B)
-				return a_A;
-			return a_B;
-		}
-
-		inline static float Lerp(const float a_A, const float a_B, const float a_T)
-		{
-			return a_A + a_T * (a_B - a_A);
-		}
-
-		inline static int clamp(int a_Value, int a_Min, int a_Max)
-		{
-			if (a_Value > a_Max)
-			{
-				return a_Max;
-			}
-			else if (a_Value < a_Min)
-			{
-				return a_Min;
-			}
-			return a_Value;
 		}
 	}
 
@@ -258,6 +226,22 @@ namespace BB
 		}
 
 		/// <summary>
+		/// Returns a aligned size from a_Size based on the a_Alignment size given.
+		/// </summary>
+		/// <param name="a_Size:"> Size of the origional buffer </param>
+		/// <param name="a_Alignment:"> Alignment the returned size needs to be based off. </param>
+		/// <returns> an aligned size based of a_Size and a_Alignment. </returns>
+		inline static size_t AlignPad(const size_t a_Size, const size_t a_Alignment)
+		{
+			size_t t_AlignedSize = a_Size;
+			if (a_Alignment > 0) {
+				t_AlignedSize = (a_Size + a_Alignment - 1) & ~(a_Alignment - 1);
+			}
+			return t_AlignedSize;
+		}
+
+#pragma warning(disable:4146)
+		/// <summary>
 		/// Align a given pointer forward.
 		/// </summary>
 		/// <param name="a_Ptr:"> The pointer you want to align </param>
@@ -265,14 +249,24 @@ namespace BB
 		/// <returns>The given address but aligned forward. </returns>
 		inline static size_t AlignForwardAdjustment(const void* a_Ptr, const size_t a_Alignment)
 		{
-			size_t adjustment = a_Alignment - (reinterpret_cast<uintptr_t>(a_Ptr) & static_cast<uintptr_t>(a_Alignment - 1));
+			const uintptr_t t_UPtr = reinterpret_cast<uintptr_t>(a_Ptr);
+			const uintptr_t t_AlignedPtr = (t_UPtr - 1u + a_Alignment) & -a_Alignment;
 
-			if (adjustment == a_Alignment) return 0;
-
-			//already aligned 
-			return adjustment;
+			return t_AlignedPtr - t_UPtr;
 		}
+		/// <summary>
+		/// Returns the required forward alignment.
+		/// </summary>
+		/// <param name="a_Value:"> The value you want to align </param>
+		/// <param name="a_Alignment:"> The alignment of the data. </param>
+		/// <returns>The given address but aligned forward. </returns>
+		inline static size_t AlignForwardAdjustment(const size_t a_Value, const size_t a_Alignment)
+		{
+			const uintptr_t t_AlignedPtr = (a_Value - 1u + a_Alignment) & -a_Alignment;
 
+			return t_AlignedPtr - a_Value;
+		}
+#pragma warning(default:4146)
 		/// <summary>
 		/// Align a given pointer forward.
 		/// </summary>

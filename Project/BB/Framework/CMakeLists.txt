@@ -1,6 +1,6 @@
-﻿# CMakeList.txt : CMake project for Allocator, include source and define
-# project specific logic here.
-#
+﻿##########################################################
+#  This cmakelist handles the base BB library framework  #
+##########################################################
 cmake_minimum_required (VERSION 3.8)
 
 #compile Definitions.
@@ -11,32 +11,43 @@ set(PLATFORM_NAME "_LINUX")
 include_directories(/usr/include/X11)
 endif ()
 
-#Add source to this project's executable.
-add_library (BBFramework 
-"include/Allocators/BackingAllocator/BackingAllocator.h" 
+set (BB_Public
+"include/Allocators/BackingAllocator.h" 
 "include/Allocators/Allocators.h" 
- 
 "include/Allocators/TemporaryAllocator.h"
+"include/Allocators/RingAllocator.h"
 "include/Storage/Array.h" 
 "include/Storage/Pool.h" 
+"include/Storage/GrowPool.h"
 "include/Storage/Hashmap.h"
 "include/Storage/Slotmap.h"
 "include/Storage/BBString.h"
-"include/OS/OSDevice.h"
 "include/Utils/Utils.h"
 "include/Utils/Hash.h"
 "include/Utils/Slice.h"
 "include/Utils/Logger.h"
+"include/OS/Program.h" 
+"include/OS/HID.h"
 "include/Common.h"
 "include/BBMemory.h" 
+"include/BBMain.h")
 
+set (BB_Source
+"include/OS/HID.inl"
+"include/BBGlobal.h" 
 "src/Allocators/Allocators.cpp" 
-"src/Allocators/BackingAllocator/BackingAllocator${PLATFORM_NAME}.cpp" 
+"src/Allocators/BackingAllocator.cpp" 
 "src/Allocators/TemporaryAllocator.cpp"
-"src/OS/OSDevice${PLATFORM_NAME}.cpp"
+"src/Allocators/RingAllocator.cpp"
+"src/OS/Program${PLATFORM_NAME}.cpp"
 "src/Utils/Logger.cpp"
 "src/Utils/Utils.cpp"
-"src/BBMemory.cpp" )
+
+"src/BBMain.cpp")
+
+
+#Add source to this project's executable.
+add_library (BBFramework STATIC ${BB_Source})
 
 #Include library
 target_include_directories(BBFramework PUBLIC

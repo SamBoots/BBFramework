@@ -1,6 +1,6 @@
-﻿# CMakeList.txt : Top-level CMake project file, do global configuration
-# and include sub-projects here.
-#
+﻿#######################################################
+#  This cmakelist handles the BB framework unit test  #
+#######################################################
 cmake_minimum_required (VERSION 3.8)
 
 #Google Test unit tests
@@ -28,12 +28,16 @@ add_executable (Unittest_Project
 "Framework/Slice_UTEST.h"
 "Framework/Slotmap_UTEST.h"
 "Framework/String_UTEST.h" 
-"Framework/MemoryOperations_UTEST.h")
+"Framework/MemoryOperations_UTEST.h" 
+"Framework/FileReadWrite_UTEST.h")
 
 include_directories(
 "../Framework/include"
 )
 target_link_libraries(Unittest_Project BBFramework gtest_main)
 
+#Executable-Object
+set_target_properties (Unittest_Project PROPERTIES
+	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}>)
 #include(googletest)
 #gtest_discover_tests(Unit_Test_Proj)
