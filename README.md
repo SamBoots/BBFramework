@@ -1,5 +1,7 @@
-# memory_studies
+# BBFramework (v0.3 does not support linux!)
 Memory studies scaled up to allow for cross-platform virtual memory allocation and a small framework to have memory & OS operation abstractions for a later game engine project.
+
+In addition, the project also has code to create a window, load files and uses RAWINPUT from windows to handle input events.
 
 Most code is unit tested using google test as the testing library. These unit tests are found as _UTEST.h files.
 
@@ -9,10 +11,12 @@ Will only work in C++ 17 and above.
 ### Virtual Memory Backing Allocator
 All the allocators and dynamic memory allocators come from a Backing Allocator. The backing allocator allocates virtual address space using the virtual allocation API's from specific OS's. **VirtualAlloc(WIN32) & MMAP(Linux)** This way the memory is always page bound, the allocators are end of page and resizing allocators can be done cheaply since the backing allocator will reserve more memory for when a resize event happens. 
 
-**[BackingAllocator.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Allocators/BackingAllocator/BackingAllocator.h), [BackingAllocator_WIN.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/BackingAllocator/BackingAllocator_WIN.cpp), [BackingAllocator_LINUX.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/BackingAllocator/BackingAllocator_LINUX.cpp)**
+**[BackingAllocator.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/Allocators/BackingAllocator/BackingAllocator.h), [BackingAllocator.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/Allocators/BackingAllocator/BackingAllocator.cpp)**
 
 ### Allocators & Memory Arenas
 This framework currently has 4 Allocators, a linear allocator, fixed linear allocator, freelist and a power-of-two freelist allocator. All these allocators get their memory from the virtual backing allocator and support resizing. All the allocators are unit tested for allocating, freeing and resizing.
+
+All system allocators inherit from BaseAllocator that handles potentional debugging such as logging allocations.
 
 We also have a temporary allocator that gets it's backing memory from a already existing allocator, this way you can quickly create and destroy an allocator without necessarily doing an operating system call to get virtual memory.
 
@@ -40,6 +44,6 @@ The hashmap has an unordered hashmap and a open addressed linear probing hashmap
 ### OS Abstraction
 One of the main ideas of this framework is to support cross-platform as best as possible. One of the ways it does this is by abstracting common OS operations. It is the first system in this framework that works with the custom allocators. It supports creating an OS window, checking for OS errors and storing some data specific for that OS. *e.g, see how big a virtual page is, what the minimum virtual allocation requirement is*
 
-This will be expanded for file loading and more.
+It also supports file loading and uses the RAWINPUT api from Windows to get input.
 
-**[OSDevice.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/OS/OSDevice.h), [OSDevice_WIN.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/OS/OSDevice_WIN.cpp), [OSDevice_LINUX.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/OS/OSDevice_LINUX.cpp)**
+**[Program.h](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/include/OS/Program.h), [Program_WIN.cpp](https://github.com/SamBoots/memory_studies/blob/main/Project/BB/Framework/src/OS/Program_WIN.cpp)
