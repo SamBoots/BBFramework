@@ -1,4 +1,6 @@
-# BBFramework (v0.3 does not support linux!)
+# BBFramework (v0.4 does not support linux!)
+//TODO, need to explain thread scheduler, BBImage, BBJson and more.
+
 Memory studies scaled up to allow for cross-platform virtual memory allocation and a small framework to have memory & OS operation abstractions for a later game engine project.
 
 In addition, the project also has code to create a window, load files and uses RAWINPUT from windows to handle input events.
