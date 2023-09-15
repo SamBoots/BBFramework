@@ -26,18 +26,21 @@ add_executable (Unittest_Project
 "Framework/Hashmap_UTEST.h"
 "Framework/MemoryArena_UTEST.h"
 "Framework/Slice_UTEST.h"
+"Framework/BBjson_UTEST.hpp"
 "Framework/Slotmap_UTEST.h"
 "Framework/String_UTEST.h" 
 "Framework/MemoryOperations_UTEST.h" 
 "Framework/FileReadWrite_UTEST.h")
 
 include_directories(
-"../Framework/include"
-)
+"../Framework/include")
 target_link_libraries(Unittest_Project BBFramework gtest_main)
 
-#Executable-Object
-set_target_properties (Unittest_Project PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}>)
-#include(googletest)
-#gtest_discover_tests(Unit_Test_Proj)
+#copy json files when a change happened.
+add_custom_target(copy_unit_test_resources ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/Resources
+    ${CMAKE_CURRENT_BINARY_DIR}/Resources
+    COMMENT "Copying unit test resources")
+
+add_dependencies(Unittest_Project copy_unit_test_resources)

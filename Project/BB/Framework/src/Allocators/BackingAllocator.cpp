@@ -6,8 +6,17 @@
 
 using namespace BB;
 
+#ifdef _64BIT
+constexpr size_t VIRTUAL_HEADER_TYPE_CHECK = 0xB0AFB0AFB0AFB0AF;
+#elif _32BIT
+constexpr size_t VIRTUAL_HEADER_TYPE_CHECK = 0xB0AFB0AF;
+#endif _32BIT
+
 struct VirtualHeader
 {
+#if _DEBUG
+	size_t checkValue;
+#endif //_DEBUG
 	size_t bytesCommited;
 	size_t bytesReserved;
 };
@@ -15,8 +24,7 @@ struct VirtualHeader
 void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const size_t a_ReserveSize)
 {
 	//Adjust the requested bytes by the page size and the minimum virtual allocaion size.
-	size_t t_PageAdjustedSize = Math::RoundUp(a_Size + sizeof(VirtualHeader), VirtualMemoryPageSize());
-	t_PageAdjustedSize = Max(t_PageAdjustedSize, VirtualMemoryMinimumAllocation());
+	const size_t t_PageAdjustedSize = Max(Math::RoundUp(a_Size + sizeof(VirtualHeader), VirtualMemoryPageSize()), VirtualMemoryMinimumAllocation());
 
 	//Set the reference of a_Size so that the allocator has enough memory until the end of the page.
 	a_Size = t_PageAdjustedSize - sizeof(VirtualHeader);
@@ -26,7 +34,9 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const size_t a_ReserveSiz
 	{
 		//Get the header for preperation to resize it.
 		VirtualHeader* t_PageHeader = reinterpret_cast<VirtualHeader*>(Pointer::Subtract(a_Start, sizeof(VirtualHeader)));
-
+#if _DEBUG
+		BB_ASSERT(t_PageHeader->checkValue == VIRTUAL_HEADER_TYPE_CHECK, "Send a pointer that is NOT a start of a virtual allocation!");
+#endif //_DEBUG
 		//Commit more memory if there is enough reserved.
 		if (t_PageHeader->bytesReserved > t_PageAdjustedSize + t_PageHeader->bytesCommited)
 		{
@@ -41,7 +51,7 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const size_t a_ReserveSiz
 	}
 
 	//When making a new header reserve a lot more then that is requested to support later resizes better.
-	size_t t_AdditionalReserve = t_PageAdjustedSize * a_ReserveSize;
+	const size_t t_AdditionalReserve = t_PageAdjustedSize * a_ReserveSize;
 	void* t_Address = ReserveVirtualMemory(t_AdditionalReserve);
 	BB_ASSERT(t_Address != NULL, "Error reserving virtual memory");
 
@@ -49,6 +59,9 @@ void* BB::mallocVirtual(void* a_Start, size_t& a_Size, const size_t a_ReserveSiz
 	BB_ASSERT(CommitVirtualMemory(t_Address, t_PageAdjustedSize) != NULL, "Error commiting right after a reserve virtual memory");
 
 	//Set the header of the allocator, used for later resizes and when you need to free it.
+#if _DEBUG
+	reinterpret_cast<VirtualHeader*>(t_Address)->checkValue = VIRTUAL_HEADER_TYPE_CHECK;
+#endif //_DEBUG
 	reinterpret_cast<VirtualHeader*>(t_Address)->bytesCommited = t_PageAdjustedSize;
 	reinterpret_cast<VirtualHeader*>(t_Address)->bytesReserved = t_AdditionalReserve;
 

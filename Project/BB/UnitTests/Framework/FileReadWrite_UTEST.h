@@ -11,10 +11,7 @@ TEST(Program_IO, Read_Write_Files)
 
 	BB::OSFileHandle t_TestFile = BB::CreateOSFile(DOC_NAME);
 	
-	BB::Buffer t_WriteBuffer;
-	t_WriteBuffer.size = strnlen_s(DOC_DATA, 1024);
-	t_WriteBuffer.data = DOC_DATA;
-	BB::WriteToFile(t_TestFile, t_WriteBuffer);
+	BB::WriteToOSFile(t_TestFile, DOC_DATA, strnlen_s(DOC_DATA, 1024));
 
 	BB::CloseOSFile(t_TestFile);
 
@@ -42,22 +39,10 @@ TEST(Program_IO, Read_Write_Files_Chunks)
 
 	BB::OSFileHandle t_TestFile = BB::CreateOSFile(DOC_NAME);
 
-	BB::Buffer t_WriteBuffer;
-	{ //Chunk one
-		t_WriteBuffer.size = strnlen_s(DOC_DATA_CHUNK_ONE, 1024);
-		t_WriteBuffer.data = DOC_DATA_CHUNK_ONE;
-		BB::WriteToFile(t_TestFile, t_WriteBuffer);
-	}
-	{ //Chunk two
-		t_WriteBuffer.size = strnlen_s(DOC_DATA_CHUNK_TWO, 1024);
-		t_WriteBuffer.data = DOC_DATA_CHUNK_TWO;
-		BB::WriteToFile(t_TestFile, t_WriteBuffer);
-	}
-	{ //Chunk three
-		t_WriteBuffer.size = strnlen_s(DOC_DATA_CHUNK_THREE, 1024);
-		t_WriteBuffer.data = DOC_DATA_CHUNK_THREE;
-		BB::WriteToFile(t_TestFile, t_WriteBuffer);
-	}
+	BB::WriteToOSFile(t_TestFile, DOC_DATA_CHUNK_ONE, strnlen_s(DOC_DATA_CHUNK_ONE, 1024));
+	BB::WriteToOSFile(t_TestFile, DOC_DATA_CHUNK_TWO, strnlen_s(DOC_DATA_CHUNK_TWO, 1024));
+	BB::WriteToOSFile(t_TestFile, DOC_DATA_CHUNK_THREE, strnlen_s(DOC_DATA_CHUNK_THREE, 1024));
+
 
 	BB::CloseOSFile(t_TestFile);
 
@@ -82,10 +67,7 @@ TEST(Program_IO, Read_Write_Files_Same_File)
 
 	BB::OSFileHandle t_TestFile = BB::CreateOSFile(DOC_NAME);
 
-	BB::Buffer t_WriteBuffer;
-	t_WriteBuffer.size = strnlen_s(DOC_DATA, 1024);
-	t_WriteBuffer.data = DOC_DATA;
-	BB::WriteToFile(t_TestFile, t_WriteBuffer);
+	BB::WriteToOSFile(t_TestFile, DOC_DATA, strnlen_s(DOC_DATA, 1024));
 
 	BB::SetOSFilePosition(t_TestFile, 0, BB::OS_FILE_READ_POINT::BEGIN);
 

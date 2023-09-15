@@ -3,14 +3,19 @@
 
 namespace BB
 {
+#define BB_CONCAT(a, b) a##b
+#define BB_PAD(n) unsigned char BB_CONCAT(_padding_, __LINE__)[n]
+
+//Thank you Descent Raytracer teammates great code that I can steal
+#define BB_SLL_PUSH(head, node) ((node)->next = (head), (head) = (node))
+#define BB_SLL_POP(head) head; do { (head) = (head)->next; } while(0)
+
+	constexpr const uint64_t BB_INVALID_HANDLE = 0;
+
 	template<typename Tag>
 	union FrameworkHandle
 	{
 		FrameworkHandle() {};
-		FrameworkHandle(void* a_Handle)
-		{
-			ptrHandle = a_Handle;
-		};
 		FrameworkHandle(uint64_t a_Handle)
 		{
 			handle = a_Handle;
@@ -24,7 +29,7 @@ namespace BB
 		{
 			//The handle's main index. Always used and is the main handle.
 			uint32_t index;
-			//A extra handle index, can be used to track something else. Usually this value is 0.
+			//A extra handle index, can be used to track something else. Usually this value is 0 or is part of a pointer.
 			uint32_t extraIndex;
 		};
 		//Some handles work with pointers.
@@ -39,6 +44,10 @@ namespace BB
 	//A handle to a loaded lib/dll from OS::LoadLib and can be destroyed using OS::UnloadLib
 	using LibHandle = FrameworkHandle<struct LibHandleTag>;
 	using OSFileHandle = FrameworkHandle<struct OSFileHandleTag>;
+	using BBMutex = FrameworkHandle<struct BBMutexTag>;
+	using BBSemaphore = FrameworkHandle<struct BBSemaphoreTag>;
+	using BBBarrier = FrameworkHandle<struct BBBarrierTag>;
+	using ThreadTask = FrameworkHandle<struct ThreadTasktag>;
 
 	using wchar = wchar_t;
 
@@ -49,65 +58,138 @@ namespace BB
 	};
 
 
-	struct float2
+	union float2
 	{
-		float x = 0;
-		float y = 0;
+		float e[2];
+		struct
+		{
+			float x;
+			float y;
+		};
 	};
 
-	struct float3
+	union float3
 	{
-		float x = 0;
-		float y = 0;
-		float z = 0;
-	};
-	struct float4
-	{
-		float x = 0;
-		float y = 0;
-		float z = 0;
-		float w = 0;
+		float e[3];
+		struct
+		{
+			float x;
+			float y;
+			float z;
+		};
 	};
 
-	struct int2
+	union float4
 	{
-		int x = 0;
-		int y = 0;
+		float e[4];
+		struct
+		{
+			float x;
+			float y;
+			float z;
+			float w;
+		};
 	};
 
-	struct int3
+	union int2
 	{
-		int x = 0;
-		int y = 0;
-		int z = 0;
+		int e[2];
+		struct
+		{
+			int x;
+			int y;
+		};
 	};
 
-	struct int4
+	union int3
 	{
-		int x = 0;
-		int y = 0;
-		int z = 0;
-		int w = 0;
+		int e[3];
+		struct
+		{
+			int x;
+			int y;
+			int z;
+		};
 	};
 
-	struct uint2
+	union int4
 	{
-		uint32_t x = 0;
-		uint32_t y = 0;
+		int e[4];
+		struct
+		{
+			int x;
+			int y;
+			int z;
+			int w;
+		};
 	};
 
-	struct uint3
+	union uint2
 	{
-		uint32_t x = 0;
-		uint32_t y = 0;
-		uint32_t z = 0;
+		uint32_t e[2];
+		struct
+		{
+			uint32_t x;
+			uint32_t y;
+		};
 	};
 
-	struct uint4
+	union uint3
 	{
-		uint32_t x = 0;
-		uint32_t y = 0;
-		uint32_t z = 0;
-		uint32_t w = 0;
+		uint32_t e[3];
+		struct
+		{
+			uint32_t x;
+			uint32_t y;
+			uint32_t z;
+		};
+	};
+
+	union uint4
+	{
+		uint32_t e[4];
+		struct
+		{
+			uint32_t x;
+			uint32_t y;
+			uint32_t z;
+			uint32_t w;
+		};
+	};
+
+	union Quat
+	{
+		struct
+		{
+			float x;
+			float y;
+			float z;
+			float w;
+		};
+		float3 xyz;
+		float4 xyzw;
+	};
+
+	union Mat3x3
+	{
+		float e[3][3];
+		struct
+		{
+			float3 r0;
+			float3 r1;
+			float3 r2;
+		};
+	};
+
+	union Mat4x4
+	{
+		float e[4][4];
+		struct
+		{
+			float4 r0;
+			float4 r1;
+			float4 r2;
+			float4 r3;
+		};
 	};
 }

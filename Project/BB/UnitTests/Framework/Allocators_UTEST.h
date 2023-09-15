@@ -131,6 +131,70 @@ TEST(MemoryAllocators, LINEAR_ARRAY_ALLOCATIONS)
 }
 #pragma endregion
 
+TEST(MemoryAllocators, STACK_ALLOCATOR)
+{
+	constexpr const size_t ALLOCATOR_SIZE =
+		sizeof(size32Bytes) * sample_32_bytes +
+		sizeof(size256Bytes) * sample_256_bytes +
+		sizeof(size2593bytes) * sample_2593_bytes;
+
+	//Get some random values to test.
+	size_t random_values[samples]{};
+	for (size_t i = 0; i < samples; i++)
+	{
+		random_values[i] = static_cast<size_t>(BB::Random::Random());
+	}
+
+	BB::StackAllocator_t stack_allocator(ALLOCATOR_SIZE);
+
+	size32Bytes* size32Array = BBnewArr(stack_allocator, sample_32_bytes, size32Bytes);
+	const uintptr_t stack_position_before_256 = stack_allocator.GetPosition();
+	size256Bytes* size256Array = BBnewArr(stack_allocator, sample_256_bytes, size256Bytes);
+	size2593bytes* size2593Array = BBnewArr(stack_allocator, sample_2593_bytes, size2593bytes);
+
+	//Checking the arrays
+	for (size_t i = 0; i < sample_32_bytes; i++)
+	{
+		size32Array[i].value = random_values[i];
+	}
+	for (size_t i = 0; i < sample_256_bytes; i++)
+	{
+		size256Array[i].value = random_values[sample_32_bytes + i];
+	}
+	for (size_t i = 0; i < sample_2593_bytes; i++)
+	{
+		size2593Array[i].value = random_values[sample_32_bytes + sample_256_bytes + i];
+	}
+
+	//Checking the arrays
+	for (size_t i = 0; i < sample_32_bytes; i++)
+	{
+		ASSERT_EQ(size32Array[i].value, random_values[i]) << "32 bytes, Value is different in the linear allocator.";
+	}
+	for (size_t i = 0; i < sample_256_bytes; i++)
+	{
+		ASSERT_EQ(size256Array[i].value, random_values[sample_32_bytes + i]) << "256 bytes, Value is different in the linear allocator.";
+	}
+	for (size_t i = 0; i < sample_2593_bytes; i++)
+	{
+		ASSERT_EQ(size2593Array[i].value, random_values[sample_32_bytes + sample_256_bytes + i]) << "2593 bytes, Value is different in the linear allocator.";
+	}
+
+	stack_allocator.SetPosition(stack_position_before_256);
+	size2593Array = BBnewArr(stack_allocator, sample_2593_bytes, size2593bytes);
+	for (size_t i = 0; i < sample_2593_bytes; i++)
+	{
+		size2593Array[i].value = random_values[sample_32_bytes + sample_256_bytes + i];
+	}
+
+	for (size_t i = 0; i < sample_2593_bytes; i++)
+	{
+		ASSERT_EQ(size2593Array[i].value, random_values[sample_32_bytes + sample_256_bytes + i]) << "2593 bytes, Value is different in the linear allocator.";
+	}
+
+	stack_allocator.Clear();
+}
+
 #pragma region FREELIST_ALLOCATOR
 TEST(MemoryAllocators, FREELIST_SINGLE_ALLOCATIONS)
 {

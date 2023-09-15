@@ -15,6 +15,9 @@ namespace BB
 #define BB_MEMORY_DEBUG_SEND
 #define BB_MEMORY_DEBUG_FREE
 #endif //_DEBUG
+
+	constexpr const size_t MEMORY_BOUNDRY_FRONT = sizeof(size_t);
+	constexpr const size_t MEMORY_BOUNDRY_BACK = sizeof(size_t);
 	
 	typedef void* (*AllocateFunc)(BB_MEMORY_DEBUG void* a_Allocator, size_t a_Size, const size_t a_Alignment, void* a_OldPtr);
 	struct Allocator
@@ -44,13 +47,14 @@ namespace BB
 
 			struct AllocationLog
 			{
-				AllocationLog* prev;
-				void* front;
-				void* back;
+				AllocationLog* prev; //8 bytes
+				void* front; //16 bytes 
+				void* back; //24 bytes
+				const char* file; //32 bytes
+				int line; //36 bytes
 				//maybe not safe due to possibly allocating more then 4 gb.
-				uint32_t allocSize;
-				const char* file;
-				int line;
+				uint32_t allocSize; //40 bytes
+				const char* tagName; //48 bytes
 			}* frontLog = nullptr;
 			const char* name;
 
@@ -105,6 +109,35 @@ namespace BB
 #ifdef _DEBUG
 			uintptr_t m_End;
 #endif //_DEBUG
+		};
+
+		struct StackAllocator : public BaseAllocator
+		{
+			StackAllocator(const size_t a_size, const char* a_name = "unnamed");
+			~StackAllocator();
+
+			operator Allocator() override;
+
+			//just delete these for safety, copies might cause errors.
+			StackAllocator(const StackAllocator&) = delete;
+			StackAllocator(const StackAllocator&&) = delete;
+			StackAllocator& operator =(const StackAllocator&) = delete;
+			StackAllocator& operator =(StackAllocator&&) = delete;
+
+			void* Alloc(size_t a_size, size_t a_alignment) override;
+			void Free(void*) override;
+			void Clear() override;
+
+			void SetPosition(const uintptr_t a_pos);
+			uintptr_t GetPosition()
+			{
+				return reinterpret_cast<uintptr_t>(m_buffer);
+			}
+
+		private:
+			void* m_start;
+			void* m_buffer;
+			uintptr_t m_end;
 		};
 
 		struct FreelistAllocator : public BaseAllocator

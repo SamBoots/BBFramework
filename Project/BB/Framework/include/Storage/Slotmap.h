@@ -14,7 +14,17 @@ namespace BB
 
 	//first 32 bytes is the Index.
 	//second 32 bytes is the generation.
-	using SlotmapHandle = FrameworkHandle<struct SlotmapHandleTag>;
+	union SlotmapHandle
+	{
+		SlotmapHandle() {};
+		SlotmapHandle(const uint64_t a_Handle) : handle(a_Handle) {}
+		uint64_t handle = 0;
+		struct
+		{
+			uint32_t index;
+			uint32_t generation;
+		};
+	};
 
 	template <typename T>
 	class Slotmap
@@ -115,8 +125,9 @@ namespace BB
 		for (uint32_t i = 0; i < m_Capacity - 1; ++i)
 		{
 			m_IdArr[i].index = i + 1;
-			m_IdArr[i].extraIndex = 0;
+			m_IdArr[i].generation = 1;
 		}
+		m_IdArr[m_Capacity - 1].generation = 1;
 		m_NextFree = 0;
 	}
 
@@ -276,7 +287,7 @@ namespace BB
 		m_ObjArr[t_Index] = std::move(m_ObjArr[--m_Size]);
 		//Increment the gen for when placing it inside the m_IdArr again.
 		m_IdArr[m_EraseArr[t_Index]] = a_Handle;
-		++m_IdArr[m_EraseArr[t_Index]].extraIndex;
+		++m_IdArr[m_EraseArr[t_Index]].generation;
 		m_EraseArr[t_Index] = std::move(m_EraseArr[m_Size]);
 	}
 
@@ -295,7 +306,6 @@ namespace BB
 		for (uint32_t i = 0; i < m_Capacity; ++i)
 		{
 			m_IdArr[i].index = i + 1;
-			m_IdArr[i].extraIndex = 0;
 		}
 		m_NextFree = 0;
 
@@ -312,7 +322,7 @@ namespace BB
 	template<typename T>
 	inline void BB::Slotmap<T>::CheckGen(const SlotmapHandle a_Handle) const
 	{
-		BB_ASSERT(m_IdArr[a_Handle.index].extraIndex == a_Handle.extraIndex, 
+		BB_ASSERT(m_IdArr[a_Handle.index].generation == a_Handle.generation,
 			"Slotmap, Handle is from the wrong generation! Likely means this handle was already used to delete an element.");
 	}
 
@@ -335,11 +345,14 @@ namespace BB
 		BB::Memory::Copy(t_NewObjArr, m_ObjArr, m_Size);
 		BB::Memory::Copy(t_NewEraseArr, m_EraseArr, m_Size);
 
-		for (uint32_t i = m_Capacity; i < a_NewCapacity; ++i)
+		for (uint32_t i = m_Capacity; i < a_NewCapacity - 1; ++i)
 		{
-			t_NewIdArr[i] = static_cast<uint64_t>(i) + 1;
+			t_NewIdArr[i].index = static_cast<uint64_t>(i) + 1;
+			t_NewIdArr[i].generation = 1;
 		}
 
+		m_IdArr[a_NewCapacity - 1].generation = 1;
+		
 		this->~Slotmap();
 
 		m_Capacity = a_NewCapacity;

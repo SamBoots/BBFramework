@@ -11,30 +11,8 @@ set(PLATFORM_NAME "_LINUX")
 include_directories(/usr/include/X11)
 endif ()
 
-set (BB_Public
-"include/Allocators/BackingAllocator.h" 
-"include/Allocators/Allocators.h" 
-"include/Allocators/TemporaryAllocator.h"
-"include/Allocators/RingAllocator.h"
-"include/Storage/Array.h" 
-"include/Storage/Pool.h" 
-"include/Storage/GrowPool.h"
-"include/Storage/Hashmap.h"
-"include/Storage/Slotmap.h"
-"include/Storage/BBString.h"
-"include/Utils/Utils.h"
-"include/Utils/Hash.h"
-"include/Utils/Slice.h"
-"include/Utils/Logger.h"
-"include/OS/Program.h" 
-"include/OS/HID.h"
-"include/Common.h"
-"include/BBMemory.h" 
-"include/BBMain.h")
-
-set (BB_Source
-"include/OS/HID.inl"
-"include/BBGlobal.h" 
+#Add source to this project's executable.
+add_library (BBFramework STATIC
 "src/Allocators/Allocators.cpp" 
 "src/Allocators/BackingAllocator.cpp" 
 "src/Allocators/TemporaryAllocator.cpp"
@@ -42,12 +20,10 @@ set (BB_Source
 "src/OS/Program${PLATFORM_NAME}.cpp"
 "src/Utils/Logger.cpp"
 "src/Utils/Utils.cpp"
-
+"src/BBThreadScheduler.cpp"
+"src/BBjson.cpp"
+"src/BBImage.cpp"
 "src/BBMain.cpp")
-
-
-#Add source to this project's executable.
-add_library (BBFramework STATIC ${BB_Source})
 
 #Include library
 target_include_directories(BBFramework PUBLIC

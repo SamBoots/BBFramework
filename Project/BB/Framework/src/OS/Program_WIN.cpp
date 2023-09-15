@@ -155,13 +155,13 @@ LRESULT CALLBACK WindowProc(HWND a_Hwnd, UINT a_Msg, WPARAM a_WParam, LPARAM a_L
 	case WM_QUIT:
 		break;
 	case WM_DESTROY:
-		sPFN_CloseEvent(a_Hwnd);
+		sPFN_CloseEvent((uintptr_t)a_Hwnd);
 		break;
 	case WM_SIZE:
 	{
 		int t_X = static_cast<uint32_t>(LOWORD(a_LParam));
 		int t_Y = static_cast<uint32_t>(HIWORD(a_LParam));
-		sPFN_ResizeEvent(a_Hwnd, t_X, t_Y);
+		sPFN_ResizeEvent((uintptr_t)a_Hwnd, t_X, t_Y);
 		break;
 	}
 	case WM_MOUSELEAVE:
@@ -213,10 +213,20 @@ const uint32_t BB::LatestOSError()
 	DWORD t_ErrorMsg = GetLastError();
 	if (t_ErrorMsg == 0)
 		return 0;
-	LPWSTR t_Message = nullptr;
+	LPSTR t_Message = nullptr;
+	
+	FormatMessageA(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		t_ErrorMsg,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+		(LPSTR)&t_Message,
+		0, NULL);
 
-	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-		NULL, t_ErrorMsg, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), t_Message, 0, NULL);
+	if (t_Message == nullptr)
+		LatestOSError();
 
 	BB_WARNING(false, t_Message, WarningType::HIGH);
 
@@ -233,7 +243,7 @@ LibHandle BB::LoadLib(const wchar* a_LibName)
 		LatestOSError();
 		BB_ASSERT(false, "Failed to load .DLL");
 	}
-	return LibHandle(t_Mod);
+	return LibHandle((uintptr_t)t_Mod);
 }
 
 void BB::UnloadLib(const LibHandle a_Handle)
@@ -286,7 +296,27 @@ void BB::WriteToConsole(const wchar_t* a_String, uint32_t a_StrLength)
 	}
 }
 
-//char replaced with string view later on.
+OSFileHandle BB::CreateOSFile(const char* a_FileName)
+{
+	HANDLE t_CreatedFile = CreateFileA(a_FileName,
+		GENERIC_WRITE | GENERIC_READ,
+		0,
+		NULL,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+
+	if (t_CreatedFile == INVALID_HANDLE_VALUE)
+	{
+		LatestOSError();
+		BB_WARNING(false,
+			"OS, failed to create file! This can be severe.",
+			WarningType::HIGH);
+	}
+
+	return OSFileHandle((uintptr_t)t_CreatedFile);
+}
+
 OSFileHandle BB::CreateOSFile(const wchar* a_FileName)
 {
 	HANDLE t_CreatedFile = CreateFileW(a_FileName,
@@ -305,7 +335,23 @@ OSFileHandle BB::CreateOSFile(const wchar* a_FileName)
 			WarningType::HIGH);
 	}
 	
-	return OSFileHandle(t_CreatedFile);
+	return OSFileHandle((uintptr_t)t_CreatedFile);
+}
+
+OSFileHandle BB::LoadOSFile(const char* a_FileName)
+{
+	HANDLE t_LoadedFile = CreateFileA(a_FileName,
+		GENERIC_WRITE | GENERIC_READ,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+
+	if (t_LoadedFile == INVALID_HANDLE_VALUE)
+		LatestOSError();
+
+	return OSFileHandle((uintptr_t)t_LoadedFile);
 }
 
 //char replaced with string view later on.
@@ -327,7 +373,7 @@ OSFileHandle BB::LoadOSFile(const wchar* a_FileName)
 			WarningType::HIGH);
 	}
 
-	return OSFileHandle(t_LoadedFile);
+	return OSFileHandle((uintptr_t)t_LoadedFile);
 }
 
 //Reads a loaded file.
@@ -336,8 +382,8 @@ Buffer BB::ReadOSFile(Allocator a_SysAllocator, const OSFileHandle a_FileHandle)
 {
 	Buffer t_FileBuffer{};
 
-	t_FileBuffer.size = GetOSFileSize(a_FileHandle.ptrHandle);
-	t_FileBuffer.data = BBalloc(a_SysAllocator, t_FileBuffer.size);
+	t_FileBuffer.size = GetOSFileSize(a_FileHandle);
+	t_FileBuffer.data = reinterpret_cast<char*>(BBalloc(a_SysAllocator, t_FileBuffer.size));
 	DWORD t_BytesRead = 0;
 
 	if (FALSE == ReadFile(reinterpret_cast<HANDLE>(a_FileHandle.ptrHandle),
@@ -355,13 +401,39 @@ Buffer BB::ReadOSFile(Allocator a_SysAllocator, const OSFileHandle a_FileHandle)
 	return t_FileBuffer;
 }
 
+Buffer BB::ReadOSFile(Allocator a_SysAllocator, const char* a_Path)
+{
+	Buffer t_FileBuffer{};
+	OSFileHandle t_ReadFile = LoadOSFile(a_Path);
+
+	t_FileBuffer.size = GetOSFileSize(t_ReadFile);
+	t_FileBuffer.data = reinterpret_cast<char*>(BBalloc(a_SysAllocator, t_FileBuffer.size));
+	DWORD t_BytesRead = 0;
+
+	if (FALSE == ReadFile(reinterpret_cast<HANDLE>(t_ReadFile.ptrHandle),
+		t_FileBuffer.data,
+		static_cast<DWORD>(t_FileBuffer.size),
+		&t_BytesRead,
+		NULL))
+	{
+		BB_WARNING(false,
+			"OS, failed to load file! This can be severe.",
+			WarningType::HIGH);
+		LatestOSError();
+	}
+
+	CloseOSFile(t_ReadFile);
+
+	return t_FileBuffer;
+}
+
 Buffer BB::ReadOSFile(Allocator a_SysAllocator, const wchar* a_Path)
 {
 	Buffer t_FileBuffer{};
 	OSFileHandle t_ReadFile = LoadOSFile(a_Path);
 
 	t_FileBuffer.size = GetOSFileSize(t_ReadFile);
-	t_FileBuffer.data = BBalloc(a_SysAllocator, t_FileBuffer.size);
+	t_FileBuffer.data = reinterpret_cast<char*>(BBalloc(a_SysAllocator, t_FileBuffer.size));
 	DWORD t_BytesRead = 0;
 
 	if (FALSE == ReadFile(reinterpret_cast<HANDLE>(t_ReadFile.ptrHandle),
@@ -382,12 +454,12 @@ Buffer BB::ReadOSFile(Allocator a_SysAllocator, const wchar* a_Path)
 }
 
 //char replaced with string view later on.
-void BB::WriteToFile(const OSFileHandle a_FileHandle, const Buffer& a_Buffer)
+void BB::WriteToOSFile(const OSFileHandle a_file_handle, const void* a_data, const size_t a_size)
 {
 	DWORD t_BytesWriten = 0;
-	if (FALSE == WriteFile(reinterpret_cast<HANDLE>(a_FileHandle.ptrHandle),
-		a_Buffer.data,
-		static_cast<const DWORD>(a_Buffer.size),
+	if (FALSE == WriteFile(reinterpret_cast<HANDLE>(a_file_handle.ptrHandle),
+		a_data,
+		static_cast<const DWORD>(a_size),
 		&t_BytesWriten,
 		NULL))
 	{
@@ -421,6 +493,56 @@ void BB::SetOSFilePosition(const OSFileHandle a_FileHandle, const uint32_t a_Off
 void BB::CloseOSFile(const OSFileHandle a_FileHandle)
 {
 	CloseHandle(reinterpret_cast<HANDLE>(a_FileHandle.ptrHandle));
+}
+
+OSThreadHandle BB::OSCreateThread(void(*a_Func)(void*), const unsigned int a_StackSize, void* a_ArgList)
+{
+	return OSThreadHandle(_beginthread(a_Func, a_StackSize, a_ArgList));
+}
+
+void BB::OSWaitThreadfinish(const OSThreadHandle a_Thread)
+{
+	WaitForSingleObject((HANDLE)a_Thread.handle, INFINITE);
+}
+
+BBMutex BB::OSCreateMutex()
+{
+	return BBMutex((uintptr_t)CreateMutex(NULL, false, NULL));
+}
+
+void BB::OSWaitAndLockMutex(const BBMutex a_Mutex)
+{
+	WaitForSingleObject((HANDLE)a_Mutex.handle, INFINITE);
+}
+
+void BB::OSUnlockMutex(const BBMutex a_Mutex)
+{
+	ReleaseMutex((HANDLE)a_Mutex.handle);
+}
+
+void BB::OSDestroyMutex(const BBMutex a_Mutex)
+{
+	CloseHandle((HANDLE)a_Mutex.handle);
+}
+
+BBSemaphore BB::OSCreateSemaphore(const uint32_t a_initial_count, const uint32_t a_maximum_count)
+{
+	return BBSemaphore((uintptr_t)CreateSemaphore(NULL, a_initial_count, a_maximum_count, NULL));
+}
+
+void BB::OSWaitSemaphore(const BBSemaphore a_semaphore)
+{
+	WaitForSingleObject((HANDLE)a_semaphore.handle, INFINITE);
+}
+
+void BB::OSSignalSemaphore(const BBSemaphore a_semaphore, const uint32_t a_signal_count)
+{
+	ReleaseSemaphore((HANDLE)a_semaphore.handle, a_signal_count, NULL);
+}
+
+void BB::OSDestroySemaphore(const BBSemaphore a_semaphore)
+{
+	CloseHandle((HANDLE)a_semaphore.handle);
 }
 
 WindowHandle BB::CreateOSWindow(const OS_WINDOW_STYLE a_Style, const int a_X, const int a_Y, const int a_Width, const int a_Height, const wchar* a_WindowName)
@@ -528,7 +650,7 @@ WindowHandle BB::CreateOSWindow(const OS_WINDOW_STYLE a_Style, const int a_X, co
 		}
 	}
 
-	return WindowHandle(t_Window);
+	return WindowHandle((uintptr_t)t_Window);
 }
 
 void* BB::GetOSWindowHandle(const WindowHandle a_Handle)

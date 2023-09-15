@@ -10,10 +10,8 @@
 using namespace BB;
 using namespace BB::allocators;
 #pragma region DEBUG_LOG
-
+#ifdef _DEBUG
 constexpr const uintptr_t MEMORY_BOUNDRY_CHECK_VALUE = 0xDEADBEEFDEADBEEF;
-constexpr const size_t MEMORY_BOUNDRY_FRONT = sizeof(size_t);
-constexpr const size_t MEMORY_BOUNDRY_BACK = sizeof(size_t);
 enum class BOUNDRY_ERROR
 {
 	NONE,
@@ -34,7 +32,7 @@ static BaseAllocator::AllocationLog* DeleteEntry(BaseAllocator::AllocationLog* a
 }
 
 //Checks Adds memory boundry to an allocation log.
-void* Memory_AddBoundries(void* a_Front, size_t a_AllocSize)
+void* Memory_AddBoundries(void* a_Front, const size_t a_AllocSize)
 {
 	//Set the begin bound value
 	*reinterpret_cast<size_t*>(a_Front) = MEMORY_BOUNDRY_CHECK_VALUE;
@@ -45,8 +43,9 @@ void* Memory_AddBoundries(void* a_Front, size_t a_AllocSize)
 
 	return a_Back;
 }
+
 //Checks the memory boundries, 
-BOUNDRY_ERROR Memory_CheckBoundries(void* a_Front, void* a_Back)
+const BOUNDRY_ERROR Memory_CheckBoundries(void* a_Front, void* a_Back)
 {
 	if (*reinterpret_cast<size_t*>(a_Front) != MEMORY_BOUNDRY_CHECK_VALUE)
 		return BOUNDRY_ERROR::FRONT;
@@ -69,6 +68,7 @@ void* AllocDebug(BB_MEMORY_DEBUG BaseAllocator* a_Allocator, const size_t a_Size
 	t_AllocLog->allocSize = static_cast<uint32_t>(a_Size);
 	t_AllocLog->file = a_File;
 	t_AllocLog->line = a_Line;
+	t_AllocLog->tagName = "";
 	//set the new front log.
 	a_Allocator->frontLog = t_AllocLog;
 	return Pointer::Add(a_AllocatedPtr, MEMORY_BOUNDRY_FRONT + sizeof(BaseAllocator::AllocationLog));
@@ -76,20 +76,22 @@ void* AllocDebug(BB_MEMORY_DEBUG BaseAllocator* a_Allocator, const size_t a_Size
 
 void* FreeDebug(BaseAllocator* a_Allocator, void* a_Ptr)
 {
-	BaseAllocator::AllocationLog* t_AllocLog = reinterpret_cast<BaseAllocator::AllocationLog*>(
+	const BaseAllocator::AllocationLog* t_AllocLog = reinterpret_cast<BaseAllocator::AllocationLog*>(
 		Pointer::Subtract(a_Ptr, sizeof(BaseAllocator::AllocationLog)));
 
-	BOUNDRY_ERROR t_HasError = Memory_CheckBoundries(t_AllocLog->front, t_AllocLog->back);
+	const BOUNDRY_ERROR t_HasError = Memory_CheckBoundries(t_AllocLog->front, t_AllocLog->back);
 	switch (t_HasError)
 	{
 	case BOUNDRY_ERROR::FRONT:
 		//We call it explictally since we can avoid the macro and pull in the file + name directly to Log_Error. 
-		Logger::Log_Error(t_AllocLog->file, static_cast<int>(t_AllocLog->line),
+		Logger::Log_Assert(t_AllocLog->file, t_AllocLog->line, "ss",
+			t_AllocLog->tagName,
 			"Memory Boundry overwritten at the front of memory block.");
 		break;
 	case BOUNDRY_ERROR::BACK:
 		//We call it explictally since we can avoid the macro and pull in the file + name directly to Log_Error. 
-		Logger::Log_Error(t_AllocLog->file, static_cast<int>(t_AllocLog->line),
+		Logger::Log_Assert(t_AllocLog->file, t_AllocLog->line, "ss",
+			t_AllocLog->tagName,
 			"Memory Boundry overwritten at the back of memory block.");
 		break;
 	}
@@ -105,7 +107,7 @@ void* FreeDebug(BaseAllocator* a_Allocator, void* a_Ptr)
 
 	return a_Ptr;
 }
-
+#endif //_DEBUG
 #pragma endregion DEBUG
 
 void BB::allocators::BaseAllocator::Validate() const
@@ -132,7 +134,8 @@ void BB::allocators::BaseAllocator::Validate() const
 		}
 	
 
-		Logger::Log_Error(t_FrontLog->file, t_FrontLog->line, t_TempString.c_str());
+		Logger::Log_Assert(t_FrontLog->file, t_FrontLog->line, "ss",
+			t_FrontLog->tagName, t_TempString.c_str());
 
 		t_FrontLog = t_FrontLog->prev;
 	}
@@ -267,6 +270,80 @@ void FixedLinearAllocator::Clear()
 {
 	BaseAllocator::Clear();
 	m_Buffer = m_Start;
+}
+
+StackAllocator::StackAllocator(const size_t a_size, const char* a_name)
+	: BaseAllocator(a_name)
+{
+	BB_ASSERT(a_size != 0, "linear allocator is created with a size of 0!");
+	size_t size = a_size;
+	m_start = mallocVirtual(nullptr, size);
+	m_buffer = m_start;
+	m_end = reinterpret_cast<uintptr_t>(m_start) + size;
+}
+
+StackAllocator::~StackAllocator()
+{
+	Validate();
+	freeVirtual(reinterpret_cast<void*>(m_start));
+}
+
+StackAllocator::operator Allocator()
+{
+	Allocator t_AllocatorInterface;
+	t_AllocatorInterface.allocator = this;
+	t_AllocatorInterface.func = LinearRealloc;
+	return t_AllocatorInterface;
+}
+
+void* StackAllocator::Alloc(size_t a_size, size_t a_alignment)
+{
+	size_t adjustment = Pointer::AlignForwardAdjustment(m_buffer, a_alignment);
+
+	uintptr_t address = reinterpret_cast<uintptr_t>(Pointer::Add(m_buffer, adjustment));
+	m_buffer = reinterpret_cast<void*>(address + a_size);
+
+	if (address + a_size > m_end)
+	{
+		size_t increase = m_end - reinterpret_cast<uintptr_t>(m_start);
+		mallocVirtual(m_start, increase);
+		m_end += increase;
+	}
+
+	return reinterpret_cast<void*>(address);
+}
+
+void StackAllocator::Free(void*)
+{
+	BB_WARNING(false, "Tried to free a piece of memory in a linear allocator, warning will be removed when temporary allocators exist!", WarningType::LOW);
+}
+
+void StackAllocator::Clear()
+{
+	BaseAllocator::Clear();
+	m_buffer = m_start;
+}
+
+void StackAllocator::SetPosition(const uintptr_t a_pos)
+{
+	BB_ASSERT(reinterpret_cast<uintptr_t>(m_start) <= a_pos && a_pos < m_end, "stack position is not within this allocator's memory space");
+#ifdef _DEBUG
+	//jank, but remove logs that are after a_pos;
+	AllocationLog* cur_list = frontLog;
+	AllocationLog* prev_list = nullptr;
+	uintptr_t front = reinterpret_cast<uintptr_t>(cur_list->front);
+	while (front > a_pos)
+	{
+		prev_list = cur_list;
+		cur_list = prev_list->prev;
+		front = reinterpret_cast<uintptr_t>(cur_list->front);
+	}
+	BB_ASSERT(a_pos == front, "SetPosition points to a invalid address that holds no allocation");
+	frontLog = cur_list->prev;
+#endif
+
+
+	m_buffer = reinterpret_cast<void*>(a_pos);
 }
 
 void* FreelistRealloc(BB_MEMORY_DEBUG void* a_Allocator, size_t a_Size, const size_t a_Alignment, void* a_Ptr)

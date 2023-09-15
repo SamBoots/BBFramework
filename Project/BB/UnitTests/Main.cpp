@@ -15,6 +15,7 @@
 #include "Framework/Pool_UTEST.h"
 #include "Framework/Hashmap_UTEST.h"
 #include "Framework/MemoryArena_UTEST.h"
+#include "Framework/BBjson_UTEST.hpp"
 #include "Framework/MemoryOperations_UTEST.h"
 #include "Framework/Slice_UTEST.h"
 #include "Framework/Slotmap_UTEST.h"
@@ -25,6 +26,7 @@
 #include "BBMain.h"
 #include "OS/Program.h"
 #include "OS/HID.h"
+#include "BBThreadScheduler.hpp"
 
 using namespace BB;
 int main(int argc, char** argv)
@@ -34,9 +36,14 @@ int main(int argc, char** argv)
 	t_BBInitInfo.programName = L"BB_UNIT_TEST";
 	InitBB(t_BBInitInfo);
 
+	Threads::InitThreads(8);
+
+	Logger::EnableLogTypes(0);
+	Logger::EnableLogType(WarningType::INFO);
 	testing::InitGoogleTest();
 	RUN_ALL_TESTS();
 	WindowHandle mainWindow = CreateOSWindow(OS_WINDOW_STYLE::MAIN, 250, 200, 250, 200, L"Unit Test Main Window");
+	Logger::EnableLogTypes(UINT32_MAX);
 
 	bool hasWindows = true;
 	InputEvent t_InputEvents[INPUT_EVENT_BUFFER_MAX]{};

@@ -2,7 +2,7 @@
 #include "Allocators/Allocators.h"
 #include "Utils/Utils.h"
 #include "Utils/Logger.h"
-
+#include <malloc.h>
 #include <type_traits>
 
 template <typename T>
@@ -17,8 +17,12 @@ namespace BB
 	//legacy code still used this, so we will just remain using this.
 	using LinearAllocator_t = allocators::LinearAllocator;
 	using FixedLinearAllocator_t = allocators::FixedLinearAllocator;
+	using StackAllocator_t = allocators::StackAllocator;
 	using FreelistAllocator_t = allocators::FreelistAllocator;
 	using POW_FreelistAllocator_t = allocators::POW_FreelistAllocator;
+
+//_alloca wrapper, does not require a free call.
+#define BBstackAlloc(a_Count, a_Type) (a_Type*)_alloca(a_Count * sizeof(a_Type))
 
 #define BBalloc(a_Allocator, a_Size) BB::BBalloc_f(BB_MEMORY_DEBUG_ARGS a_Allocator, a_Size, 1)
 #define BBnew(a_Allocator, a_Type) new (BB::BBalloc_f(BB_MEMORY_DEBUG_ARGS a_Allocator, sizeof(a_Type), __alignof(a_Type))) a_Type
@@ -26,6 +30,8 @@ namespace BB
 
 #define BBfree(a_Allocator, a_Ptr) BBfree_f(a_Allocator, a_Ptr)
 #define BBfreeArr(a_Allocator, a_Ptr) BBfreeArr_f(a_Allocator, a_Ptr)
+
+#define BBmemZero(a_Ptr, a_Size) memset(a_Ptr, 0, a_Size)
 
 #pragma region AllocationFunctions
 	//Use the BBnew or BBalloc function instead of this.
@@ -106,6 +112,19 @@ namespace BB
 
 			a_Allocator.func(BB_MEMORY_DEBUG_FREE a_Allocator.allocator, 0, 0, a_Ptr - t_HeaderSize);
 		}
+	}
+
+	inline void BBTagAlloc(Allocator a_Allocator, const void* a_Ptr, const char* a_TagName)
+	{
+		typedef allocators::BaseAllocator::AllocationLog AllocationLog;
+		AllocationLog* t_Log = reinterpret_cast<AllocationLog*>(Pointer::Subtract(a_Ptr, sizeof(AllocationLog)));
+		//do a check to see if the boundries are there, if yes. Then it's a 99.99999% chance this is a existing allocation using BB.
+		//not the same allocator tho, so bad usage of this will still bite you in the ass.
+		const uintptr_t back = reinterpret_cast<uintptr_t>(t_Log->back) + MEMORY_BOUNDRY_FRONT;
+		const uintptr_t front = reinterpret_cast<uintptr_t>(t_Log->front);
+		BB_ASSERT(back - front == t_Log->allocSize, "BBTagAlloc is not tagging a memory space allocated by a BB allocator");
+
+		t_Log->tagName = a_TagName;
 	}
 }
 #pragma endregion // AllocationFunctions

@@ -19,6 +19,8 @@ namespace BB
 	typedef void (*PFN_WindowResizeEvent)(const WindowHandle a_WindowHandle, const uint32_t a_X, const uint32_t a_Y);
 	typedef void (*PFN_WindowCloseEvent)(const WindowHandle a_WindowHandle);
 
+	using OSThreadHandle = FrameworkHandle<struct ThreadHandletag>;
+
 	enum class OS_WINDOW_STYLE
 	{
 		MAIN, //This window has a menu bar.
@@ -69,17 +71,20 @@ namespace BB
 
 	//char replaced with string view later on.
 	//handle is 0 if it failed to create the file, it will assert on failure.
+	OSFileHandle CreateOSFile(const char* a_FileName);
 	OSFileHandle CreateOSFile(const wchar* a_FileName);
 	//char replaced with string view later on.
 	//handle is 0 if it failed to load the file.
+	OSFileHandle LoadOSFile(const char* a_FileName);
 	OSFileHandle LoadOSFile(const wchar* a_FileName);
 	//char replaced with string view later on.
-	void WriteToFile(const OSFileHandle a_FileHandle, const Buffer& a_Buffer);
+	void WriteToOSFile(const OSFileHandle a_file_handle, const void* a_data, const size_t a_size);
 	//Reads a loaded file.
 	//Buffer.data will have a dynamic allocation from the given allocator.
 	Buffer ReadOSFile(Allocator a_SysAllocator, const OSFileHandle a_FileHandle);
 	//Reads an external file from path.
 	//Buffer.data will have a dynamic allocation from the given allocator.
+	Buffer ReadOSFile(Allocator a_SysAllocator, const char* a_Path);
 	Buffer ReadOSFile(Allocator a_SysAllocator, const wchar* a_Path);
 	//Get a file's size in bytes.
 	uint64_t GetOSFileSize(const OSFileHandle a_FileHandle);
@@ -87,6 +92,19 @@ namespace BB
 	void SetOSFilePosition(const OSFileHandle a_FileHandle, const uint32_t a_Offset, const OS_FILE_READ_POINT a_FileReadPoint);
 
 	void CloseOSFile(const OSFileHandle a_FileHandle);
+
+	OSThreadHandle OSCreateThread(void(*a_Func)(void*), const unsigned int a_StackSize, void* a_ArgList);
+	void OSWaitThreadfinish(const OSThreadHandle a_Thread);
+
+	BBMutex OSCreateMutex();
+	void OSWaitAndLockMutex(const BBMutex a_Mutex);
+	void OSUnlockMutex(const BBMutex a_Mutex);
+	void OSDestroyMutex(const BBMutex a_Mutex);
+
+	BBSemaphore OSCreateSemaphore(const uint32_t a_initial_count, const uint32_t a_maximum_count);
+	void OSWaitSemaphore(const BBSemaphore a_semaphore);
+	void OSSignalSemaphore(const BBSemaphore a_semaphore, const uint32_t a_signal_count);
+	void OSDestroySemaphore(const BBSemaphore a_Semaphore);
 
 	WindowHandle CreateOSWindow(const OS_WINDOW_STYLE a_Style, const int a_X, const int a_Y, const int a_Width, const int a_Height, const wchar* a_WindowName);
 	//Get the OS window handle (hwnd for windows as en example. Reinterpret_cast the void* to the hwnd).
